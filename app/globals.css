@@ -40,6 +40,18 @@ body {
     color: #101827;
 }
 
+.invitation-site[data-site-font="playfair"] * {
+  font-family: var(--font-serif), Georgia, serif !important;
+}
+
+.invitation-site[data-site-font="dm-sans"] * {
+  font-family: var(--font-sans), system-ui, sans-serif !important;
+}
+
+.invitation-site[data-site-font="georgia"] * {
+  font-family: Georgia, 'Times New Roman', serif !important;
+}
+
 
 
 @layer base {

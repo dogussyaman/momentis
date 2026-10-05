@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { MapPin, CalendarDays, Clock, Shirt, ChevronDown, Check, Gift, Music, Copy, Sparkles } from 'lucide-react'
+import QRCode from 'qrcode'
+import { MapPin, CalendarDays, Clock, Shirt, ChevronDown, Check, Gift, Music, Copy, Sparkles, QrCode, Download, UsersRound, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,6 +72,7 @@ function SparkleField({ color }) {
 export function InvitationSite({ project, template }) {
   const t = template || FALLBACK
   const p = project.palette || t.palette || FALLBACK.palette
+  const siteFont = project.website_font || 'playfair'
   const isDark = p.bg && parseInt(p.bg.replace('#', '').slice(0, 2), 16) < 100
   const type = getEventType(project.event_type)
   const names = [project.host_a, project.host_b].filter(Boolean)
@@ -82,45 +84,69 @@ export function InvitationSite({ project, template }) {
   const coverScale = useTransform(scrollYProgress, [0, 1], [1, 1.14])
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([project.venue, project.address, project.city].filter(Boolean).join(', '))}`
   const [deadlinePassed, setDeadlinePassed] = useState(false)
+  const [qrImage, setQrImage] = useState('')
+  const [shareUrl, setShareUrl] = useState('')
   useEffect(() => {
     setDeadlinePassed(project.rsvp_deadline ? new Date(`${project.rsvp_deadline}T23:59:59`) < new Date() : false)
   }, [project.rsvp_deadline])
   const spotifyEmbed = spotifyEmbedUrl(project.spotify_url)
+  useEffect(() => {
+    const url = `${window.location.origin}/d/${project.slug || 'ornek-davet'}`
+    setShareUrl(url)
+    if (project.qr_enabled === false) {
+      setQrImage('')
+      return
+    }
+    let active = true
+    QRCode.toDataURL(url, { width: 280, margin: 1, color: { dark: '#101827', light: '#FFFFFF' }, errorCorrectionLevel: 'H' })
+      .then((image) => { if (active) setQrImage(image) })
+      .catch(() => { if (active) setQrImage('') })
+    return () => { active = false }
+  }, [project.slug, project.qr_enabled])
+
+  const copyShareUrl = async () => {
+    try { await navigator.clipboard.writeText(shareUrl); toast.success('Davet sitesi bağlantısı kopyalandı') }
+    catch { toast.error('Bağlantı kopyalanamadı') }
+  }
   const copyIban = async () => {
     try { await navigator.clipboard.writeText((project.gift_iban || '').replace(/\s+/g, '')); toast.success('IBAN kopyalandı') } catch { toast.error('Kopyalanamadı') }
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: p.bg, color: p.text }} data-testid="invitation-site">
+    <div className="invitation-site min-h-screen" data-site-font={siteFont} style={{ backgroundColor: p.bg, color: p.text }} data-testid="invitation-site">
       {/* HERO */}
-      <section ref={heroRef} className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
-        {t.cover && (
-          <motion.img initial={{ scale: 1.1, opacity: 0 }} animate={{ scale: 1, opacity: isDark ? 0.45 : 0.22 }} transition={{ duration: 2.4, ease: EASE }} style={{ y: coverY, scale: coverScale }} src={t.cover} alt="" className="absolute inset-0 h-[120%] w-full object-cover will-change-transform" />
+      <section ref={heroRef} className="relative flex min-h-[88svh] flex-col items-center justify-center overflow-hidden px-4 text-center sm:min-h-screen sm:px-6">
+        {(project.hero_image || t.cover) && (
+          <motion.img initial={{ scale: 1.08, opacity: 0 }} animate={{ scale: 1, opacity: Math.min(100, Math.max(0, Number(project.hero_image_opacity ?? (isDark ? 45 : 22)))) / 100 }} transition={{ duration: 2.4, ease: EASE }} style={{ y: coverY, scale: coverScale }} src={project.hero_image || t.cover} alt="" className="absolute inset-0 h-[120%] w-full object-cover will-change-transform" />
         )}
-        <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${p.bg}22 0%, ${p.bg}AA 55%, ${p.bg} 100%)` }} />
+        <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${p.bg}33 0%, ${p.bg}99 58%, ${p.bg} 100%)` }} />
         <div className="pointer-events-none absolute inset-6 border md:inset-10" style={{ borderColor: `${p.accent}55` }} />
 
-        <div className="relative">
-          <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.4, ease: EASE }} className="text-[11px] uppercase tracking-[0.45em]" style={{ color: p.accent }}>{type?.greeting || 'Davetlisiniz'}</motion.p>
-          <h1 className="mt-8 font-serif leading-[1.02]" style={{ fontSize: 'clamp(2.75rem, 9vw, 7rem)' }}>
-            {names.map((n, i) => (
-              <span key={n} className="block overflow-hidden">
-                <motion.span initial={{ y: '110%' }} animate={{ y: 0 }} transition={{ duration: 1.1, delay: 0.6 + i * 0.2, ease: EASE }} className="block" data-testid={`hero-name-${i}`}>{i === 1 && <span className="mr-4 font-serif italic" style={{ color: p.accent }}>&amp;</span>}{n}</motion.span>
-              </span>
-            ))}
-          </h1>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 1.3 }} className="mt-10 space-y-2">
-            <div className="mx-auto h-px w-12" style={{ backgroundColor: p.accent }} />
-            <p className="text-sm uppercase tracking-[0.28em]" data-testid="hero-date">{formatEventDate(project.date, project.time)}</p>
-            {project.venue && <p className="text-sm" style={{ color: p.muted }}>{[project.venue, project.city].filter(Boolean).join(', ')}</p>}
+        <div className="relative mt-12 w-full px-2 sm:mt-16 sm:px-0">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.4, ease: EASE }}>
+            <motion.span initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.6 }} className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] backdrop-blur-sm sm:mb-7 sm:px-4 sm:text-[10px]" style={{ borderColor: `${p.accent}66`, backgroundColor: `${p.bg}AA`, color: p.accent }}>
+              <CalendarDays className="h-3 w-3" /> {type?.label || 'Özel davet'}
+            </motion.span>
+            <p className="text-[10px] uppercase tracking-[0.32em] sm:text-xs sm:tracking-[0.45em]" style={{ color: p.accent }}>{type?.greeting || 'Davetlisiniz'}</p>
+            <h1 className="mx-auto mt-6 max-w-4xl text-balance font-serif text-4xl leading-tight sm:mt-8 sm:text-6xl md:text-7xl">
+              {[project.host_a, project.host_b].filter(Boolean).join(' & ') || 'Özel Günümüz'}
+            </h1>
+            <div className="mx-auto my-6 h-px w-14 sm:my-8 sm:w-20" style={{ backgroundColor: p.accent }} />
+            <p className="text-sm sm:text-base" style={{ color: p.muted }}>{formatEventDate(project.date, project.time)}</p>
+            {(project.venue || project.city || project.address) && <div className="mx-auto mt-5 flex max-w-2xl flex-wrap justify-center gap-2 sm:mt-6 sm:gap-2.5">
+              {project.venue && <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] leading-tight backdrop-blur-md sm:px-4 sm:py-2 sm:text-xs" style={{ borderColor: `${p.accent}55`, backgroundColor: `${p.bg}B8`, color: p.text }}><MapPin className="h-3 w-3 shrink-0" style={{ color: p.accent }} /><span className="truncate">{project.venue}</span></span>}
+              {project.city && <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] leading-tight backdrop-blur-md sm:px-4 sm:py-2 sm:text-xs" style={{ borderColor: `${p.accent}55`, backgroundColor: `${p.bg}B8`, color: p.text }}><span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: p.accent }} /><span className="truncate">{project.city}</span></span>}
+              {project.address && <a href={mapsUrl} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] leading-tight backdrop-blur-md transition-colors hover:bg-white/70 sm:px-4 sm:py-2 sm:text-xs" style={{ borderColor: `${p.accent}55`, backgroundColor: `${p.bg}B8`, color: p.text }}><MapPin className="h-3 w-3 shrink-0" style={{ color: p.accent }} /><span className="truncate">{project.address}</span></a>}
+            </div>}
+            <a href="#detaylar" className="mt-8 inline-flex min-h-10 items-center rounded-full border px-5 text-[10px] uppercase tracking-[0.2em] transition-colors sm:mt-10 sm:min-h-11 sm:px-6" style={{ borderColor: `${p.accent}88`, color: p.text }}>Etkinlik detayları</a>
           </motion.div>
         </div>
-        <motion.a href="#detaylar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }} className="absolute bottom-10 flex flex-col items-center gap-2 text-[10px] uppercase tracking-[0.3em]" style={{ color: p.muted }}>Kaydır <ChevronDown className="h-4 w-4 animate-bounce" /></motion.a>
+        <motion.a href="#detaylar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }} className="absolute bottom-5 flex flex-col items-center gap-1.5 text-[9px] uppercase tracking-[0.25em] sm:bottom-8 sm:gap-2 sm:text-[10px] sm:tracking-[0.3em]" style={{ color: p.muted }}>Kaydır <ChevronDown className="h-4 w-4 animate-bounce" /></motion.a>
       </section>
 
       {/* COUNTDOWN */}
       {countdown && (
-        <section className="relative overflow-hidden px-6 py-20" data-testid="countdown-section">
+        <section className="relative overflow-hidden px-4 py-12 sm:px-6 sm:py-16 md:py-20" data-testid="countdown-section">
           {(isNear || countdown.passed) && <SparkleField color={p.accent} />}
           <div className="relative mx-auto max-w-3xl">
             {countdown.passed ? (
@@ -129,7 +155,7 @@ export function InvitationSite({ project, template }) {
                   <Sparkles className="h-7 w-7 fill-current" />
                 </motion.div>
                 <p className="mt-6 text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}>Nihayet</p>
-                <h2 className="mt-4 font-serif text-4xl md:text-5xl">Bugün büyük gün!</h2>
+                <h2 className="mt-4 font-serif text-3xl sm:text-4xl md:text-5xl">Bugün büyük gün!</h2>
               </Reveal>
             ) : (
               <>
@@ -145,17 +171,17 @@ export function InvitationSite({ project, template }) {
                     </motion.span>
                   </Reveal>
                 )}
-                <Reveal className="grid grid-cols-4 gap-4 text-center" data-testid="countdown">
+                <Reveal className="grid grid-cols-4 gap-2 text-center sm:gap-4" data-testid="countdown">
                   {[['Gün', countdown.days], ['Saat', countdown.hours], ['Dakika', countdown.minutes], ['Saniye', countdown.seconds]].map(([l, v], i) => (
                     <motion.div
                       key={l}
-                      className="rounded-2xl border py-6"
+                      className="rounded-xl border py-4 sm:rounded-2xl sm:py-6"
                       style={{ borderColor: isNear ? `${p.accent}99` : `${p.accent}44`, boxShadow: isNear ? `0 18px 48px -22px ${p.accent}` : 'none' }}
                       animate={isNear ? { y: [0, -4, 0] } : {}}
                       transition={isNear ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.18 } : {}}
                     >
-                      <p className="font-serif text-4xl md:text-5xl">{v === null ? '--' : String(v).padStart(2, '0')}</p>
-                      <p className="mt-2 text-[10px] uppercase tracking-[0.3em]" style={{ color: p.muted }}>{l}</p>
+                      <p className="font-serif text-2xl sm:text-4xl md:text-5xl">{v === null ? '--' : String(v).padStart(2, '0')}</p>
+                      <p className="mt-1 text-[8px] uppercase tracking-[0.16em] sm:mt-2 sm:text-[10px] sm:tracking-[0.3em]" style={{ color: p.muted }}>{l}</p>
                     </motion.div>
                   ))}
                 </Reveal>
@@ -167,23 +193,42 @@ export function InvitationSite({ project, template }) {
 
       {/* STORY */}
       {project.story && (
-        <section className="px-6 py-20">
+        <section className="px-4 py-12 sm:px-6 sm:py-16 md:py-20">
           <Reveal className="mx-auto max-w-2xl text-center">
             <p className="text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}>Hikâyemiz</p>
-            <p className="mt-8 font-serif text-2xl leading-relaxed md:text-3xl" data-testid="story">{project.story}</p>
+            <p className="mt-6 font-serif text-xl leading-relaxed sm:mt-8 sm:text-2xl md:text-3xl" data-testid="story">{project.story}</p>
           </Reveal>
         </section>
       )}
 
       {/* DETAILS */}
-      <section id="detaylar" className="px-6 py-20">
+      <section id="detaylar" className="px-4 py-12 sm:px-6 sm:py-16 md:py-20">
         <div className="mx-auto max-w-4xl">
-          <Reveal className="text-center"><p className="text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}>Detaylar</p><h2 className="mt-6 font-serif text-4xl md:text-5xl">Sizi aramızda görmek istiyoruz</h2></Reveal>
-          <div className="mt-14 grid gap-px md:grid-cols-3" style={{ backgroundColor: `${p.accent}33` }}>
+          <Reveal className="text-center"><p className="text-[10px] uppercase tracking-[0.3em] sm:text-[11px] sm:tracking-[0.4em]" style={{ color: p.accent }}>Detaylar</p><h2 className="mt-4 font-serif text-3xl sm:mt-6 sm:text-4xl md:text-5xl">Sizi aramızda görmek istiyoruz</h2></Reveal>
+          <div className="mt-8 grid gap-px sm:mt-14 md:grid-cols-3" style={{ backgroundColor: `${p.accent}33` }}>
             <Detail icon={CalendarDays} label="Tarih" value={project.date ? new Date(`${project.date}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' }) : '—'} p={p} />
             <Detail icon={Clock} label="Saat" value={project.time || '—'} p={p} />
             <Detail icon={MapPin} label="Mekân" value={project.venue || '—'} sub={[project.address, project.city].filter(Boolean).join(', ')} link={project.venue ? { href: mapsUrl, label: 'Yol tarifi al' } : null} p={p} />
           </div>
+          {(project.bride_mother || project.bride_father || project.groom_mother || project.groom_father) && (
+            <Reveal className="mt-8 rounded-2xl border p-5 sm:mt-10 sm:rounded-3xl sm:p-7" style={{ borderColor: `${p.accent}44`, backgroundColor: `${p.accent}08` }}>
+              <div className="mb-5 flex items-center justify-center gap-2 text-center">
+                <UsersRound className="h-4 w-4" style={{ color: p.accent }} />
+                <h3 className="font-serif text-xl sm:text-2xl">Ailelerimiz</h3>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[[project.host_a, project.bride_mother, project.bride_father], [project.host_b, project.groom_mother, project.groom_father]].map(([person, mother, father], index) => (person || mother || father) && (
+                  <div key={index} className="rounded-xl border p-4 sm:rounded-2xl sm:p-5" style={{ borderColor: `${p.accent}33`, backgroundColor: p.bg }}>
+                    <p className="mb-3 text-center font-serif text-lg">{person || (index === 0 ? 'Gelin ailesi' : 'Damat ailesi')}</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {mother && <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] sm:text-xs" style={{ borderColor: `${p.accent}44`, color: p.text }}><UserRound className="h-3 w-3" style={{ color: p.accent }} /> Anne · {mother}</span>}
+                      {father && <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] sm:text-xs" style={{ borderColor: `${p.accent}44`, color: p.text }}><UserRound className="h-3 w-3" style={{ color: p.accent }} /> Baba · {father}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          )}
           {project.dress_code && <Reveal className="mt-10 flex items-center justify-center gap-3 text-sm"><Shirt className="h-4 w-4" style={{ color: p.accent }} /> <span style={{ color: p.muted }}>Kıyafet:</span> {project.dress_code}</Reveal>}
           <Reveal><InviteActions project={project} p={p} /></Reveal>
         </div>
@@ -191,14 +236,14 @@ export function InvitationSite({ project, template }) {
 
       {/* PROGRAM */}
       {project.program?.length > 0 && (
-        <section className="px-6 py-20">
+        <section className="px-4 py-12 sm:px-6 sm:py-16 md:py-20">
           <div className="mx-auto max-w-2xl">
             <Reveal className="text-center"><p className="text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}>Program</p></Reveal>
-            <ol className="mt-12 space-y-6">
+            <ol className="mt-8 space-y-4 sm:mt-12 sm:space-y-6">
               {project.program.map((item, i) => (
-                <Reveal key={i} delay={i * 0.06} className="flex items-baseline gap-6 border-b pb-6" style={{ borderColor: `${p.accent}33` }}>
-                  <span className="w-16 shrink-0 font-serif text-xl" style={{ color: p.accent }}>{item.time}</span>
-                  <span className="text-lg">{item.title}</span>
+                <Reveal key={i} delay={i * 0.06} className="flex items-baseline gap-4 border-b pb-4 sm:gap-6 sm:pb-6" style={{ borderColor: `${p.accent}33` }}>
+                  <span className="w-14 shrink-0 font-serif text-lg sm:w-16 sm:text-xl" style={{ color: p.accent }}>{item.time}</span>
+                  <span className="text-base sm:text-lg">{item.title}</span>
                 </Reveal>
               ))}
             </ol>
@@ -208,11 +253,11 @@ export function InvitationSite({ project, template }) {
 
       {/* SPOTIFY */}
       {spotifyEmbed && (
-        <section className="px-6 py-20" data-testid="spotify-section">
+        <section className="px-4 py-12 sm:px-6 sm:py-16 md:py-20" data-testid="spotify-section">
           <Reveal className="mx-auto max-w-2xl text-center">
             <p className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}><Music className="h-3.5 w-3.5" /> Gecenin Sesi</p>
-            <h2 className="mt-6 font-serif text-4xl md:text-5xl">Çalma listemiz</h2>
-            <div className="mt-10 overflow-hidden rounded-3xl shadow-[0_30px_60px_-28px_rgba(16,24,39,0.5)]">
+            <h2 className="mt-4 font-serif text-3xl sm:mt-6 sm:text-4xl md:text-5xl">Çalma listemiz</h2>
+            <div className="mt-6 overflow-hidden rounded-2xl shadow-[0_30px_60px_-28px_rgba(16,24,39,0.5)] sm:mt-10 sm:rounded-3xl">
               <iframe title="Spotify" src={spotifyEmbed} width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ display: 'block', border: 0 }} />
             </div>
             <a href={project.spotify_url} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] underline-offset-4 hover:underline" style={{ color: p.accent }}>
@@ -224,13 +269,13 @@ export function InvitationSite({ project, template }) {
 
       {/* GIFT */}
       {project.gift_enabled && (
-        <section id="hediye" className="px-6 py-20" data-testid="gift-section">
+        <section id="hediye" className="px-4 py-12 sm:px-6 sm:py-16 md:py-20" data-testid="gift-section">
           <Reveal className="mx-auto max-w-xl text-center">
             <p className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}><Gift className="h-3.5 w-3.5" /> Hediye</p>
-            <h2 className="mt-6 font-serif text-4xl md:text-5xl">Hediye tercihi</h2>
+            <h2 className="mt-4 font-serif text-3xl sm:mt-6 sm:text-4xl md:text-5xl">Hediye tercihi</h2>
             {project.gift_message && <p className="mx-auto mt-6 max-w-md text-sm leading-relaxed" style={{ color: p.muted }}>{project.gift_message}</p>}
             {(project.gift_iban || project.gift_account_name) && (
-              <div className="mx-auto mt-10 rounded-3xl border p-7 text-left" style={{ borderColor: `${p.accent}55` }}>
+              <div className="mx-auto mt-6 rounded-2xl border p-5 text-left sm:mt-10 sm:rounded-3xl sm:p-7" style={{ borderColor: `${p.accent}55` }}>
                 {project.gift_account_name && (
                   <div className="mb-4">
                     <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Hesap Sahibi</p>
@@ -258,14 +303,14 @@ export function InvitationSite({ project, template }) {
       )}
 
       {/* RSVP */}
-      <section id="rsvp" className="px-6 py-24">
+      <section id="rsvp" className="px-4 py-16 sm:px-6 sm:py-20 md:py-24">
         <div className="mx-auto max-w-xl">
           <Reveal className="text-center">
             <p className="text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}>RSVP</p>
-            <h2 className="mt-6 font-serif text-4xl md:text-5xl">Katılımınızı bildirin</h2>
+            <h2 className="mt-4 font-serif text-3xl sm:mt-6 sm:text-4xl md:text-5xl">Katılımınızı bildirin</h2>
             {project.rsvp_deadline && <p className="mt-4 text-sm" style={{ color: p.muted }}>Lütfen {new Date(`${project.rsvp_deadline}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} tarihine kadar yanıtlayın.</p>}
           </Reveal>
-          <Reveal delay={0.1} className="mt-12">
+          <Reveal delay={0.1} className="mt-8 sm:mt-12">
             {deadlinePassed ? <p className="text-center" style={{ color: p.muted }}>RSVP süresi sona erdi. Sorularınız için ev sahipleriyle iletişime geçebilirsiniz.</p> : <RsvpForm project={project} p={p} isDark={isDark} />}
           </Reveal>
         </div>
@@ -273,7 +318,27 @@ export function InvitationSite({ project, template }) {
 
       {project.album_enabled !== false && <AlbumSection project={project} p={p} isDark={isDark} />}
 
-      <footer className="px-6 py-12 text-center">
+      {project.qr_enabled !== false && (
+        <section className="px-4 py-12 sm:px-6 sm:py-16 md:py-20" data-testid="site-qr-section">
+          <Reveal className="mx-auto grid max-w-4xl items-center gap-8 rounded-[1.5rem] border p-5 sm:gap-10 sm:rounded-[2rem] sm:p-8 md:grid-cols-[1fr_auto] md:p-10" style={{ borderColor: `${p.accent}55`, backgroundColor: `${p.accent}0A` }}>
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[9px] font-medium uppercase tracking-[0.2em] sm:text-[10px]" style={{ backgroundColor: `${p.accent}22`, color: p.accent }}><QrCode className="h-3.5 w-3.5" /> Kolay paylaşım</span>
+              <h2 className="mt-4 font-serif text-2xl sm:mt-5 sm:text-3xl md:text-4xl">Davet sayfasına hızlıca ulaşın</h2>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: p.muted }}>{project.qr_message || 'Bu QR kodunu paylaşarak davet sayfasına hızlıca ulaşabilirsiniz.'}</p>
+              <p className="mt-3 break-all text-xs" style={{ color: p.muted }}>{shareUrl}</p>
+              <div className="mt-5 flex flex-wrap gap-2.5">
+                <button type="button" onClick={copyShareUrl} className="inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[10px] font-medium uppercase tracking-[0.16em] transition-transform hover:-translate-y-0.5 sm:min-h-11 sm:px-5" style={{ backgroundColor: p.accent, color: p.bg }}><Copy className="h-3.5 w-3.5" /> Bağlantıyı kopyala</button>
+                {qrImage && <a href={qrImage} download={`${project.slug || 'davet'}-qr.png`} className="inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-[10px] font-medium uppercase tracking-[0.16em] transition-colors hover:bg-white/50 sm:min-h-11 sm:px-5" style={{ borderColor: `${p.accent}66`, color: p.text }}><Download className="h-3.5 w-3.5" /> QR indir</a>}
+              </div>
+            </div>
+            <div className="mx-auto rounded-2xl bg-white p-3 shadow-[0_18px_50px_-25px_rgba(16,24,39,0.4)] sm:p-4">
+              {qrImage ? <img src={qrImage} alt="Davet sayfası QR kodu" className="h-36 w-36 sm:h-44 sm:w-44" /> : <div className="flex h-36 w-36 items-center justify-center sm:h-44 sm:w-44"><QrCode className="h-16 w-16" style={{ color: p.accent }} /></div>}
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      <footer className="px-4 py-10 text-center sm:px-6 sm:py-12">
         <div className="mx-auto mb-6 h-px w-12" style={{ backgroundColor: p.accent }} />
         <p className="font-serif text-2xl">{names.join(' & ')}</p>
         <a href="/" className="mt-6 inline-block text-[10px] uppercase tracking-[0.35em]" style={{ color: p.muted }}>Momentis ile hazırlandı</a>
@@ -284,10 +349,10 @@ export function InvitationSite({ project, template }) {
 
 function Detail({ icon: Icon, label, value, sub, link, p }) {
   return (
-    <Reveal className="p-8 text-center" style={{ backgroundColor: p.bg }}>
-      <Icon className="mx-auto h-5 w-5" strokeWidth={1.4} style={{ color: p.accent }} />
-      <p className="mt-4 text-[10px] uppercase tracking-[0.3em]" style={{ color: p.muted }}>{label}</p>
-      <p className="mt-2 font-serif text-xl">{value}</p>
+    <Reveal className="p-5 text-center sm:p-8" style={{ backgroundColor: p.bg }}>
+      <Icon className="mx-auto h-4 w-4 sm:h-5 sm:w-5" strokeWidth={1.4} style={{ color: p.accent }} />
+      <p className="mt-3 text-[9px] uppercase tracking-[0.2em] sm:mt-4 sm:text-[10px] sm:tracking-[0.3em]" style={{ color: p.muted }}>{label}</p>
+      <p className="mt-2 break-words font-serif text-lg sm:text-xl">{value}</p>
       {sub && <p className="mt-1 text-sm" style={{ color: p.muted }}>{sub}</p>}
       {link && <a href={link.href} target="_blank" rel="noreferrer" className="mt-3 inline-block border-b text-[11px] uppercase tracking-[0.2em]" style={{ borderColor: p.accent, color: p.accent }}>{link.label}</a>}
     </Reveal>
