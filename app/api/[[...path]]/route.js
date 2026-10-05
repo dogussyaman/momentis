@@ -7,6 +7,9 @@ import { EVENT_TYPES, TEMPLATE_STYLES } from '@/lib/data/events'
 import { MESSAGE_TYPES, isValidEmail, toE164, buildContext } from '@/lib/messaging/shared'
 import { isEmailConfigured, getEmailSender, sendEmail, buildEmail } from '@/lib/messaging/email'
 import { isSmsConfigured, getSmsSender, sendSms, buildSms } from '@/lib/messaging/sms'
+import { getCurrentUser } from '@/lib/auth'
+import { handleAuthRoutes } from '@/lib/api/auth-routes'
+import { handleProjectRoutes, handlePublicRoutes } from '@/lib/api/project-routes'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -50,6 +53,13 @@ async function handleRoute(request, { params }) {
 
   try {
     const db = await connectToMongo()
+
+    // Auth / projects / public modules
+    const user = await getCurrentUser(request, db).catch(() => null)
+    const ctx = { db, route, path, method, request, user }
+    if (path[0] === 'projects' || path[0] === 'public') await ensureTemplatesSeeded(db)
+    const modular = (await handleAuthRoutes(ctx)) || (await handleProjectRoutes(ctx)) || (await handlePublicRoutes(ctx))
+    if (modular) return handleCORS(modular)
 
     // Health / root
     if ((route === '/' || route === '/root' || route === '/health') && method === 'GET') {

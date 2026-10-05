@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Logo } from '@/components/shared/logo'
 import { NAV_LINKS } from '@/lib/data/site'
+import { useAuth } from '@/components/auth/auth-provider'
 import { cn } from '@/lib/utils'
 
 export function Navbar() {
   const pathname = usePathname()
+  const { user } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
 
@@ -53,12 +55,20 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button asChild variant="ghost" className={cn('text-[13px] uppercase tracking-[0.16em]', overHero ? 'text-ivory hover:bg-ivory/10 hover:text-ivory' : 'text-midnight hover:bg-midnight/5')}>
-            <Link href="/giris" data-testid="nav-login">Giriş Yap</Link>
-          </Button>
-          <Button asChild className="rounded-none bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
-            <Link href="/kayit" data-testid="nav-register">Hemen Başla</Link>
-          </Button>
+          {user ? (
+            <Button asChild className="rounded-none bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+              <Link href="/panel" data-testid="nav-panel">Panelim</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost" className={cn('text-[13px] uppercase tracking-[0.16em]', overHero ? 'text-ivory hover:bg-ivory/10 hover:text-ivory' : 'text-midnight hover:bg-midnight/5')}>
+                <Link href="/giris" data-testid="nav-login">Giriş Yap</Link>
+              </Button>
+              <Button asChild className="rounded-none bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+                <Link href="/kayit" data-testid="nav-register">Hemen Başla</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
@@ -79,12 +89,20 @@ export function Navbar() {
                 ))}
               </nav>
               <div className="mt-auto flex flex-col gap-3 pb-8">
-                <Button asChild variant="outline" className="rounded-none border-midnight uppercase tracking-[0.16em]">
-                  <Link href="/giris" onClick={() => setOpen(false)}>Giriş Yap</Link>
-                </Button>
-                <Button asChild className="rounded-none bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
-                  <Link href="/kayit" onClick={() => setOpen(false)}>Hemen Başla</Link>
-                </Button>
+                {user ? (
+                  <Button asChild className="rounded-none bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+                    <Link href="/panel" onClick={() => setOpen(false)}>Panelim</Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild variant="outline" className="rounded-none border-midnight uppercase tracking-[0.16em]">
+                      <Link href="/giris" onClick={() => setOpen(false)}>Giriş Yap</Link>
+                    </Button>
+                    <Button asChild className="rounded-none bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+                      <Link href="/kayit" onClick={() => setOpen(false)}>Hemen Başla</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </SheetContent>
