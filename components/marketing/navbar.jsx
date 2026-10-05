@@ -56,7 +56,7 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           {user ? (
-            <Button asChild className="rounded-none bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+            <Button asChild className="rounded-2xl bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
               <Link href="/panel" data-testid="nav-panel">Panelim</Link>
             </Button>
           ) : (
@@ -64,7 +64,7 @@ export function Navbar() {
               <Button asChild variant="ghost" className={cn('text-[13px] uppercase tracking-[0.16em]', overHero ? 'text-ivory hover:bg-ivory/10 hover:text-ivory' : 'text-midnight hover:bg-midnight/5')}>
                 <Link href="/giris" data-testid="nav-login">Giriş Yap</Link>
               </Button>
-              <Button asChild className="rounded-none bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+              <Button asChild className="rounded-2xl bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
                 <Link href="/kayit" data-testid="nav-register">Hemen Başla</Link>
               </Button>
             </>
@@ -90,15 +90,15 @@ export function Navbar() {
               </nav>
               <div className="mt-auto flex flex-col gap-3 pb-8">
                 {user ? (
-                  <Button asChild className="rounded-none bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+                  <Button asChild className="rounded-2xl bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
                     <Link href="/panel" onClick={() => setOpen(false)}>Panelim</Link>
                   </Button>
                 ) : (
                   <>
-                    <Button asChild variant="outline" className="rounded-none border-midnight uppercase tracking-[0.16em]">
+                    <Button asChild variant="outline" className="rounded-2xl border-midnight uppercase tracking-[0.16em]">
                       <Link href="/giris" onClick={() => setOpen(false)}>Giriş Yap</Link>
                     </Button>
-                    <Button asChild className="rounded-none bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
+                    <Button asChild className="rounded-2xl bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
                       <Link href="/kayit" onClick={() => setOpen(false)}>Hemen Başla</Link>
                     </Button>
                   </>

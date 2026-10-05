@@ -82,10 +82,10 @@ export function TemplateGallery() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tasarım ara…" className="h-10 w-full rounded-none border-border bg-transparent pl-9 sm:w-56" data-testid="template-search" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tasarım ara…" className="h-10 w-full rounded-2xl border-border bg-transparent pl-9 sm:w-56" data-testid="template-search" />
           </div>
           <Select value={style} onValueChange={setStyle}>
-            <SelectTrigger className="h-10 w-full rounded-none border-border bg-transparent sm:w-40" data-testid="filter-style">
+            <SelectTrigger className="h-10 w-full rounded-2xl border-border bg-transparent sm:w-40" data-testid="filter-style">
               <SlidersHorizontal className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue placeholder="Stil" />
             </SelectTrigger>
@@ -95,7 +95,7 @@ export function TemplateGallery() {
             </SelectContent>
           </Select>
           <Select value={tier} onValueChange={setTier}>
-            <SelectTrigger className="h-10 w-full rounded-none border-border bg-transparent sm:w-36" data-testid="filter-tier">
+            <SelectTrigger className="h-10 w-full rounded-2xl border-border bg-transparent sm:w-36" data-testid="filter-tier">
               <SelectValue placeholder="Paket" />
             </SelectTrigger>
             <SelectContent>
@@ -115,7 +115,7 @@ export function TemplateGallery() {
 
       {loading ? (
         <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-none" />)}
+          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />)}
         </div>
       ) : items.length === 0 && !error ? (
         <div className="mt-20 text-center" data-testid="template-empty">

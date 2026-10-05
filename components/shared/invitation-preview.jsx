@@ -10,7 +10,7 @@ export function InvitationPreview({ template, names = { a: 'Elif', b: 'Kaan' }, 
 
   return (
     <div
-      className={cn('relative aspect-[3/4] w-full select-none overflow-hidden rounded-sm shadow-[0_40px_80px_-20px_rgba(16,24,39,0.45)]', className)}
+      className={cn('relative aspect-[3/4] w-full select-none overflow-hidden rounded-2xl shadow-[0_40px_80px_-20px_rgba(16,24,39,0.45)]', className)}
       style={{ backgroundColor: p.bg, color: p.text }}
       data-testid="invitation-preview"
     >

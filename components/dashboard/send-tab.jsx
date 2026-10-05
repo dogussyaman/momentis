@@ -65,7 +65,7 @@ export function SendTab({ projectId, project, onSent }) {
 
           <p className="mt-8 text-[11px] uppercase tracking-[0.3em] text-champagne-dark">Mesaj Türü</p>
           <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="mt-3 h-11 rounded-none border-border bg-ivory-50" data-testid="send-type"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="mt-3 h-11 rounded-2xl border-border bg-ivory-50" data-testid="send-type"><SelectValue /></SelectTrigger>
             <SelectContent>{Object.entries(TYPE_LABELS).filter(([k]) => k !== 'rsvp').map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
           </Select>
 
@@ -82,11 +82,11 @@ export function SendTab({ projectId, project, onSent }) {
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button disabled={sending || !configured || !eligible.length || !project?.published} className="mt-6 h-12 w-full rounded-none bg-champagne text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne-light" data-testid="bulk-send-button"><Send className="mr-2 h-4 w-4" /> {sending ? 'Gönderiliyor…' : `${eligible.length} Kişiye Gönder`}</Button>
+              <Button disabled={sending || !configured || !eligible.length || !project?.published} className="mt-6 h-12 w-full rounded-2xl bg-champagne text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne-light" data-testid="bulk-send-button"><Send className="mr-2 h-4 w-4" /> {sending ? 'Gönderiliyor…' : `${eligible.length} Kişiye Gönder`}</Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-none">
+            <AlertDialogContent className="rounded-2xl">
               <AlertDialogHeader><AlertDialogTitle className="font-serif text-2xl">{TYPE_LABELS[type]} gönderilsin mi?</AlertDialogTitle><AlertDialogDescription>{eligible.length} davetliye {channel === 'email' ? 'e-posta' : 'SMS'} gönderilecek. Gönderim birkaç saniye sürebilir.</AlertDialogDescription></AlertDialogHeader>
-              <AlertDialogFooter><AlertDialogCancel className="rounded-none">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={send} className="rounded-none bg-midnight text-ivory hover:bg-midnight-700" data-testid="confirm-bulk-send">Gönder</AlertDialogAction></AlertDialogFooter>
+              <AlertDialogFooter><AlertDialogCancel className="rounded-2xl">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={send} className="rounded-2xl bg-midnight text-ivory hover:bg-midnight-700" data-testid="confirm-bulk-send">Gönder</AlertDialogAction></AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
           {!project?.published && <p className="mt-3 text-xs text-muted-foreground">Gönderim için davetiyenin yayında olması gerekir.</p>}
@@ -116,8 +116,8 @@ export function SendTab({ projectId, project, onSent }) {
               {l.status === 'failed' ? <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage" />}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.15em]">{l.channel === 'email' ? 'E-posta' : 'SMS'}</Badge>
-                  <Badge variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.15em]">{TYPE_LABELS[l.type] || l.type}</Badge>
+                  <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-[0.15em]">{l.channel === 'email' ? 'E-posta' : 'SMS'}</Badge>
+                  <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-[0.15em]">{TYPE_LABELS[l.type] || l.type}</Badge>
                   <span className="text-midnight">{l.guest_name}</span>
                   <span className="truncate text-muted-foreground">{l.to}</span>
                 </div>

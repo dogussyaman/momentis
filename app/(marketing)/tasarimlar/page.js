@@ -19,7 +19,7 @@ export default function TemplatesPage() {
           <p className="mt-6 max-w-xl text-lg text-muted-foreground">Her tasarım, renkleri ve bloklarıyla tamamen özelleştirilebilir. Etkinlik türünüze göre filtreleyin.</p>
         </div>
         <div className="mt-14">
-          <Suspense fallback={<Skeleton className="h-[60vh] rounded-none" />}>
+          <Suspense fallback={<Skeleton className="h-[60vh] rounded-2xl" />}>
             <TemplateGallery />
           </Suspense>
         </div>

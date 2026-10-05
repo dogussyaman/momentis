@@ -39,7 +39,7 @@ export function NewsletterForm({ source = 'footer' }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="E-posta adresiniz"
-        className="h-10 rounded-none border-0 bg-transparent px-0 text-ivory placeholder:text-ivory/40 focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="h-10 rounded-2xl border-0 bg-transparent px-0 text-ivory placeholder:text-ivory/40 focus-visible:ring-0 focus-visible:ring-offset-0"
         data-testid="newsletter-email"
       />
       <Button type="submit" variant="ghost" size="icon" disabled={loading} className="text-champagne hover:bg-transparent hover:text-champagne-light" aria-label="Abone ol" data-testid="newsletter-submit">

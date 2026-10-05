@@ -22,7 +22,7 @@ const DEFAULTS = {
   invitationUrl: '',
 }
 
-const inputCls = 'h-11 rounded-none border-border bg-ivory-50'
+const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 
 export function MessagingTester() {
   const [status, setStatus] = useState(null)
@@ -95,9 +95,9 @@ export function MessagingTester() {
 
         <form onSubmit={onSend} className="mt-8 space-y-6 border border-border bg-ivory p-8">
           <Tabs value={channel} onValueChange={setChannel}>
-            <TabsList className="grid h-11 w-full grid-cols-2 rounded-none bg-ivory-200 p-1">
-              <TabsTrigger value="email" className="rounded-none text-[11px] uppercase tracking-[0.2em] data-[state=active]:bg-midnight data-[state=active]:text-ivory" data-testid="channel-email">E-posta</TabsTrigger>
-              <TabsTrigger value="sms" className="rounded-none text-[11px] uppercase tracking-[0.2em] data-[state=active]:bg-midnight data-[state=active]:text-ivory" data-testid="channel-sms">SMS</TabsTrigger>
+            <TabsList className="grid h-11 w-full grid-cols-2 rounded-2xl bg-ivory-200 p-1">
+              <TabsTrigger value="email" className="rounded-2xl text-[11px] uppercase tracking-[0.2em] data-[state=active]:bg-midnight data-[state=active]:text-ivory" data-testid="channel-email">E-posta</TabsTrigger>
+              <TabsTrigger value="sms" className="rounded-2xl text-[11px] uppercase tracking-[0.2em] data-[state=active]:bg-midnight data-[state=active]:text-ivory" data-testid="channel-sms">SMS</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -129,7 +129,7 @@ export function MessagingTester() {
             <Field label="Davetiye Bağlantısı" value={form.invitationUrl} onChange={update('invitationUrl')} testid="invitation-url" className="sm:col-span-2" />
           </div>
 
-          <Button type="submit" disabled={sending || !channelConfigured} className="h-12 w-full rounded-none bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="send-button">
+          <Button type="submit" disabled={sending || !channelConfigured} className="h-12 w-full rounded-2xl bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="send-button">
             {sending ? 'Gönderiliyor…' : <><Send className="mr-2 h-4 w-4" /> {channel === 'email' ? 'Test E-postası Gönder' : 'Test SMS Gönder'}</>}
           </Button>
           {!channelConfigured && <p className="text-center text-xs text-destructive" data-testid="not-configured">Bu kanal henüz yapılandırılmadı. .env dosyasına kimlik bilgilerini ekleyin.</p>}
@@ -164,8 +164,8 @@ export function MessagingTester() {
               {l.status === 'failed' ? <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /> : l.status === 'sent' || l.status === 'delivered' ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sage" /> : <Clock className="mt-0.5 h-4 w-4 shrink-0 text-champagne" />}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.15em]">{l.channel === 'email' ? 'E-posta' : 'SMS'}</Badge>
-                  <Badge variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.15em]">{TYPE_LABELS[l.type] || l.type}</Badge>
+                  <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-[0.15em]">{l.channel === 'email' ? 'E-posta' : 'SMS'}</Badge>
+                  <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-[0.15em]">{TYPE_LABELS[l.type] || l.type}</Badge>
                   <span className="truncate text-midnight">{l.to}</span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">

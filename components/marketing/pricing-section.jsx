@@ -38,7 +38,7 @@ export function PricingSection({ showHeading = true }) {
                   </li>
                 ))}
               </ul>
-              <Button asChild className={cn('mt-10 h-12 rounded-none text-[12px] uppercase tracking-[0.2em]', pkg.highlighted ? 'bg-champagne text-midnight hover:bg-champagne-light' : 'bg-midnight text-ivory hover:bg-midnight-700')}>
+              <Button asChild className={cn('mt-10 h-12 rounded-2xl text-[12px] uppercase tracking-[0.2em]', pkg.highlighted ? 'bg-champagne text-midnight hover:bg-champagne-light' : 'bg-midnight text-ivory hover:bg-midnight-700')}>
                 <Link href={`/kayit?paket=${pkg.id}`} data-testid={`pricing-cta-${pkg.id}`}>{pkg.cta}</Link>
               </Button>
             </Reveal>

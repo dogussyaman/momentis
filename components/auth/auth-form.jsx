@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from './auth-provider'
 
-const inputCls = 'h-12 rounded-none border-0 border-b border-border bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-midnight'
+const inputCls = 'h-12 rounded-2xl border-0 border-b border-border bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-midnight'
 
 function GoogleIcon() {
   return (
@@ -82,7 +82,7 @@ export function AuthForm({ mode = 'login' }) {
         <p className="mt-4 border border-champagne/50 bg-champagne/10 px-4 py-2 text-xs text-midnight">Seçtiğiniz tasarım: <span className="font-medium capitalize">{searchParams.get('tasarim').replace(/-/g, ' ')}</span></p>
       )}
 
-      <Button type="button" variant="outline" onClick={onGoogle} className="mt-8 h-12 w-full rounded-none border-midnight/20 text-[12px] uppercase tracking-[0.18em] text-midnight hover:bg-midnight/5" data-testid="auth-google">
+      <Button type="button" variant="outline" onClick={onGoogle} className="mt-8 h-12 w-full rounded-2xl border-midnight/20 text-[12px] uppercase tracking-[0.18em] text-midnight hover:bg-midnight/5" data-testid="auth-google">
         <GoogleIcon /> <span className="ml-3">Google ile devam et</span>
       </Button>
 
@@ -100,11 +100,14 @@ export function AuthForm({ mode = 'login' }) {
           <Input id="email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="siz@ornek.com" className={inputCls} data-testid="auth-email" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-[11px] uppercase tracking-[0.2em]">Şifre</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-[11px] uppercase tracking-[0.2em]">Şifre</Label>
+            {isLogin && <Link href="/sifremi-unuttum" className="text-xs text-muted-foreground hover:text-midnight" data-testid="forgot-link">Şifremi unuttum</Link>}
+          </div>
           <Input id="password" type="password" required minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••••" className={inputCls} data-testid="auth-password" />
         </div>
         {error && <p className="text-sm text-destructive" data-testid="auth-error">{error}</p>}
-        <Button type="submit" disabled={loading} className="h-12 w-full rounded-none bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="auth-submit">
+        <Button type="submit" disabled={loading} className="h-12 w-full rounded-2xl bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="auth-submit">
           {loading ? 'Lütfen bekleyin…' : isLogin ? 'Giriş Yap' : 'Hesap Oluştur'}
         </Button>
       </form>

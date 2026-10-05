@@ -45,7 +45,7 @@
 ##   created_by: "main_agent"
 ##   version: "1.0"
 ##   test_sequence: 0
-##   run_ui: false
+##   run_ui: true
 ##
 ## test_plan:
 ##   current_focus:
@@ -204,7 +204,52 @@ backend:
         agent: "testing"
         comment: "✅ ALL PUBLIC API TESTS PASSED (9/9). GET /public/invitations/:slug: 200 with project (no user_id exposed) and template; 404 for unknown slug; 404 when published=false (then restored to true). POST /public/rsvp attending=true: 201 with ok:true, rsvp (attending=true, guest_count=2), confirmations array with email status=failed (Resend test sender restriction - expected); guest status updated to 'responded'; stats correct (attending=1, attending_people=2). POST /public/rsvp attending=false with phone only: 201 with guest_count=0. Validation: 400 for missing attending, no email/phone; 404 for invalid slug. All RSVP logic, guest linking, stats aggregation, and confirmation attempts working correctly."
 
+  - task: "Password reset (POST /api/auth/forgot-password, POST /api/auth/reset-password)"
+    implemented: true
+    working: true
+    file: "lib/api/auth-routes.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Verified via curl: forgot returns {ok:true, delivery} always (no account leak), link logged to server console; reset with valid token -> 200 + session cookie, reuse -> 400. Reset email via Resend fails for non-owner addresses (test sender)."
+
 frontend:
+  - task: "Auth UI: /giris, /kayit (real API), /sifremi-unuttum, /sifre-sifirla, Google button -> auth.emergentagent.com, /auth/callback"
+    implemented: true
+    working: "NA"
+    file: "components/auth/*, app/(auth)/*, app/auth/callback/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Login redirects to /panel; register redirects to /panel/yeni. Forms are controlled inputs - wait for hydration before filling."
+  - task: "Dashboard: /panel list, /panel/yeni 4-step wizard with live preview, /panel/etkinlik/[id] tabs (Davetliler add+CSV import, RSVP, Toplu Gönderim, Ayarlar), /panel/etkinlik/[id]/duzenle editor (details, story/program, template+palette colours, RSVP menu) with live preview"
+    implemented: true
+    working: "NA"
+    file: "components/dashboard/*"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Protected by client-side auth check (redirect to /giris?next=). CSV import parsed client-side with xlsx (dynamic import) then POST /guests/import."
+  - task: "Public invitation /d/[slug] with countdown, details, program, RSVP form (attending toggle, guest count, menu, note) -> success state"
+    implemented: true
+    working: "NA"
+    file: "components/invitation/invitation-site.jsx, app/(invitation)/d/[slug]/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Uses project.palette override or template palette. Sample: /d/elif-kaan"
   - task: "Marketing site: landing, /tasarimlar (gallery w/ filters), /tasarimlar/[slug], /fiyatlandirma, /nasil-calisir, auth UI (/giris, /kayit), /gonderim-testi"
     implemented: true
     working: "NA"
@@ -221,7 +266,7 @@ metadata:
   created_by: "main_agent"
   version: "1.0"
   test_sequence: 3
-  run_ui: false
+  run_ui: true
 
 test_plan:
   current_focus: []
@@ -239,3 +284,5 @@ agent_communication:
 
   - agent: "testing"
     message: "✅ PHASE 2 BACKEND TESTING COMPLETE - ALL TESTS PASSED (43/43). Auth API (13 tests): register with validation, login/logout with cookie management, GET /me, Google exchange validation, rate limiting (429 after 5 failed attempts). Projects API (9 tests): CRUD operations, validation, auth protection, isolation. Guests API (12 tests): CRUD, import with deduplication, phone normalization (+905321234567), RSVP tracking, bulk send (email: 200 with failed=1 due to Resend test sender restriction - expected; SMS: 503 not configured - expected), message logging. Public API (9 tests): GET /public/invitations/:slug with published check, POST /public/rsvp with guest linking, status updates (responded), stats aggregation (attending=1, attending_people=2), confirmation attempts. All validations, security measures, data integrity, and business logic working correctly. Email sends fail as expected (Resend test sender can only send to owner's email). Ready for production."
+  - agent: "main"
+    message: "Frontend testing approved by user. Dev server memory raised to 1536MB + webpackMemoryOptimizations to stop restart loop; please note any ERR_CONNECTION_REFUSED/RESET during the run. Inputs are controlled React components: wait ~1.5s after page load before fill()."

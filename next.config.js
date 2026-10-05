@@ -7,7 +7,11 @@ const nextConfig = {
     ],
   },
   // Renamed from experimental.serverComponentsExternalPackages in Next 15
-  serverExternalPackages: ['mongodb', 'twilio', 'resend'],
+  serverExternalPackages: ['mongodb', 'twilio', 'resend', 'bcryptjs', 'jose'],
+  experimental: {
+    // Lower dev-server memory footprint so the 512MB watchdog does not restart on every route compile
+    webpackMemoryOptimizations: true,
+  },
   webpack(config, { dev }) {
     if (dev) {
       // Reduce CPU/memory from file watching

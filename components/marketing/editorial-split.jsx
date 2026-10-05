@@ -11,8 +11,8 @@ export function EditorialSplit({ eyebrow, title, description, bullets = [], imag
         <div className={cn('grid items-center gap-16 lg:grid-cols-12', reverse && 'lg:[&>*:first-child]:order-2')}>
           <Reveal className="lg:col-span-6">
             <div className="relative">
-              <div className={cn('absolute -inset-4 border', dark ? 'border-champagne/30' : 'border-champagne/50')} style={{ transform: reverse ? 'translate(-12px, 12px)' : 'translate(12px, 12px)' }} />
-              <div className="relative aspect-[4/5] overflow-hidden">
+              <div className={cn('absolute -inset-4 rounded-3xl border', dark ? 'border-champagne/30' : 'border-champagne/50')} style={{ transform: reverse ? 'translate(-12px, 12px)' : 'translate(12px, 12px)' }} />
+              <div className="relative aspect-[4/5] overflow-hidden rounded-3xl">
                 <img src={image} alt={imageAlt} loading="lazy" className="h-full w-full object-cover" />
               </div>
             </div>

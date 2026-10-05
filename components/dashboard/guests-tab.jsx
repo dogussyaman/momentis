@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
-const inputCls = 'h-11 rounded-none border-border bg-ivory-50'
+const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const STATUS = { pending: { label: 'Bekliyor', cls: 'bg-muted text-muted-foreground' }, invited: { label: 'Gönderildi', cls: 'bg-champagne/30 text-midnight' }, responded: { label: 'Yanıtladı', cls: 'bg-sage/30 text-midnight' } }
 
 function normalizeHeader(h) {
@@ -80,17 +80,17 @@ export function GuestsTab({ projectId, onChanged }) {
         <p className="text-sm text-muted-foreground" data-testid="guest-count">{items ? `${items.length} davetli` : 'Yükleniyor…'}</p>
         <div className="flex flex-wrap gap-2">
           <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={onFile} data-testid="import-file-input" />
-          <Button variant="outline" disabled={importing} onClick={() => fileRef.current?.click()} className="h-11 rounded-none border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="import-button"><Upload className="mr-2 h-3.5 w-3.5" /> {importing ? 'Yükleniyor…' : 'CSV / Excel Yükle'}</Button>
+          <Button variant="outline" disabled={importing} onClick={() => fileRef.current?.click()} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="import-button"><Upload className="mr-2 h-3.5 w-3.5" /> {importing ? 'Yükleniyor…' : 'CSV / Excel Yükle'}</Button>
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button className="h-11 rounded-none bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="add-guest-button"><Plus className="mr-2 h-3.5 w-3.5" /> Davetli Ekle</Button></DialogTrigger>
-            <DialogContent className="rounded-none sm:max-w-md">
+            <DialogTrigger asChild><Button className="h-11 rounded-2xl bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="add-guest-button"><Plus className="mr-2 h-3.5 w-3.5" /> Davetli Ekle</Button></DialogTrigger>
+            <DialogContent className="rounded-2xl sm:max-w-md">
               <DialogHeader><DialogTitle className="font-serif text-2xl">Yeni Davetli</DialogTitle><DialogDescription>E-posta veya telefon ekleyin; davetiyenizi toplu gönderimle iletebilirsiniz.</DialogDescription></DialogHeader>
               <form onSubmit={addGuest} className="space-y-4">
                 <div className="space-y-2"><Label className="text-[11px] uppercase tracking-[0.2em]">Ad Soyad *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} data-testid="guest-name" /></div>
                 <div className="space-y-2"><Label className="text-[11px] uppercase tracking-[0.2em]">E-posta</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputCls} data-testid="guest-email" /></div>
                 <div className="space-y-2"><Label className="text-[11px] uppercase tracking-[0.2em]">Telefon</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="0532 123 45 67" className={inputCls} data-testid="guest-phone" /></div>
                 <div className="space-y-2"><Label className="text-[11px] uppercase tracking-[0.2em]">Grup</Label><Input value={form.group} onChange={(e) => setForm({ ...form, group: e.target.value })} placeholder="Aile, Arkadaşlar, İş…" className={inputCls} data-testid="guest-group" /></div>
-                <Button type="submit" disabled={saving} className="h-11 w-full rounded-none bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="guest-submit">{saving ? 'Ekleniyor…' : 'Ekle'}</Button>
+                <Button type="submit" disabled={saving} className="h-11 w-full rounded-2xl bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="guest-submit">{saving ? 'Ekleniyor…' : 'Ekle'}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -99,7 +99,7 @@ export function GuestsTab({ projectId, onChanged }) {
 
       <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><FileSpreadsheet className="h-3.5 w-3.5" /> Dosya sütunları: <span className="font-medium text-midnight">Ad Soyad, E-posta, Telefon, Grup</span> (başlıklar esnek eşleştirilir).</p>
 
-      {items === null ? <Skeleton className="mt-6 h-48 rounded-none" /> : items.length === 0 ? (
+      {items === null ? <Skeleton className="mt-6 h-48 rounded-2xl" /> : items.length === 0 ? (
         <div className="mt-6 border border-dashed border-border bg-ivory-50 px-8 py-16 text-center" data-testid="guests-empty"><p className="font-serif text-2xl text-midnight">Davetli listeniz boş.</p><p className="mt-2 text-sm text-muted-foreground">Tek tek ekleyin ya da CSV/Excel dosyanızı yükleyin.</p></div>
       ) : (
         <div className="mt-6 overflow-x-auto border border-border bg-ivory-50" data-testid="guests-table">
@@ -119,7 +119,7 @@ export function GuestsTab({ projectId, onChanged }) {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-muted-foreground">{g.group || '—'}</td>
-                    <td className="px-5 py-4"><Badge className={`rounded-none border-0 text-[10px] uppercase tracking-[0.15em] hover:${st.cls.split(' ')[0]} ${st.cls}`}>{st.label}</Badge></td>
+                    <td className="px-5 py-4"><Badge className={`rounded-full border-0 text-[10px] uppercase tracking-[0.15em] hover:${st.cls.split(' ')[0]} ${st.cls}`}>{st.label}</Badge></td>
                     <td className="px-5 py-4 text-right"><Button variant="ghost" size="icon" onClick={() => removeGuest(g.id)} className="text-muted-foreground hover:text-destructive" aria-label="Sil" data-testid={`delete-guest-${g.id}`}><Trash2 className="h-4 w-4" /></Button></td>
                   </tr>
                 )

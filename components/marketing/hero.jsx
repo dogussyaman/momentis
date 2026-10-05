@@ -58,13 +58,13 @@ export function Hero() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 1.1, ease: EASE }}
               className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center"
             >
-              <Button asChild size="lg" className="group h-14 rounded-none bg-champagne px-8 text-[13px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
+              <Button asChild size="lg" className="group h-14 rounded-2xl bg-champagne px-8 text-[13px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
                 <Link href="/tasarimlar" data-testid="hero-cta-templates">
                   Tasarımları Keşfet
                   <ArrowRight className="ml-3 h-4 w-4 transition-transform duration-500 group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-14 rounded-none border-ivory/30 bg-transparent px-8 text-[13px] uppercase tracking-[0.18em] text-ivory hover:bg-ivory/10 hover:text-ivory">
+              <Button asChild size="lg" variant="outline" className="h-14 rounded-2xl border-ivory/30 bg-transparent px-8 text-[13px] uppercase tracking-[0.18em] text-ivory hover:bg-ivory/10 hover:text-ivory">
                 <Link href="/nasil-calisir" data-testid="hero-cta-how">
                   <Play className="mr-3 h-3.5 w-3.5 fill-current" /> Nasıl Çalışır
                 </Link>

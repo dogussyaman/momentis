@@ -30,7 +30,7 @@ function Reveal({ children, className, delay = 0, style }) {
 
 export function InvitationSite({ project, template }) {
   const t = template || FALLBACK
-  const p = t.palette || FALLBACK.palette
+  const p = project.palette || t.palette || FALLBACK.palette
   const isDark = p.bg && parseInt(p.bg.replace('#', '').slice(0, 2), 16) < 100
   const type = getEventType(project.event_type)
   const names = [project.host_a, project.host_b].filter(Boolean)
@@ -192,10 +192,10 @@ function RsvpForm({ project, p, isDark }) {
           <button key={String(o.v)} type="button" onClick={() => setForm({ ...form, attending: o.v })} data-testid={`rsvp-attending-${o.v}`} className="border py-4 text-[11px] uppercase tracking-[0.2em] transition-all" style={form.attending === o.v ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66`, color: p.text }}>{o.l}</button>
         ))}
       </div>
-      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Ad Soyad *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-none" style={fieldStyle} data-testid="rsvp-name" /></div>
+      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Ad Soyad *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl" style={fieldStyle} data-testid="rsvp-name" /></div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>E-posta</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-none" style={fieldStyle} data-testid="rsvp-email" /></div>
-        <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Telefon</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="0532 123 45 67" className="h-12 rounded-none" style={fieldStyle} data-testid="rsvp-phone" /></div>
+        <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>E-posta</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl" style={fieldStyle} data-testid="rsvp-email" /></div>
+        <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Telefon</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="0532 123 45 67" className="h-12 rounded-2xl" style={fieldStyle} data-testid="rsvp-phone" /></div>
       </div>
       {form.attending && (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -209,9 +209,9 @@ function RsvpForm({ project, p, isDark }) {
           </div>
         </div>
       )}
-      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Notunuz</Label><Textarea rows={3} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="İletmek istediğiniz bir şey var mı?" className="rounded-none" style={fieldStyle} data-testid="rsvp-note" /></div>
+      <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Notunuz</Label><Textarea rows={3} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="İletmek istediğiniz bir şey var mı?" className="rounded-2xl" style={fieldStyle} data-testid="rsvp-note" /></div>
       <p className="text-xs" style={{ color: p.muted }}>Onay mesajı alabilmeniz için e-posta veya telefon gereklidir.</p>
-      <Button type="submit" disabled={loading} className="h-14 w-full rounded-none text-[12px] uppercase tracking-[0.22em] hover:opacity-90" style={{ backgroundColor: p.accent, color: p.bg }} data-testid="rsvp-submit">{loading ? 'Gönderiliyor…' : 'Yanıtımı Gönder'}</Button>
+      <Button type="submit" disabled={loading} className="h-14 w-full rounded-2xl text-[12px] uppercase tracking-[0.22em] hover:opacity-90" style={{ backgroundColor: p.accent, color: p.bg }} data-testid="rsvp-submit">{loading ? 'Gönderiliyor…' : 'Yanıtımı Gönder'}</Button>
     </form>
   )
 }

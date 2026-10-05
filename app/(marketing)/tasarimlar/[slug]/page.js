@@ -53,12 +53,12 @@ export default async function TemplateDetailPage({ params }) {
 
           <Reveal delay={0.15} className="lg:col-span-5">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="rounded-none border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{category?.label}</Badge>
-              <Badge variant="outline" className="rounded-none border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{style?.label}</Badge>
+              <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{category?.label}</Badge>
+              <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{style?.label}</Badge>
               {template.tier === 'premium' ? (
-                <Badge className="rounded-none border-0 bg-champagne text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne">Premium</Badge>
+                <Badge className="rounded-full border-0 bg-champagne text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne">Premium</Badge>
               ) : (
-                <Badge className="rounded-none border-0 bg-midnight text-[10px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight">Ücretsiz</Badge>
+                <Badge className="rounded-full border-0 bg-midnight text-[10px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight">Ücretsiz</Badge>
               )}
             </div>
             <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-midnight md:text-6xl" data-testid="template-name">{template.name}</h1>
@@ -87,10 +87,10 @@ export default async function TemplateDetailPage({ params }) {
             </div>
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="group h-14 flex-1 rounded-none bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700">
+              <Button asChild size="lg" className="group h-14 flex-1 rounded-2xl bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700">
                 <Link href={`/kayit?tasarim=${template.slug}`} data-testid="start-with-template">Bu Tasarımla Başla <ArrowRight className="ml-3 h-4 w-4 transition-transform duration-500 group-hover:translate-x-1" /></Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-14 rounded-none border-midnight/30 text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-midnight/5">
+              <Button asChild size="lg" variant="outline" className="h-14 rounded-2xl border-midnight/30 text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-midnight/5">
                 <Link href="/fiyatlandirma">Paketleri Gör</Link>
               </Button>
             </div>

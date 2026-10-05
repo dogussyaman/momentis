@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { PageHeader } from './projects-list'
 
 const STEPS = ['Etkinlik Türü', 'Detaylar', 'Tasarım', 'Özet']
-const inputCls = 'h-11 rounded-none border-border bg-ivory-50'
+const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 
 export function NewProjectWizard() {
   const router = useRouter()
@@ -99,7 +99,7 @@ export function NewProjectWizard() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[11px] uppercase tracking-[0.2em]">Hikâyeniz (isteğe bağlı)</Label>
-                <Textarea value={form.story} onChange={set('story')} rows={4} placeholder="Nasıl tanıştınız, bu gün sizin için ne ifade ediyor…" className="rounded-none border-border bg-ivory-50" data-testid="story" />
+                <Textarea value={form.story} onChange={set('story')} rows={4} placeholder="Nasıl tanıştınız, bu gün sizin için ne ifade ediyor…" className="rounded-2xl border-border bg-ivory-50" data-testid="story" />
               </div>
             </div>
           )}
@@ -134,11 +134,11 @@ export function NewProjectWizard() {
           )}
 
           <div className="mt-8 flex items-center justify-between">
-            <Button type="button" variant="ghost" disabled={step === 0} onClick={() => setStep((s) => s - 1)} className="rounded-none text-[12px] uppercase tracking-[0.2em]" data-testid="wizard-back"><ArrowLeft className="mr-2 h-4 w-4" /> Geri</Button>
+            <Button type="button" variant="ghost" disabled={step === 0} onClick={() => setStep((s) => s - 1)} className="rounded-2xl text-[12px] uppercase tracking-[0.2em]" data-testid="wizard-back"><ArrowLeft className="mr-2 h-4 w-4" /> Geri</Button>
             {step < STEPS.length - 1 ? (
-              <Button type="button" disabled={!canNext} onClick={() => setStep((s) => s + 1)} className="h-12 rounded-none bg-midnight px-8 text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="wizard-next">Devam <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button type="button" disabled={!canNext} onClick={() => setStep((s) => s + 1)} className="h-12 rounded-2xl bg-midnight px-8 text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="wizard-next">Devam <ArrowRight className="ml-2 h-4 w-4" /></Button>
             ) : (
-              <Button type="button" disabled={saving} onClick={submit} className="h-12 rounded-none bg-champagne px-8 text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne-light" data-testid="wizard-submit">{saving ? 'Oluşturuluyor…' : 'Oluştur ve Yayınla'}</Button>
+              <Button type="button" disabled={saving} onClick={submit} className="h-12 rounded-2xl bg-champagne px-8 text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne-light" data-testid="wizard-submit">{saving ? 'Oluşturuluyor…' : 'Oluştur ve Yayınla'}</Button>
             )}
           </div>
         </div>

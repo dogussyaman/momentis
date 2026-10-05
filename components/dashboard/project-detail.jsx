@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Copy, ExternalLink, Users, MailCheck, UserX, Send, Trash2, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Copy, ExternalLink, Users, MailCheck, UserX, Send, Trash2, Eye, EyeOff, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +15,7 @@ import { formatEventDate } from '@/lib/projects'
 import { GuestsTab } from './guests-tab'
 import { SendTab } from './send-tab'
 
-const tabCls = 'rounded-none border-b-2 border-transparent px-0 pb-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:border-midnight data-[state=active]:bg-transparent data-[state=active]:text-midnight data-[state=active]:shadow-none'
+const tabCls = 'rounded-2xl border-b-2 border-transparent px-0 pb-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:border-midnight data-[state=active]:bg-transparent data-[state=active]:text-midnight data-[state=active]:shadow-none'
 
 export function ProjectDetail() {
   const { id } = useParams()
@@ -50,7 +50,7 @@ export function ProjectDetail() {
   if (notFound) {
     return <div className="py-24 text-center"><p className="font-serif text-3xl text-midnight">Etkinlik bulunamadı.</p><Link href="/panel" className="mt-6 inline-block border-b border-midnight text-sm">Panele dön</Link></div>
   }
-  if (!project) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-none" /><Skeleton className="h-64 rounded-none" /></div>
+  if (!project) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-64 rounded-2xl" /></div>
 
   const type = getEventType(project.event_type)
   const s = project.stats || {}
@@ -62,18 +62,21 @@ export function ProjectDetail() {
       <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="rounded-none border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{type?.label}</Badge>
-            <Badge className={project.published ? 'rounded-none border-0 bg-sage/30 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-sage/30' : 'rounded-none border-0 bg-muted text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:bg-muted'} data-testid="publish-badge">{project.published ? 'Yayında' : 'Taslak'}</Badge>
+            <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{type?.label}</Badge>
+            <Badge className={project.published ? 'rounded-full border-0 bg-sage/30 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-sage/30' : 'rounded-2xl border-0 bg-muted text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:bg-muted'} data-testid="publish-badge">{project.published ? 'Yayında' : 'Taslak'}</Badge>
           </div>
           <h1 className="mt-4 font-serif text-4xl leading-tight text-midnight md:text-5xl" data-testid="project-title">{[project.host_a, project.host_b].filter(Boolean).join(' & ')}</h1>
           <p className="mt-2 text-muted-foreground">{formatEventDate(project.date, project.time)}{project.venue ? ` · ${project.venue}` : ''}{project.city ? `, ${project.city}` : ''}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={copyLink} className="h-11 rounded-none border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="copy-link"><Copy className="mr-2 h-3.5 w-3.5" /> Bağlantıyı Kopyala</Button>
-          <Button asChild variant="outline" className="h-11 rounded-none border-midnight/20 text-[11px] uppercase tracking-[0.18em]">
+          <Button asChild variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]">
+            <Link href={`/panel/etkinlik/${id}/duzenle`} data-testid="edit-project"><Pencil className="mr-2 h-3.5 w-3.5" /> Düzenle</Link>
+          </Button>
+          <Button variant="outline" onClick={copyLink} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="copy-link"><Copy className="mr-2 h-3.5 w-3.5" /> Bağlantıyı Kopyala</Button>
+          <Button asChild variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]">
             <a href={`/d/${project.slug}`} target="_blank" rel="noreferrer" data-testid="open-invitation"><ExternalLink className="mr-2 h-3.5 w-3.5" /> Davetiyeyi Aç</a>
           </Button>
-          <Button onClick={togglePublish} className="h-11 rounded-none bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="toggle-publish">{project.published ? <><EyeOff className="mr-2 h-3.5 w-3.5" /> Yayından Kaldır</> : <><Eye className="mr-2 h-3.5 w-3.5" /> Yayınla</>}</Button>
+          <Button onClick={togglePublish} className="h-11 rounded-2xl bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="toggle-publish">{project.published ? <><EyeOff className="mr-2 h-3.5 w-3.5" /> Yayından Kaldır</> : <><Eye className="mr-2 h-3.5 w-3.5" /> Yayınla</>}</Button>
         </div>
       </div>
 
@@ -85,7 +88,7 @@ export function ProjectDetail() {
       </div>
 
       <Tabs defaultValue="guests" className="mt-12">
-        <TabsList className="h-auto w-full justify-start gap-8 rounded-none border-b border-border bg-transparent p-0">
+        <TabsList className="h-auto w-full justify-start gap-8 rounded-2xl border-b border-border bg-transparent p-0">
           <TabsTrigger value="guests" className={tabCls} data-testid="tab-guests">Davetliler</TabsTrigger>
           <TabsTrigger value="rsvps" className={tabCls} data-testid="tab-rsvps">RSVP Yanıtları</TabsTrigger>
           <TabsTrigger value="send" className={tabCls} data-testid="tab-send">Toplu Gönderim</TabsTrigger>
@@ -100,10 +103,10 @@ export function ProjectDetail() {
             <h3 className="mt-3 font-serif text-2xl text-midnight">Etkinliği sil</h3>
             <p className="mt-2 text-sm text-muted-foreground">Davetiye, davetli listesi ve tüm RSVP yanıtları kalıcı olarak silinir.</p>
             <AlertDialog>
-              <AlertDialogTrigger asChild><Button variant="outline" className="mt-6 h-11 rounded-none border-destructive text-[11px] uppercase tracking-[0.18em] text-destructive hover:bg-destructive hover:text-ivory" data-testid="delete-project"><Trash2 className="mr-2 h-3.5 w-3.5" /> Etkinliği Sil</Button></AlertDialogTrigger>
-              <AlertDialogContent className="rounded-none">
+              <AlertDialogTrigger asChild><Button variant="outline" className="mt-6 h-11 rounded-2xl border-destructive text-[11px] uppercase tracking-[0.18em] text-destructive hover:bg-destructive hover:text-ivory" data-testid="delete-project"><Trash2 className="mr-2 h-3.5 w-3.5" /> Etkinliği Sil</Button></AlertDialogTrigger>
+              <AlertDialogContent className="rounded-2xl">
                 <AlertDialogHeader><AlertDialogTitle className="font-serif text-2xl">Emin misiniz?</AlertDialogTitle><AlertDialogDescription>Bu işlem geri alınamaz.</AlertDialogDescription></AlertDialogHeader>
-                <AlertDialogFooter><AlertDialogCancel className="rounded-none">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={remove} className="rounded-none bg-destructive text-ivory hover:bg-destructive/90" data-testid="confirm-delete">Evet, sil</AlertDialogAction></AlertDialogFooter>
+                <AlertDialogFooter><AlertDialogCancel className="rounded-2xl">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={remove} className="rounded-2xl bg-destructive text-ivory hover:bg-destructive/90" data-testid="confirm-delete">Evet, sil</AlertDialogAction></AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
@@ -129,7 +132,7 @@ function RsvpsTab({ projectId }) {
     fetch(`/api/projects/${projectId}/rsvps`, { credentials: 'include', cache: 'no-store' }).then((r) => r.json()).then((d) => setItems(d.items || [])).catch(() => setItems([]))
   }, [projectId])
 
-  if (items === null) return <Skeleton className="h-48 rounded-none" />
+  if (items === null) return <Skeleton className="h-48 rounded-2xl" />
   if (!items.length) return <div className="border border-dashed border-border bg-ivory-50 px-8 py-16 text-center" data-testid="rsvps-empty"><p className="font-serif text-2xl text-midnight">Henüz yanıt yok.</p><p className="mt-2 text-sm text-muted-foreground">Davetiyenizi paylaştığınızda yanıtlar burada görünecek.</p></div>
 
   return (
@@ -140,7 +143,7 @@ function RsvpsTab({ projectId }) {
           {items.map((r) => (
             <tr key={r.id} className="border-b border-border/60 last:border-0">
               <td className="px-5 py-4"><p className="text-midnight">{r.name}</p><p className="text-xs text-muted-foreground">{r.email || r.phone}</p></td>
-              <td className="px-5 py-4">{r.attending ? <Badge className="rounded-none border-0 bg-sage/30 text-[10px] uppercase tracking-[0.15em] text-midnight hover:bg-sage/30">Katılıyor</Badge> : <Badge className="rounded-none border-0 bg-blush text-[10px] uppercase tracking-[0.15em] text-midnight hover:bg-blush">Katılamıyor</Badge>}</td>
+              <td className="px-5 py-4">{r.attending ? <Badge className="rounded-full border-0 bg-sage/30 text-[10px] uppercase tracking-[0.15em] text-midnight hover:bg-sage/30">Katılıyor</Badge> : <Badge className="rounded-full border-0 bg-blush text-[10px] uppercase tracking-[0.15em] text-midnight hover:bg-blush">Katılamıyor</Badge>}</td>
               <td className="px-5 py-4 text-midnight">{r.attending ? r.guest_count : '—'}</td>
               <td className="px-5 py-4 text-midnight">{r.menu || '—'}</td>
               <td className="max-w-[240px] px-5 py-4 text-muted-foreground">{r.note || '—'}</td>
