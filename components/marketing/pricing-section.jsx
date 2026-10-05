@@ -20,9 +20,9 @@ export function PricingSection({ showHeading = true }) {
         )}
         <div className="mt-16 grid gap-6 lg:grid-cols-3">
           {PACKAGES.map((pkg, i) => (
-            <Reveal key={pkg.id} delay={i * 0.1} className={cn('relative flex flex-col border p-10', pkg.highlighted ? 'border-champagne bg-midnight text-ivory lg:-translate-y-4' : 'border-border bg-ivory-50 text-midnight')} >
+            <Reveal key={pkg.id} delay={i * 0.1} className={cn('relative flex flex-col rounded-3xl border p-10 transition-shadow duration-500 hover:shadow-[0_34px_70px_-28px_rgba(16,24,39,0.3)]', pkg.highlighted ? 'border-champagne bg-midnight text-ivory lg:-translate-y-4' : 'border-border bg-ivory-50 text-midnight')} >
               {pkg.highlighted && (
-                <span className="absolute -top-3 left-10 bg-champagne px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-midnight">En çok tercih edilen</span>
+                <span className="absolute -top-3 left-10 rounded-full bg-champagne px-4 py-1 text-[10px] uppercase tracking-[0.24em] text-midnight">En çok tercih edilen</span>
               )}
               <p className={cn('text-[11px] uppercase tracking-[0.3em]', pkg.highlighted ? 'text-champagne-light' : 'text-champagne-dark')}>{pkg.tagline}</p>
               <h3 className="mt-4 font-serif text-3xl">{pkg.name}</h3>

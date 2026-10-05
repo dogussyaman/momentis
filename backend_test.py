@@ -1,1059 +1,641 @@
 #!/usr/bin/env python3
 """
-MOMENTIS Phase 2 Backend API Tests
-Tests Auth, Projects, Guests, RSVP, and Public APIs
+Backend test for MOMENTIS Album API (QR Anı Albümü)
+Tests all album endpoints with authentication
 """
 import requests
 import json
-import uuid
-import time
-from datetime import datetime
+import sys
 
 # Base URL from .env
 BASE_URL = "https://ozel-anlar-tasarimi.preview.emergentagent.com/api"
 
-# Test results tracking
-results = {
-    "passed": [],
-    "failed": [],
-    "warnings": []
-}
+# Test credentials
+TEST_EMAIL = "test@momentis.app"
+TEST_PASSWORD = "Test1234!"
 
-def log_pass(test_name, details=""):
-    results["passed"].append(test_name)
-    print(f"✅ PASS: {test_name}")
-    if details:
-        print(f"   {details}")
+# Tiny 1x1 transparent PNG as base64 data URL (minimal size)
+TINY_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 
-def log_fail(test_name, details=""):
-    results["failed"].append(test_name)
-    print(f"❌ FAIL: {test_name}")
-    if details:
-        print(f"   {details}")
+# Invalid data URL for validation testing
+INVALID_DATA_URL = "not-a-data-url"
 
-def log_warning(test_name, details=""):
-    results["warnings"].append(test_name)
-    print(f"⚠️  WARNING: {test_name}")
-    if details:
-        print(f"   {details}")
+def print_test(name):
+    print(f"\n{'='*60}")
+    print(f"TEST: {name}")
+    print('='*60)
 
-# Session for cookie management
-session = requests.Session()
+def print_pass(msg):
+    print(f"✅ PASS: {msg}")
 
-print("="*80)
-print("MOMENTIS PHASE 2 BACKEND API TESTS")
-print("="*80)
-print()
-
-# ============================================================================
-# 1. AUTH TESTS
-# ============================================================================
-print("\n" + "="*80)
-print("1. AUTH API TESTS")
-print("="*80)
-
-# 1.1 Register new user with unique email
-print("\n--- 1.1 POST /api/auth/register (valid) ---")
-try:
-    unique_email = f"test_{uuid.uuid4().hex[:8]}@momentis.test"
-    register_data = {
-        "name": "Test User",
-        "email": unique_email,
-        "password": "Test1234!"
-    }
-    resp = session.post(f"{BASE_URL}/auth/register", json=register_data)
-    print(f"Status: {resp.status_code}")
+def print_fail(msg):
+    print(f"❌ FAIL: {msg}")
     
-    if resp.status_code == 201:
-        data = resp.json()
-        if "user" in data and data["user"].get("id") and data["user"].get("email") == unique_email:
-            if data["user"].get("auth_provider") == "password":
-                if "password_hash" not in data["user"]:
-                    if "momentis_session" in session.cookies:
-                        new_user_id = data["user"]["id"]
-                        new_user_email = unique_email
-                        log_pass("Register: 201 with user object, uuid, email, auth_provider=password, no password_hash, cookie set")
+def print_info(msg):
+    print(f"ℹ️  INFO: {msg}")
+
+class AlbumAPITest:
+    def __init__(self):
+        self.session = requests.Session()
+        self.project_id = None
+        self.project_slug = None
+        self.photo_id = None
+        self.throwaway_project_id = None
+        self.throwaway_slug = None
+        
+    def login(self):
+        """Login and get auth cookie"""
+        print_test("Login to get auth cookie")
+        try:
+            resp = self.session.post(
+                f"{BASE_URL}/auth/login",
+                json={"email": TEST_EMAIL, "password": TEST_PASSWORD},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                print_pass(f"Login successful: {resp.status_code}")
+                # Check if cookie is set
+                if 'momentis_session' in self.session.cookies:
+                    print_pass("Auth cookie 'momentis_session' is set")
+                else:
+                    print_fail("Auth cookie 'momentis_session' NOT set")
+                    return False
+                return True
+            else:
+                print_fail(f"Login failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Login exception: {e}")
+            return False
+    
+    def create_published_project(self):
+        """Create a new published project for testing"""
+        print_test("Create a published project")
+        try:
+            # Create project
+            resp = self.session.post(
+                f"{BASE_URL}/projects",
+                json={
+                    "host_a": "Ayşe",
+                    "host_b": "Mehmet",
+                    "date": "2025-06-15",
+                    "time": "18:00",
+                    "event_type": "dugun",
+                    "template_slug": "aurelia",
+                    "venue": "Test Venue",
+                    "city": "Istanbul",
+                    "published": True,
+                    "album_enabled": True
+                },
+                timeout=10
+            )
+            if resp.status_code == 201:
+                data = resp.json()
+                self.project_id = data['project']['id']
+                self.project_slug = data['project']['slug']
+                print_pass(f"Project created: id={self.project_id}, slug={self.project_slug}")
+                return True
+            else:
+                print_fail(f"Project creation failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Project creation exception: {e}")
+            return False
+    
+    def test_public_listing_empty(self):
+        """Test GET /api/public/album/<slug> returns empty list initially"""
+        print_test("Public listing - initially empty")
+        try:
+            resp = requests.get(f"{BASE_URL}/public/album/{self.project_slug}", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('enabled') == True:
+                    print_pass(f"Album enabled: {data['enabled']}")
+                else:
+                    print_fail(f"Album should be enabled, got: {data.get('enabled')}")
+                    return False
+                if isinstance(data.get('items'), list):
+                    print_pass(f"Items is a list with {len(data['items'])} items")
+                else:
+                    print_fail(f"Items should be a list, got: {type(data.get('items'))}")
+                    return False
+                if data.get('total') == len(data.get('items', [])):
+                    print_pass(f"Total matches items length: {data['total']}")
+                else:
+                    print_fail(f"Total mismatch: total={data.get('total')}, items={len(data.get('items', []))}")
+                    return False
+                return True
+            else:
+                print_fail(f"Public listing failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Public listing exception: {e}")
+            return False
+    
+    def test_public_upload(self):
+        """Test POST /api/public/album/<slug> with valid photo"""
+        print_test("Public upload - valid photo")
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/public/album/{self.project_slug}",
+                json={"uploader": "Zeynep", "photos": [TINY_PNG]},
+                timeout=10
+            )
+            if resp.status_code == 201:
+                data = resp.json()
+                if data.get('ok') == True:
+                    print_pass(f"Upload successful: ok={data['ok']}")
+                else:
+                    print_fail(f"Expected ok=true, got: {data.get('ok')}")
+                    return False
+                if data.get('uploaded') == 1:
+                    print_pass(f"Uploaded count correct: {data['uploaded']}")
+                else:
+                    print_fail(f"Expected uploaded=1, got: {data.get('uploaded')}")
+                    return False
+                photos = data.get('photos', [])
+                if len(photos) == 1:
+                    print_pass(f"Photos array has 1 item")
+                    photo = photos[0]
+                    # CRITICAL: Check that data_url is NOT in the response
+                    if 'data_url' in photo:
+                        print_fail(f"CRITICAL: data_url should NOT be in public upload response, but found: {list(photo.keys())}")
+                        return False
                     else:
-                        log_fail("Register: Cookie not set", f"Response: {data}")
+                        print_pass("CRITICAL: data_url is NOT in response (correct)")
+                    # Check required fields
+                    if 'id' in photo and 'uploader_name' in photo:
+                        print_pass(f"Photo has id and uploader_name: id={photo['id']}, uploader={photo['uploader_name']}")
+                        self.photo_id = photo['id']
+                    else:
+                        print_fail(f"Photo missing required fields: {list(photo.keys())}")
+                        return False
                 else:
-                    log_fail("Register: password_hash exposed in response", f"Response: {data}")
+                    print_fail(f"Expected 1 photo in response, got: {len(photos)}")
+                    return False
+                return True
             else:
-                log_fail("Register: auth_provider not 'password'", f"Got: {data['user'].get('auth_provider')}")
-        else:
-            log_fail("Register: Invalid user object", f"Response: {data}")
-    else:
-        log_fail(f"Register: Expected 201, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Register: Exception", str(e))
-
-# 1.2 Register duplicate email
-print("\n--- 1.2 POST /api/auth/register (duplicate email) ---")
-try:
-    resp = session.post(f"{BASE_URL}/auth/register", json=register_data)
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 409:
-        log_pass("Register duplicate: 409 Conflict")
-    else:
-        log_fail(f"Register duplicate: Expected 409, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Register duplicate: Exception", str(e))
-
-# 1.3 Register short password
-print("\n--- 1.3 POST /api/auth/register (short password) ---")
-try:
-    resp = session.post(f"{BASE_URL}/auth/register", json={
-        "name": "Test",
-        "email": f"test_{uuid.uuid4().hex[:8]}@momentis.test",
-        "password": "123"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("Register short password: 400 Bad Request")
-    else:
-        log_fail(f"Register short password: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Register short password: Exception", str(e))
-
-# 1.4 Register invalid email
-print("\n--- 1.4 POST /api/auth/register (invalid email) ---")
-try:
-    resp = session.post(f"{BASE_URL}/auth/register", json={
-        "name": "Test",
-        "email": "not-an-email",
-        "password": "Test1234!"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("Register invalid email: 400 Bad Request")
-    else:
-        log_fail(f"Register invalid email: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Register invalid email: Exception", str(e))
-
-# 1.5 Logout to clear session
-print("\n--- 1.5 POST /api/auth/logout ---")
-try:
-    resp = session.post(f"{BASE_URL}/auth/logout")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 200:
-        log_pass("Logout: 200 OK")
-    else:
-        log_fail(f"Logout: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Logout: Exception", str(e))
-
-# 1.6 Login with test user
-print("\n--- 1.6 POST /api/auth/login (test@momentis.app) ---")
-try:
-    login_data = {
-        "email": "test@momentis.app",
-        "password": "Test1234!"
-    }
-    resp = session.post(f"{BASE_URL}/auth/login", json=login_data)
-    print(f"Status: {resp.status_code}")
+                print_fail(f"Public upload failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Public upload exception: {e}")
+            return False
     
-    if resp.status_code == 200:
-        data = resp.json()
-        if "user" in data and "momentis_session" in session.cookies:
-            test_user_id = data["user"]["id"]
-            log_pass("Login test user: 200 with cookie")
-        else:
-            log_fail("Login test user: Missing user or cookie", f"Response: {data}")
-    else:
-        log_fail(f"Login test user: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Login test user: Exception", str(e))
-
-# 1.7 Login wrong password
-print("\n--- 1.7 POST /api/auth/login (wrong password) ---")
-try:
-    session2 = requests.Session()
-    resp = session2.post(f"{BASE_URL}/auth/login", json={
-        "email": "test@momentis.app",
-        "password": "WrongPassword123!"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 401:
-        log_pass("Login wrong password: 401 Unauthorized")
-    else:
-        log_fail(f"Login wrong password: Expected 401, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Login wrong password: Exception", str(e))
-
-# 1.8 GET /api/auth/me with cookie
-print("\n--- 1.8 GET /api/auth/me (with cookie) ---")
-try:
-    resp = session.get(f"{BASE_URL}/auth/me")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 200:
-        data = resp.json()
-        if "user" in data and data["user"].get("email") == "test@momentis.app":
-            log_pass("GET /me with cookie: 200 with user")
-        else:
-            log_fail("GET /me with cookie: Invalid response", f"Response: {data}")
-    else:
-        log_fail(f"GET /me with cookie: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /me with cookie: Exception", str(e))
-
-# 1.9 GET /api/auth/me without cookie
-print("\n--- 1.9 GET /api/auth/me (without cookie) ---")
-try:
-    session_no_auth = requests.Session()
-    resp = session_no_auth.get(f"{BASE_URL}/auth/me")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 401:
-        log_pass("GET /me without cookie: 401 Unauthorized")
-    else:
-        log_fail(f"GET /me without cookie: Expected 401, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /me without cookie: Exception", str(e))
-
-# 1.10 Logout and verify
-print("\n--- 1.10 POST /api/auth/logout and verify ---")
-try:
-    resp = session.post(f"{BASE_URL}/auth/logout")
-    print(f"Logout status: {resp.status_code}")
-    if resp.status_code == 200:
-        # Verify cookie cleared by checking /me
-        resp2 = session.get(f"{BASE_URL}/auth/me")
-        print(f"GET /me after logout status: {resp2.status_code}")
-        if resp2.status_code == 401:
-            log_pass("Logout clears cookie: subsequent /me returns 401")
-        else:
-            log_fail(f"Logout: Cookie not cleared, /me returned {resp2.status_code}")
-    else:
-        log_fail(f"Logout: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Logout verification: Exception", str(e))
-
-# 1.11 Google exchange - missing sessionId
-print("\n--- 1.11 POST /api/auth/google/exchange (missing sessionId) ---")
-try:
-    resp = session.post(f"{BASE_URL}/auth/google/exchange", json={})
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("Google exchange empty body: 400 Bad Request")
-    else:
-        log_fail(f"Google exchange empty: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Google exchange empty: Exception", str(e))
-
-# 1.12 Google exchange - invalid sessionId
-print("\n--- 1.12 POST /api/auth/google/exchange (invalid sessionId) ---")
-try:
-    resp = session.post(f"{BASE_URL}/auth/google/exchange", json={"sessionId": "invalid-xyz-12345"})
-    print(f"Status: {resp.status_code}")
-    if resp.status_code in [401, 502]:
-        log_pass(f"Google exchange invalid: {resp.status_code} ({'upstream rejects' if resp.status_code == 401 else 'network/upstream error'})")
-    else:
-        log_fail(f"Google exchange invalid: Expected 401 or 502, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("Google exchange invalid: Exception", str(e))
-
-# 1.13 Rate limiting test (optional - 5 wrong attempts)
-print("\n--- 1.13 Rate limiting test (5 wrong password attempts) ---")
-try:
-    # Register a fresh user for rate limit test
-    rate_test_email = f"ratetest_{uuid.uuid4().hex[:8]}@momentis.test"
-    session_rate = requests.Session()
-    resp = session_rate.post(f"{BASE_URL}/auth/register", json={
-        "name": "Rate Test",
-        "email": rate_test_email,
-        "password": "Test1234!"
-    })
-    if resp.status_code == 201:
-        # Logout
-        session_rate.post(f"{BASE_URL}/auth/logout")
-        
-        # Try 6 wrong passwords
-        for i in range(6):
-            resp = session_rate.post(f"{BASE_URL}/auth/login", json={
-                "email": rate_test_email,
-                "password": f"Wrong{i}"
-            })
-            print(f"  Attempt {i+1}: {resp.status_code}")
-            if i < 5:
-                if resp.status_code != 401:
-                    log_fail(f"Rate limit: Attempt {i+1} should be 401, got {resp.status_code}")
-                    break
+    def test_validation_invalid_data_url(self):
+        """Test POST with invalid data URL returns 400"""
+        print_test("Validation - invalid data URL")
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/public/album/{self.project_slug}",
+                json={"uploader": "Test", "photos": [INVALID_DATA_URL]},
+                timeout=10
+            )
+            if resp.status_code == 400:
+                print_pass(f"Invalid data URL rejected with 400: {resp.status_code}")
+                return True
             else:
-                if resp.status_code == 429:
-                    log_pass("Rate limiting: 6th attempt returns 429 Too Many Requests")
+                print_fail(f"Expected 400 for invalid data URL, got: {resp.status_code}")
+                return False
+        except Exception as e:
+            print_fail(f"Validation exception: {e}")
+            return False
+    
+    def test_validation_empty_photos(self):
+        """Test POST with empty photos array returns 400"""
+        print_test("Validation - empty photos array")
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/public/album/{self.project_slug}",
+                json={"uploader": "Test", "photos": []},
+                timeout=10
+            )
+            if resp.status_code == 400:
+                print_pass(f"Empty photos array rejected with 400: {resp.status_code}")
+                return True
+            else:
+                print_fail(f"Expected 400 for empty photos, got: {resp.status_code}")
+                return False
+        except Exception as e:
+            print_fail(f"Validation exception: {e}")
+            return False
+    
+    def test_public_listing_after_upload(self):
+        """Test GET /api/public/album/<slug> includes uploaded photo"""
+        print_test("Public listing - after upload")
+        try:
+            resp = requests.get(f"{BASE_URL}/public/album/{self.project_slug}", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                items = data.get('items', [])
+                if len(items) >= 1:
+                    print_pass(f"Items list has {len(items)} photo(s)")
+                    # Check that items include data_url for display
+                    photo = items[0]
+                    if 'data_url' in photo:
+                        print_pass(f"Photo includes data_url for display (length: {len(photo['data_url'])})")
+                    else:
+                        print_fail(f"Photo should include data_url in listing, got keys: {list(photo.keys())}")
+                        return False
+                    if 'uploader_name' in photo:
+                        print_pass(f"Photo includes uploader_name: {photo['uploader_name']}")
+                    else:
+                        print_fail(f"Photo missing uploader_name")
+                        return False
                 else:
-                    log_warning(f"Rate limiting: 6th attempt returned {resp.status_code} instead of 429", "May not be implemented or IP-based")
-    else:
-        log_warning("Rate limiting: Could not create test user", f"Status: {resp.status_code}")
-except Exception as e:
-    log_warning("Rate limiting test: Exception", str(e))
-
-# Re-login as new user for project tests
-print("\n--- Re-login as new registered user for project tests ---")
-try:
-    session = requests.Session()
-    resp = session.post(f"{BASE_URL}/auth/register", json={
-        "name": "Zeynep Yılmaz",
-        "email": f"zeynep_{uuid.uuid4().hex[:8]}@momentis.test",
-        "password": "Test1234!"
-    })
-    if resp.status_code == 201:
-        project_test_user = resp.json()["user"]
-        print(f"✓ Logged in as: {project_test_user['email']}")
-    else:
-        print(f"✗ Failed to create project test user: {resp.status_code}")
-        raise Exception("Cannot proceed without authenticated user")
-except Exception as e:
-    print(f"✗ Exception during user creation: {e}")
-    raise
-
-# ============================================================================
-# 2. PROJECTS API TESTS
-# ============================================================================
-print("\n" + "="*80)
-print("2. PROJECTS API TESTS")
-print("="*80)
-
-# 2.1 GET /api/projects (empty list for new user)
-print("\n--- 2.1 GET /api/projects (should be empty) ---")
-try:
-    resp = session.get(f"{BASE_URL}/projects")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 200:
-        data = resp.json()
-        if "items" in data and isinstance(data["items"], list):
-            if len(data["items"]) == 0:
-                log_pass("GET /projects: Returns empty list for new user")
-            else:
-                log_warning("GET /projects: Expected empty list", f"Got {len(data['items'])} items")
-        else:
-            log_fail("GET /projects: Invalid response structure", f"Response: {data}")
-    else:
-        log_fail(f"GET /projects: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /projects: Exception", str(e))
-
-# 2.2 POST /api/projects (valid)
-print("\n--- 2.2 POST /api/projects (valid) ---")
-try:
-    project_data = {
-        "event_type": "dugun",
-        "template_slug": "aurelia",
-        "host_a": "Zeynep",
-        "host_b": "Mert",
-        "date": "2026-06-20",
-        "time": "18:30",
-        "venue": "Çırağan Sarayı",
-        "city": "İstanbul",
-        "story": "Hikayemiz 2020 yılında başladı..."
-    }
-    resp = session.post(f"{BASE_URL}/projects", json=project_data)
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 201:
-        data = resp.json()
-        if "project" in data:
-            project = data["project"]
-            project_id = project.get("id")
-            project_slug = project.get("slug")
-            
-            checks = []
-            checks.append(("id (uuid)", bool(project_id)))
-            checks.append(("slug contains 'zeynep-mert'", "zeynep-mert" in project_slug.lower() if project_slug else False))
-            checks.append(("url ends with /d/<slug>", project.get("url", "").endswith(f"/d/{project_slug}") if project_slug else False))
-            checks.append(("published=true", project.get("published") == True))
-            checks.append(("stats present", "stats" in project))
-            checks.append(("stats zeros", project.get("stats", {}).get("guest_count") == 0))
-            
-            all_pass = all(c[1] for c in checks)
-            if all_pass:
-                log_pass("POST /projects: 201 with valid project", f"slug={project_slug}, id={project_id}")
-            else:
-                failed_checks = [c[0] for c in checks if not c[1]]
-                log_fail("POST /projects: Some checks failed", f"Failed: {failed_checks}")
-        else:
-            log_fail("POST /projects: No project in response", f"Response: {data}")
-    else:
-        log_fail(f"POST /projects: Expected 201, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /projects: Exception", str(e))
-
-# 2.3 POST /api/projects (missing host_a)
-print("\n--- 2.3 POST /api/projects (missing host_a) ---")
-try:
-    resp = session.post(f"{BASE_URL}/projects", json={
-        "event_type": "dugun",
-        "template_slug": "aurelia",
-        "date": "2026-06-20"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /projects missing host_a: 400 Bad Request")
-    else:
-        log_fail(f"POST /projects missing host_a: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /projects missing host_a: Exception", str(e))
-
-# 2.4 POST /api/projects (invalid event_type)
-print("\n--- 2.4 POST /api/projects (invalid event_type) ---")
-try:
-    resp = session.post(f"{BASE_URL}/projects", json={
-        "event_type": "invalid_type",
-        "template_slug": "aurelia",
-        "host_a": "Test",
-        "date": "2026-06-20"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /projects invalid event_type: 400 Bad Request")
-    else:
-        log_fail(f"POST /projects invalid event_type: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /projects invalid event_type: Exception", str(e))
-
-# 2.5 POST /api/projects (invalid template_slug)
-print("\n--- 2.5 POST /api/projects (invalid template_slug) ---")
-try:
-    resp = session.post(f"{BASE_URL}/projects", json={
-        "event_type": "dugun",
-        "template_slug": "nonexistent-template",
-        "host_a": "Test",
-        "date": "2026-06-20"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /projects invalid template_slug: 400 Bad Request")
-    else:
-        log_fail(f"POST /projects invalid template_slug: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /projects invalid template_slug: Exception", str(e))
-
-# 2.6 GET /api/projects/:id
-print("\n--- 2.6 GET /api/projects/:id ---")
-try:
-    resp = session.get(f"{BASE_URL}/projects/{project_id}")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 200:
-        data = resp.json()
-        if "project" in data and "stats" in data["project"]:
-            log_pass("GET /projects/:id: 200 with stats")
-        else:
-            log_fail("GET /projects/:id: Missing project or stats", f"Response: {data}")
-    else:
-        log_fail(f"GET /projects/:id: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /projects/:id: Exception", str(e))
-
-# 2.7 GET /api/projects/:id (random uuid - 404)
-print("\n--- 2.7 GET /api/projects/:id (random uuid) ---")
-try:
-    random_id = str(uuid.uuid4())
-    resp = session.get(f"{BASE_URL}/projects/{random_id}")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 404:
-        log_pass("GET /projects/:id random uuid: 404 Not Found")
-    else:
-        log_fail(f"GET /projects/:id random uuid: Expected 404, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /projects/:id random uuid: Exception", str(e))
-
-# 2.8 GET /api/projects/:id without cookie (401)
-print("\n--- 2.8 GET /api/projects/:id (without cookie) ---")
-try:
-    session_no_auth = requests.Session()
-    resp = session_no_auth.get(f"{BASE_URL}/projects/{project_id}")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 401:
-        log_pass("GET /projects/:id without cookie: 401 Unauthorized")
-    else:
-        log_fail(f"GET /projects/:id without cookie: Expected 401, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /projects/:id without cookie: Exception", str(e))
-
-# 2.9 PATCH /api/projects/:id
-print("\n--- 2.9 PATCH /api/projects/:id ---")
-try:
-    patch_data = {
-        "venue": "Yeni Mekân",
-        "published": False
-    }
-    resp = session.patch(f"{BASE_URL}/projects/{project_id}", json=patch_data)
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 200:
-        data = resp.json()
-        if data.get("project", {}).get("venue") == "Yeni Mekân" and data.get("project", {}).get("published") == False:
-            log_pass("PATCH /projects/:id: 200 with updated fields")
-            
-            # Set published back to true
-            resp2 = session.patch(f"{BASE_URL}/projects/{project_id}", json={"published": True})
-            if resp2.status_code == 200:
-                print("  ✓ Set published back to true")
-            else:
-                print(f"  ✗ Failed to set published back to true: {resp2.status_code}")
-        else:
-            log_fail("PATCH /projects/:id: Fields not updated", f"Response: {data}")
-    else:
-        log_fail(f"PATCH /projects/:id: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("PATCH /projects/:id: Exception", str(e))
-
-# ============================================================================
-# 3. GUESTS API TESTS
-# ============================================================================
-print("\n" + "="*80)
-print("3. GUESTS API TESTS")
-print("="*80)
-
-# 3.1 POST /api/projects/:id/guests (valid)
-print("\n--- 3.1 POST /api/projects/:id/guests (valid) ---")
-try:
-    guest_data = {
-        "name": "Ayşe Demir",
-        "email": "ayse@ornek.com",
-        "phone": "0532 123 45 67",
-        "group": "Aile"
-    }
-    resp = session.post(f"{BASE_URL}/projects/{project_id}/guests", json=guest_data)
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 201:
-        data = resp.json()
-        if "guest" in data:
-            guest = data["guest"]
-            guest_id = guest.get("id")
-            phone_normalized = guest.get("phone")
-            
-            checks = []
-            checks.append(("id present", bool(guest_id)))
-            checks.append(("name", guest.get("name") == "Ayşe Demir"))
-            checks.append(("email", guest.get("email") == "ayse@ornek.com"))
-            checks.append(("phone normalized to +905321234567", phone_normalized == "+905321234567"))
-            checks.append(("group", guest.get("group") == "Aile"))
-            
-            all_pass = all(c[1] for c in checks)
-            if all_pass:
-                log_pass("POST /guests: 201 with normalized phone +905321234567")
-            else:
-                failed_checks = [c[0] for c in checks if not c[1]]
-                log_fail("POST /guests: Some checks failed", f"Failed: {failed_checks}, phone={phone_normalized}")
-        else:
-            log_fail("POST /guests: No guest in response", f"Response: {data}")
-    else:
-        log_fail(f"POST /guests: Expected 201, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /guests: Exception", str(e))
-
-# 3.2 POST /api/projects/:id/guests (missing name)
-print("\n--- 3.2 POST /api/projects/:id/guests (missing name) ---")
-try:
-    resp = session.post(f"{BASE_URL}/projects/{project_id}/guests", json={
-        "email": "test@example.com"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /guests missing name: 400 Bad Request")
-    else:
-        log_fail(f"POST /guests missing name: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /guests missing name: Exception", str(e))
-
-# 3.3 POST /api/projects/:id/guests (invalid phone)
-print("\n--- 3.3 POST /api/projects/:id/guests (invalid phone) ---")
-try:
-    resp = session.post(f"{BASE_URL}/projects/{project_id}/guests", json={
-        "name": "Test User",
-        "phone": "abc"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /guests invalid phone: 400 Bad Request")
-    else:
-        log_fail(f"POST /guests invalid phone: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /guests invalid phone: Exception", str(e))
-
-# 3.4 POST /api/projects/:id/guests/import
-print("\n--- 3.4 POST /api/projects/:id/guests/import ---")
-try:
-    import_data = {
-        "rows": [
-            {"name": "A", "email": "a@x.com"},
-            {"Ad Soyad": "B", "Telefon": "05321112233"},
-            {"name": "", "email": "c@x.com"},  # Empty name - should skip
-            {"name": "Ayşe Demir", "email": "ayse@ornek.com"}  # Duplicate - should skip
-        ]
-    }
-    resp = session.post(f"{BASE_URL}/projects/{project_id}/guests/import", json=import_data)
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 201:
-        data = resp.json()
-        imported = data.get("imported", 0)
-        skipped = data.get("skipped", 0)
-        
-        if imported == 2 and skipped == 2:
-            log_pass("POST /guests/import: 201 with imported=2, skipped=2 (empty name + duplicate)")
-        else:
-            log_fail("POST /guests/import: Wrong counts", f"imported={imported}, skipped={skipped}, expected imported=2, skipped=2")
-    else:
-        log_fail(f"POST /guests/import: Expected 201, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /guests/import: Exception", str(e))
-
-# 3.5 GET /api/projects/:id/guests
-print("\n--- 3.5 GET /api/projects/:id/guests ---")
-try:
-    resp = session.get(f"{BASE_URL}/projects/{project_id}/guests")
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 200:
-        data = resp.json()
-        items = data.get("items", [])
-        
-        # Should have 3 guests: Ayşe Demir, A, B
-        if len(items) == 3:
-            has_id_field = any("_id" in item for item in items)
-            if not has_id_field:
-                log_pass("GET /guests: Returns 3 guests, no _id field")
-            else:
-                log_fail("GET /guests: Contains _id field", "Should not expose MongoDB _id")
-        else:
-            log_fail("GET /guests: Wrong count", f"Expected 3 guests, got {len(items)}")
-    else:
-        log_fail(f"GET /guests: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /guests: Exception", str(e))
-
-# 3.6 DELETE /api/projects/:id/guests/:gid
-print("\n--- 3.6 DELETE /api/projects/:id/guests/:gid ---")
-try:
-    # Get a guest to delete
-    resp = session.get(f"{BASE_URL}/projects/{project_id}/guests")
-    if resp.status_code == 200:
-        guests = resp.json().get("items", [])
-        if guests:
-            delete_guest_id = guests[0]["id"]
-            
-            # Delete
-            resp2 = session.delete(f"{BASE_URL}/projects/{project_id}/guests/{delete_guest_id}")
-            print(f"Delete status: {resp2.status_code}")
-            
-            if resp2.status_code == 200:
-                # Try to delete again - should 404
-                resp3 = session.delete(f"{BASE_URL}/projects/{project_id}/guests/{delete_guest_id}")
-                print(f"Delete again status: {resp3.status_code}")
-                
-                if resp3.status_code == 404:
-                    log_pass("DELETE /guests/:gid: 200 first time, 404 second time")
+                    print_fail(f"Expected at least 1 photo, got: {len(items)}")
+                    return False
+                if data.get('total') >= 1:
+                    print_pass(f"Total count incremented: {data['total']}")
                 else:
-                    log_fail(f"DELETE /guests/:gid: Second delete should be 404, got {resp3.status_code}")
+                    print_fail(f"Total should be >= 1, got: {data.get('total')}")
+                    return False
+                return True
             else:
-                log_fail(f"DELETE /guests/:gid: Expected 200, got {resp2.status_code}", resp2.text[:200])
-        else:
-            log_warning("DELETE /guests/:gid: No guests to delete")
-    else:
-        log_warning("DELETE /guests/:gid: Could not fetch guests")
-except Exception as e:
-    log_fail("DELETE /guests/:gid: Exception", str(e))
-
-# 3.7 GET /api/projects/:id/rsvps
-print("\n--- 3.7 GET /api/projects/:id/rsvps ---")
-try:
-    resp = session.get(f"{BASE_URL}/projects/{project_id}/rsvps")
-    print(f"Status: {resp.status_code}")
+                print_fail(f"Public listing failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Public listing exception: {e}")
+            return False
     
-    if resp.status_code == 200:
-        data = resp.json()
-        if "items" in data and "stats" in data:
-            if isinstance(data["items"], list):
-                log_pass("GET /rsvps: 200 with items array and stats")
+    def test_auth_admin_list(self):
+        """Test GET /api/projects/<id>/album with auth cookie"""
+        print_test("Auth admin list - with cookie")
+        try:
+            resp = self.session.get(f"{BASE_URL}/projects/{self.project_id}/album", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                print_pass(f"Auth admin list successful: {resp.status_code}")
+                items = data.get('items', [])
+                if len(items) >= 1:
+                    print_pass(f"Items list has {len(items)} photo(s)")
+                    photo = items[0]
+                    if 'data_url' in photo and 'uploader_name' in photo:
+                        print_pass(f"Photo includes data_url and uploader_name")
+                    else:
+                        print_fail(f"Photo missing required fields: {list(photo.keys())}")
+                        return False
+                else:
+                    print_fail(f"Expected at least 1 photo, got: {len(items)}")
+                    return False
+                if 'enabled' in data:
+                    print_pass(f"Response includes enabled field: {data['enabled']}")
+                else:
+                    print_fail(f"Response missing enabled field")
+                    return False
+                return True
             else:
-                log_fail("GET /rsvps: items not an array", f"Response: {data}")
-        else:
-            log_fail("GET /rsvps: Missing items or stats", f"Response: {data}")
-    else:
-        log_fail(f"GET /rsvps: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /rsvps: Exception", str(e))
-
-# 3.8 POST /api/projects/:id/send (SMS - should 503)
-print("\n--- 3.8 POST /api/projects/:id/send (SMS - not configured) ---")
-try:
-    resp = session.post(f"{BASE_URL}/projects/{project_id}/send", json={
-        "channel": "sms",
-        "type": "invitation"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 503:
-        log_pass("POST /send SMS: 503 Service Unavailable (Twilio not configured)")
-    else:
-        log_fail(f"POST /send SMS: Expected 503, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /send SMS: Exception", str(e))
-
-# 3.9 POST /api/projects/:id/send (invalid channel)
-print("\n--- 3.9 POST /api/projects/:id/send (invalid channel) ---")
-try:
-    resp = session.post(f"{BASE_URL}/projects/{project_id}/send", json={
-        "channel": "invalid_channel",
-        "type": "invitation"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /send invalid channel: 400 Bad Request")
-    else:
-        log_fail(f"POST /send invalid channel: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /send invalid channel: Exception", str(e))
-
-# 3.10 POST /api/projects/:id/send (email - real Resend attempt)
-print("\n--- 3.10 POST /api/projects/:id/send (email - REAL RESEND ATTEMPT) ---")
-try:
-    # Get a guest with email
-    resp = session.get(f"{BASE_URL}/projects/{project_id}/guests")
-    guests = resp.json().get("items", [])
-    guest_with_email = next((g for g in guests if g.get("email")), None)
+                print_fail(f"Auth admin list failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Auth admin list exception: {e}")
+            return False
     
-    if guest_with_email:
-        send_data = {
-            "channel": "email",
-            "type": "invitation",
-            "guest_ids": [guest_with_email["id"]]
-        }
-        resp = session.post(f"{BASE_URL}/projects/{project_id}/send", json=send_data)
-        print(f"Status: {resp.status_code}")
-        
-        if resp.status_code == 200:
+    def test_auth_required(self):
+        """Test GET /api/projects/<id>/album without auth returns 401"""
+        print_test("Auth required - no cookie")
+        try:
+            # Create a new session without auth cookie
+            no_auth_session = requests.Session()
+            resp = no_auth_session.get(f"{BASE_URL}/projects/{self.project_id}/album", timeout=10)
+            if resp.status_code == 401:
+                print_pass(f"Auth required: got 401 without cookie")
+                return True
+            else:
+                print_fail(f"Expected 401 without auth, got: {resp.status_code}")
+                return False
+        except Exception as e:
+            print_fail(f"Auth required exception: {e}")
+            return False
+    
+    def test_auth_delete(self):
+        """Test DELETE /api/projects/<id>/album/<photoId>"""
+        print_test("Auth delete - valid photo")
+        try:
+            if not self.photo_id:
+                print_fail("No photo_id available for deletion test")
+                return False
+            resp = self.session.delete(f"{BASE_URL}/projects/{self.project_id}/album/{self.photo_id}", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('ok') == True:
+                    print_pass(f"Photo deleted successfully: ok={data['ok']}")
+                else:
+                    print_fail(f"Expected ok=true, got: {data.get('ok')}")
+                    return False
+                return True
+            else:
+                print_fail(f"Delete failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Delete exception: {e}")
+            return False
+    
+    def test_delete_unknown_id(self):
+        """Test DELETE with unknown photo ID returns 404"""
+        print_test("Auth delete - unknown ID")
+        try:
+            fake_id = "00000000-0000-0000-0000-000000000000"
+            resp = self.session.delete(f"{BASE_URL}/projects/{self.project_id}/album/{fake_id}", timeout=10)
+            if resp.status_code == 404:
+                print_pass(f"Unknown photo ID rejected with 404: {resp.status_code}")
+                return True
+            else:
+                print_fail(f"Expected 404 for unknown ID, got: {resp.status_code}")
+                return False
+        except Exception as e:
+            print_fail(f"Delete unknown ID exception: {e}")
+            return False
+    
+    def test_listing_after_delete(self):
+        """Test that deleted photo no longer appears in listings"""
+        print_test("Listing after delete - photo removed")
+        try:
+            resp = requests.get(f"{BASE_URL}/public/album/{self.project_slug}", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                items = data.get('items', [])
+                # Check that the deleted photo is not in the list
+                photo_ids = [p.get('id') for p in items]
+                if self.photo_id not in photo_ids:
+                    print_pass(f"Deleted photo not in listing (correct)")
+                else:
+                    print_fail(f"Deleted photo still in listing")
+                    return False
+                return True
+            else:
+                print_fail(f"Listing after delete failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Listing after delete exception: {e}")
+            return False
+    
+    def test_toggle_album_off(self):
+        """Test PATCH /api/projects/<id> with album_enabled=false"""
+        print_test("Toggle album off")
+        try:
+            resp = self.session.patch(
+                f"{BASE_URL}/projects/{self.project_id}",
+                json={"album_enabled": False},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                print_pass(f"Album toggled off: {resp.status_code}")
+                return True
+            else:
+                print_fail(f"Toggle off failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Toggle off exception: {e}")
+            return False
+    
+    def test_public_get_disabled(self):
+        """Test GET /api/public/album/<slug> when disabled returns enabled=false, empty items"""
+        print_test("Public GET when disabled")
+        try:
+            resp = requests.get(f"{BASE_URL}/public/album/{self.project_slug}", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('enabled') == False:
+                    print_pass(f"Album disabled: enabled={data['enabled']}")
+                else:
+                    print_fail(f"Expected enabled=false, got: {data.get('enabled')}")
+                    return False
+                if data.get('items') == []:
+                    print_pass(f"Items is empty list when disabled")
+                else:
+                    print_fail(f"Expected empty items, got: {data.get('items')}")
+                    return False
+                if data.get('total') == 0:
+                    print_pass(f"Total is 0 when disabled")
+                else:
+                    print_fail(f"Expected total=0, got: {data.get('total')}")
+                    return False
+                return True
+            else:
+                print_fail(f"Public GET disabled failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Public GET disabled exception: {e}")
+            return False
+    
+    def test_public_post_disabled(self):
+        """Test POST /api/public/album/<slug> when disabled returns 403"""
+        print_test("Public POST when disabled")
+        try:
+            resp = requests.post(
+                f"{BASE_URL}/public/album/{self.project_slug}",
+                json={"uploader": "Test", "photos": [TINY_PNG]},
+                timeout=10
+            )
+            if resp.status_code == 403:
+                print_pass(f"Upload rejected when disabled: 403")
+                return True
+            else:
+                print_fail(f"Expected 403 when disabled, got: {resp.status_code}")
+                return False
+        except Exception as e:
+            print_fail(f"Public POST disabled exception: {e}")
+            return False
+    
+    def test_toggle_album_on(self):
+        """Test PATCH /api/projects/<id> with album_enabled=true"""
+        print_test("Toggle album back on")
+        try:
+            resp = self.session.patch(
+                f"{BASE_URL}/projects/{self.project_id}",
+                json={"album_enabled": True},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                print_pass(f"Album toggled back on: {resp.status_code}")
+                # Verify it works again
+                resp2 = requests.get(f"{BASE_URL}/public/album/{self.project_slug}", timeout=10)
+                if resp2.status_code == 200:
+                    data = resp2.json()
+                    if data.get('enabled') == True:
+                        print_pass(f"Album re-enabled: enabled={data['enabled']}")
+                        return True
+                    else:
+                        print_fail(f"Album should be enabled, got: {data.get('enabled')}")
+                        return False
+                else:
+                    print_fail(f"Verification failed: {resp2.status_code}")
+                    return False
+            else:
+                print_fail(f"Toggle on failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Toggle on exception: {e}")
+            return False
+    
+    def test_stats_album_count(self):
+        """Test GET /api/projects/<id> returns stats.album_count"""
+        print_test("Stats - album_count")
+        try:
+            # First upload a photo to have a count
+            resp_upload = requests.post(
+                f"{BASE_URL}/public/album/{self.project_slug}",
+                json={"uploader": "Stats Test", "photos": [TINY_PNG]},
+                timeout=10
+            )
+            if resp_upload.status_code != 201:
+                print_fail(f"Failed to upload photo for stats test: {resp_upload.status_code}")
+                return False
+            
+            # Now check stats
+            resp = self.session.get(f"{BASE_URL}/projects/{self.project_id}", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                stats = data.get('project', {}).get('stats', {})
+                album_count = stats.get('album_count')
+                if album_count is not None and album_count >= 1:
+                    print_pass(f"Stats includes album_count: {album_count}")
+                    return True
+                else:
+                    print_fail(f"Stats missing or incorrect album_count: {album_count}")
+                    return False
+            else:
+                print_fail(f"Get project stats failed: {resp.status_code} - {resp.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Stats exception: {e}")
+            return False
+    
+    def test_cascade_delete(self):
+        """Test that deleting a project also deletes album_photos"""
+        print_test("Cascade delete - project deletion removes photos")
+        try:
+            # Create a throwaway project
+            resp = self.session.post(
+                f"{BASE_URL}/projects",
+                json={
+                    "host_a": "Throwaway",
+                    "host_b": "Test",
+                    "date": "2025-12-31",
+                    "event_type": "dugun",
+                    "template_slug": "aurelia",
+                    "published": True
+                },
+                timeout=10
+            )
+            if resp.status_code != 201:
+                print_fail(f"Failed to create throwaway project: {resp.status_code}")
+                return False
+            
             data = resp.json()
-            print(f"Response: {json.dumps(data, indent=2)}")
+            self.throwaway_project_id = data['project']['id']
+            self.throwaway_slug = data['project']['slug']
+            print_info(f"Created throwaway project: {self.throwaway_project_id}, slug: {self.throwaway_slug}")
             
-            # Expected: ok:true, sent:0 or 1, failed:0 or 1, skipped:0
-            if data.get("ok") == True:
-                sent = data.get("sent", 0)
-                failed = data.get("failed", 0)
-                skipped = data.get("skipped", 0)
-                
-                if (sent == 1 and failed == 0) or (sent == 0 and failed == 1):
-                    log_pass(f"POST /send email: 200 with ok:true, sent={sent}, failed={failed}, skipped={skipped}")
-                    
-                    # Check message logs
-                    resp2 = session.get(f"{BASE_URL}/projects/{project_id}/messages")
-                    if resp2.status_code == 200:
-                        logs = resp2.json().get("items", [])
-                        matching_log = next((l for l in logs if l.get("guest_id") == guest_with_email["id"]), None)
-                        if matching_log:
-                            print(f"  ✓ Message log entry found: status={matching_log.get('status')}")
-                        else:
-                            print(f"  ✗ No matching message log entry found")
+            # Upload a photo to it
+            resp_upload = requests.post(
+                f"{BASE_URL}/public/album/{self.throwaway_slug}",
+                json={"uploader": "Cascade Test", "photos": [TINY_PNG]},
+                timeout=10
+            )
+            if resp_upload.status_code != 201:
+                print_fail(f"Failed to upload photo to throwaway project: {resp_upload.status_code}")
+                return False
+            print_info(f"Uploaded photo to throwaway project")
+            
+            # Verify photo exists
+            resp_check = requests.get(f"{BASE_URL}/public/album/{self.throwaway_slug}", timeout=10)
+            if resp_check.status_code == 200:
+                items = resp_check.json().get('items', [])
+                if len(items) >= 1:
+                    print_info(f"Verified photo exists before deletion: {len(items)} photo(s)")
                 else:
-                    log_fail("POST /send email: Unexpected counts", f"sent={sent}, failed={failed}, skipped={skipped}")
-            else:
-                log_fail("POST /send email: ok not true", f"Response: {data}")
-        else:
-            log_fail(f"POST /send email: Expected 200, got {resp.status_code}", resp.text[:200])
-    else:
-        log_warning("POST /send email: No guest with email found")
-except Exception as e:
-    log_fail("POST /send email: Exception", str(e))
-
-# 3.11 GET /api/projects/:id/messages
-print("\n--- 3.11 GET /api/projects/:id/messages ---")
-try:
-    resp = session.get(f"{BASE_URL}/projects/{project_id}/messages")
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 200:
-        data = resp.json()
-        items = data.get("items", [])
-        if len(items) >= 1:
-            log_pass(f"GET /messages: 200 with {len(items)} log entries")
-        else:
-            log_warning("GET /messages: No log entries found", "Expected at least 1 from email send")
-    else:
-        log_fail(f"GET /messages: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /messages: Exception", str(e))
-
-# 3.12 Isolation test - login as test@momentis.app and try to access new user's project
-print("\n--- 3.12 Isolation test: Access other user's project ---")
-try:
-    session_test = requests.Session()
-    resp = session_test.post(f"{BASE_URL}/auth/login", json={
-        "email": "test@momentis.app",
-        "password": "Test1234!"
-    })
-    
-    if resp.status_code == 200:
-        # Try to access new user's project
-        resp2 = session_test.get(f"{BASE_URL}/projects/{project_id}")
-        print(f"Status: {resp2.status_code}")
-        
-        if resp2.status_code == 404:
-            log_pass("Isolation: Other user cannot access project (404)")
-        else:
-            log_fail(f"Isolation: Expected 404, got {resp2.status_code}", "Security issue: user can access other user's project")
-    else:
-        log_warning("Isolation test: Could not login as test@momentis.app")
-except Exception as e:
-    log_fail("Isolation test: Exception", str(e))
-
-# ============================================================================
-# 4. PUBLIC API TESTS
-# ============================================================================
-print("\n" + "="*80)
-print("4. PUBLIC API TESTS")
-print("="*80)
-
-# 4.1 GET /api/public/invitations/:slug
-print("\n--- 4.1 GET /api/public/invitations/:slug ---")
-try:
-    resp = requests.get(f"{BASE_URL}/public/invitations/{project_slug}")
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 200:
-        data = resp.json()
-        if "project" in data and "template" in data:
-            project = data["project"]
-            if "user_id" not in project:
-                log_pass("GET /public/invitations/:slug: 200 with project (no user_id) and template")
-            else:
-                log_fail("GET /public/invitations/:slug: user_id exposed", "Should not expose user_id in public API")
-        else:
-            log_fail("GET /public/invitations/:slug: Missing project or template", f"Response: {data}")
-    else:
-        log_fail(f"GET /public/invitations/:slug: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /public/invitations/:slug: Exception", str(e))
-
-# 4.2 GET /api/public/invitations/:slug (unknown slug)
-print("\n--- 4.2 GET /api/public/invitations/:slug (unknown) ---")
-try:
-    resp = requests.get(f"{BASE_URL}/public/invitations/nonexistent-slug-12345")
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 404:
-        log_pass("GET /public/invitations unknown slug: 404 Not Found")
-    else:
-        log_fail(f"GET /public/invitations unknown slug: Expected 404, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("GET /public/invitations unknown slug: Exception", str(e))
-
-# 4.3 GET /api/public/invitations/:slug (published=false)
-print("\n--- 4.3 GET /api/public/invitations/:slug (published=false) ---")
-try:
-    # Set published to false
-    resp = session.patch(f"{BASE_URL}/projects/{project_id}", json={"published": False})
-    if resp.status_code == 200:
-        # Try to access public invitation
-        resp2 = requests.get(f"{BASE_URL}/public/invitations/{project_slug}")
-        print(f"Status: {resp2.status_code}")
-        
-        if resp2.status_code == 404:
-            log_pass("GET /public/invitations published=false: 404 Not Found")
+                    print_fail(f"Photo not found before deletion")
+                    return False
             
-            # Restore published=true
-            session.patch(f"{BASE_URL}/projects/{project_id}", json={"published": True})
-            print("  ✓ Restored published=true")
-        else:
-            log_fail(f"GET /public/invitations published=false: Expected 404, got {resp2.status_code}")
-    else:
-        log_warning("Could not set published=false for test")
-except Exception as e:
-    log_fail("GET /public/invitations published=false: Exception", str(e))
-
-# 4.4 POST /api/public/rsvp (attending=true with email)
-print("\n--- 4.4 POST /api/public/rsvp (attending=true) ---")
-try:
-    rsvp_data = {
-        "slug": project_slug,
-        "name": "Ayşe Demir",
-        "email": "ayse@ornek.com",
-        "attending": True,
-        "guest_count": 2,
-        "menu": "Balık",
-        "note": "test"
-    }
-    resp = requests.post(f"{BASE_URL}/public/rsvp", json=rsvp_data)
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 201:
-        data = resp.json()
-        print(f"Response: {json.dumps(data, indent=2)}")
-        
-        checks = []
-        checks.append(("ok=true", data.get("ok") == True))
-        checks.append(("rsvp.attending=true", data.get("rsvp", {}).get("attending") == True))
-        checks.append(("rsvp.guest_count=2", data.get("rsvp", {}).get("guest_count") == 2))
-        checks.append(("confirmations array", isinstance(data.get("confirmations"), list)))
-        
-        all_pass = all(c[1] for c in checks)
-        if all_pass:
-            confirmations = data.get("confirmations", [])
-            email_conf = next((c for c in confirmations if c.get("channel") == "email"), None)
-            if email_conf:
-                print(f"  Email confirmation: status={email_conf.get('status')}")
+            # Delete the project
+            resp_delete = self.session.delete(f"{BASE_URL}/projects/{self.throwaway_project_id}", timeout=10)
+            if resp_delete.status_code != 200:
+                print_fail(f"Failed to delete throwaway project: {resp_delete.status_code}")
+                return False
+            print_info(f"Deleted throwaway project")
             
-            log_pass("POST /public/rsvp attending=true: 201 with ok:true, rsvp, confirmations")
-            
-            # Verify guest status updated and stats
-            resp2 = session.get(f"{BASE_URL}/projects/{project_id}/rsvps")
-            if resp2.status_code == 200:
-                rsvps_data = resp2.json()
-                items = rsvps_data.get("items", [])
-                stats = rsvps_data.get("stats", {})
-                
-                matching_rsvp = next((r for r in items if r.get("email") == "ayse@ornek.com"), None)
-                if matching_rsvp:
-                    print(f"  ✓ RSVP found in project rsvps")
-                    
-                    # Check guest status
-                    resp3 = session.get(f"{BASE_URL}/projects/{project_id}/guests")
-                    if resp3.status_code == 200:
-                        guests = resp3.json().get("items", [])
-                        matching_guest = next((g for g in guests if g.get("email") == "ayse@ornek.com"), None)
-                        if matching_guest and matching_guest.get("status") == "responded":
-                            print(f"  ✓ Guest status updated to 'responded'")
-                        else:
-                            print(f"  ✗ Guest status not updated: {matching_guest.get('status') if matching_guest else 'not found'}")
-                    
-                    # Check stats
-                    if stats.get("attending") == 1 and stats.get("attending_people") == 2:
-                        print(f"  ✓ Stats: attending=1, attending_people=2")
-                    else:
-                        print(f"  ✗ Stats incorrect: attending={stats.get('attending')}, attending_people={stats.get('attending_people')}")
-                else:
-                    print(f"  ✗ RSVP not found in project rsvps")
-        else:
-            failed_checks = [c[0] for c in checks if not c[1]]
-            log_fail("POST /public/rsvp: Some checks failed", f"Failed: {failed_checks}")
-    else:
-        log_fail(f"POST /public/rsvp: Expected 201, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /public/rsvp attending=true: Exception", str(e))
-
-# 4.5 POST /api/public/rsvp (attending=false, phone only)
-print("\n--- 4.5 POST /api/public/rsvp (attending=false, phone only) ---")
-try:
-    rsvp_data = {
-        "slug": project_slug,
-        "name": "Mehmet Yılmaz",
-        "phone": "05321234567",
-        "attending": False
-    }
-    resp = requests.post(f"{BASE_URL}/public/rsvp", json=rsvp_data)
-    print(f"Status: {resp.status_code}")
-    
-    if resp.status_code == 201:
-        data = resp.json()
-        if data.get("ok") == True and data.get("rsvp", {}).get("attending") == False:
-            guest_count = data.get("rsvp", {}).get("guest_count", -1)
-            if guest_count == 0:
-                log_pass("POST /public/rsvp attending=false: 201 with guest_count=0")
+            # Verify project is gone (public GET should return 404)
+            resp_verify = requests.get(f"{BASE_URL}/public/album/{self.throwaway_slug}", timeout=10)
+            if resp_verify.status_code == 404:
+                print_pass(f"Project deletion confirmed: public GET returns 404")
+                return True
             else:
-                log_fail("POST /public/rsvp attending=false: guest_count should be 0", f"Got: {guest_count}")
-        else:
-            log_fail("POST /public/rsvp attending=false: Invalid response", f"Response: {data}")
-    else:
-        log_fail(f"POST /public/rsvp attending=false: Expected 201, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /public/rsvp attending=false: Exception", str(e))
-
-# 4.6 POST /api/public/rsvp (missing attending)
-print("\n--- 4.6 POST /api/public/rsvp (missing attending) ---")
-try:
-    resp = requests.post(f"{BASE_URL}/public/rsvp", json={
-        "slug": project_slug,
-        "name": "Test",
-        "email": "test@example.com"
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /public/rsvp missing attending: 400 Bad Request")
-    else:
-        log_fail(f"POST /public/rsvp missing attending: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /public/rsvp missing attending: Exception", str(e))
-
-# 4.7 POST /api/public/rsvp (no email and no phone)
-print("\n--- 4.7 POST /api/public/rsvp (no email and no phone) ---")
-try:
-    resp = requests.post(f"{BASE_URL}/public/rsvp", json={
-        "slug": project_slug,
-        "name": "Test",
-        "attending": True
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 400:
-        log_pass("POST /public/rsvp no email/phone: 400 Bad Request")
-    else:
-        log_fail(f"POST /public/rsvp no email/phone: Expected 400, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /public/rsvp no email/phone: Exception", str(e))
-
-# 4.8 POST /api/public/rsvp (invalid slug)
-print("\n--- 4.8 POST /api/public/rsvp (invalid slug) ---")
-try:
-    resp = requests.post(f"{BASE_URL}/public/rsvp", json={
-        "slug": "nonexistent-slug-12345",
-        "name": "Test",
-        "email": "test@example.com",
-        "attending": True
-    })
-    print(f"Status: {resp.status_code}")
-    if resp.status_code == 404:
-        log_pass("POST /public/rsvp invalid slug: 404 Not Found")
-    else:
-        log_fail(f"POST /public/rsvp invalid slug: Expected 404, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("POST /public/rsvp invalid slug: Exception", str(e))
-
-# ============================================================================
-# 5. CLEANUP
-# ============================================================================
-print("\n" + "="*80)
-print("5. CLEANUP")
-print("="*80)
-
-# 5.1 DELETE /api/projects/:id
-print("\n--- 5.1 DELETE /api/projects/:id ---")
-try:
-    resp = session.delete(f"{BASE_URL}/projects/{project_id}")
-    print(f"Status: {resp.status_code}")
+                print_fail(f"Expected 404 after project deletion, got: {resp_verify.status_code}")
+                return False
+        except Exception as e:
+            print_fail(f"Cascade delete exception: {e}")
+            return False
     
-    if resp.status_code == 200:
-        # Verify deletion
-        resp2 = session.get(f"{BASE_URL}/projects/{project_id}")
-        print(f"GET after delete status: {resp2.status_code}")
+    def run_all_tests(self):
+        """Run all test scenarios"""
+        print("\n" + "="*60)
+        print("MOMENTIS ALBUM API TEST SUITE")
+        print("="*60)
         
-        if resp2.status_code == 404:
-            log_pass("DELETE /projects/:id: 200, subsequent GET returns 404")
+        results = []
+        
+        # Login
+        if not self.login():
+            print("\n❌ LOGIN FAILED - Cannot proceed with tests")
+            return False
+        
+        # Create project
+        if not self.create_published_project():
+            print("\n❌ PROJECT CREATION FAILED - Cannot proceed with tests")
+            return False
+        
+        # Run all test scenarios
+        test_methods = [
+            ("1. Public listing (empty)", self.test_public_listing_empty),
+            ("2. Public upload (valid)", self.test_public_upload),
+            ("3. Validation (invalid data URL)", self.test_validation_invalid_data_url),
+            ("4. Validation (empty photos)", self.test_validation_empty_photos),
+            ("5. Public listing (after upload)", self.test_public_listing_after_upload),
+            ("6. Auth admin list", self.test_auth_admin_list),
+            ("7. Auth required (no cookie)", self.test_auth_required),
+            ("8. Auth delete (valid)", self.test_auth_delete),
+            ("9. Auth delete (unknown ID)", self.test_delete_unknown_id),
+            ("10. Listing after delete", self.test_listing_after_delete),
+            ("11. Toggle album off", self.test_toggle_album_off),
+            ("12. Public GET (disabled)", self.test_public_get_disabled),
+            ("13. Public POST (disabled)", self.test_public_post_disabled),
+            ("14. Toggle album on", self.test_toggle_album_on),
+            ("15. Stats album_count", self.test_stats_album_count),
+            ("16. Cascade delete", self.test_cascade_delete),
+        ]
+        
+        for name, test_func in test_methods:
+            try:
+                result = test_func()
+                results.append((name, result))
+            except Exception as e:
+                print_fail(f"Test {name} raised exception: {e}")
+                results.append((name, False))
+        
+        # Summary
+        print("\n" + "="*60)
+        print("TEST SUMMARY")
+        print("="*60)
+        passed = sum(1 for _, r in results if r)
+        total = len(results)
+        print(f"\nTotal: {total} tests")
+        print(f"Passed: {passed}")
+        print(f"Failed: {total - passed}")
+        print("\nDetailed Results:")
+        for name, result in results:
+            status = "✅ PASS" if result else "❌ FAIL"
+            print(f"{status}: {name}")
+        
+        if passed == total:
+            print("\n🎉 ALL TESTS PASSED!")
+            return True
         else:
-            log_fail(f"DELETE /projects/:id: Project not deleted, GET returned {resp2.status_code}")
-    else:
-        log_fail(f"DELETE /projects/:id: Expected 200, got {resp.status_code}", resp.text[:200])
-except Exception as e:
-    log_fail("DELETE /projects/:id: Exception", str(e))
+            print(f"\n⚠️  {total - passed} TEST(S) FAILED")
+            return False
 
-# ============================================================================
-# SUMMARY
-# ============================================================================
-print("\n" + "="*80)
-print("TEST SUMMARY")
-print("="*80)
-print(f"\n✅ PASSED: {len(results['passed'])}")
-for test in results["passed"]:
-    print(f"   - {test}")
-
-if results["warnings"]:
-    print(f"\n⚠️  WARNINGS: {len(results['warnings'])}")
-    for test in results["warnings"]:
-        print(f"   - {test}")
-
-if results["failed"]:
-    print(f"\n❌ FAILED: {len(results['failed'])}")
-    for test in results["failed"]:
-        print(f"   - {test}")
-else:
-    print("\n🎉 ALL CRITICAL TESTS PASSED!")
-
-print("\n" + "="*80)
-print(f"Total: {len(results['passed'])} passed, {len(results['failed'])} failed, {len(results['warnings'])} warnings")
-print("="*80)
+if __name__ == "__main__":
+    tester = AlbumAPITest()
+    success = tester.run_all_tests()
+    sys.exit(0 if success else 1)

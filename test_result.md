@@ -118,6 +118,20 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ALL TESTS PASSED. GET /api/templates returns 13 items with no _id field, sorted by popularity desc. Filters tested: category=dugun (7 items, all dugun), style=botanik (2 items), tier=free (5 items), q=aurelia (1 item), combined filters (category+style), nonexistent category (empty). GET /api/templates/aurelia returns single template with slug, palette object, features array. GET /api/templates/does-not-exist returns 404. All requirements met."
+  - task: "Album API (QR anı albümü): public GET/POST /api/public/album/:slug (upload data-URL photos, enabled check, caps), auth GET /api/projects/:id/album + DELETE /:photoId, album_enabled field + stats.album_count, cascade delete"
+    implemented: true
+    working: true
+    file: "lib/api/project-routes.js, lib/projects.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW. Photos stored as base64 data-URLs in Mongo 'album_photos' collection (no external storage). Public upload validates data:image/(png|jpe?g|webp|gif);base64 and <=~3MB per photo, max 12 per request, project cap 500. GET public returns approved photos + enabled flag; disabled album -> empty list, POST to disabled -> 403. Auth list returns all; DELETE removes by id scoped to project. album_enabled defaults true (undefined treated as enabled). stats now includes album_count. Project DELETE also clears album_photos. Use existing auth cookie flow. Create a published project (or use /d/elif-kaan slug) to test public upload; keep uploads small (1-2 tiny data URLs)."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL ALBUM API TESTS PASSED (16/16). Public endpoints: GET /api/public/album/:slug returns {enabled:true, items:[], total:0} initially; POST /api/public/album/:slug with {uploader:'Zeynep', photos:[tiny-png-data-url]} returns 201 {ok:true, uploaded:1, photos:[{id, uploader_name, ...}]} - CRITICAL: data_url NOT included in upload response (correct); validation: invalid data-URL rejected with 400, empty photos array rejected with 400; after upload, GET returns items with data_url for display, total incremented. Auth endpoints: GET /api/projects/:id/album with cookie returns {items:[...], total, enabled} with data_url included; 401 without cookie (auth required); DELETE /api/projects/:id/album/:photoId returns {ok:true}, 404 for unknown ID; deleted photo removed from listings. Toggle: PATCH /api/projects/:id with {album_enabled:false} -> public GET returns {enabled:false, items:[], total:0}, public POST returns 403; toggle back on with {album_enabled:true} works. Stats: GET /api/projects/:id returns stats.album_count reflecting uploaded count. Cascade delete: DELETE /api/projects/:id removes project and album_photos (public GET returns 404). All requirements met."
   - task: "Packages & event-types API (GET /api/packages, GET /api/event-types)"
     implemented: true
     working: true
@@ -269,7 +283,8 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Album API (QR anı albümü): public GET/POST /api/public/album/:slug (upload data-URL photos, enabled check, caps), auth GET /api/projects/:id/album + DELETE /:photoId, album_enabled field + stats.album_count, cascade delete"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -286,3 +301,7 @@ agent_communication:
     message: "✅ PHASE 2 BACKEND TESTING COMPLETE - ALL TESTS PASSED (43/43). Auth API (13 tests): register with validation, login/logout with cookie management, GET /me, Google exchange validation, rate limiting (429 after 5 failed attempts). Projects API (9 tests): CRUD operations, validation, auth protection, isolation. Guests API (12 tests): CRUD, import with deduplication, phone normalization (+905321234567), RSVP tracking, bulk send (email: 200 with failed=1 due to Resend test sender restriction - expected; SMS: 503 not configured - expected), message logging. Public API (9 tests): GET /public/invitations/:slug with published check, POST /public/rsvp with guest linking, status updates (responded), stats aggregation (attending=1, attending_people=2), confirmation attempts. All validations, security measures, data integrity, and business logic working correctly. Email sends fail as expected (Resend test sender can only send to owner's email). Ready for production."
   - agent: "main"
     message: "Frontend testing approved by user. Dev server memory raised to 1536MB + webpackMemoryOptimizations to stop restart loop; please note any ERR_CONNECTION_REFUSED/RESET during the run. Inputs are controlled React components: wait ~1.5s after page load before fill()."
+  - agent: "main"
+    message: "NEW FEATURE TO TEST (backend only): QR Anı Albümü endpoints. Please test: (1) GET /api/public/album/<slug> for a published project returns {enabled, items, total}. (2) POST /api/public/album/<slug> with body {uploader, photos:[<tiny data:image/png;base64 string>]} returns 201 {ok, uploaded, photos:[{id,uploader_name,...}]} and photos must NOT include data_url. (3) Invalid photo (non data-URL, or oversized >~3MB) -> 400. (4) Auth GET /api/projects/<id>/album lists all with data_url; DELETE /api/projects/<id>/album/<photoId> removes it (404 for unknown id). (5) Toggle album_enabled=false via PATCH /api/projects/<id>; then public GET returns enabled:false items:[], and public POST returns 403. (6) stats.album_count reflects uploaded count; deleting the project cascades album_photos. Use existing auth cookie flow (login sets momentis_session). You may create a fresh project and publish it. Keep photo payloads tiny (a 1x1 px base64 PNG is fine)."
+  - agent: "testing"
+    message: "✅ ALBUM API TESTING COMPLETE - ALL TESTS PASSED (16/16). Tested all scenarios: (1) Public listing initially empty with enabled=true. (2) Public upload with valid tiny PNG data-URL returns 201, uploaded=1, photos array WITHOUT data_url (CRITICAL requirement met). (3) Validation: invalid data-URL rejected with 400, empty photos array rejected with 400. (4) Public listing after upload includes photo with data_url for display, total incremented. (5) Auth admin list with cookie returns items with data_url and uploader_name, enabled field present; 401 without cookie (auth protection working). (6) Auth delete removes photo (ok:true), 404 for unknown ID; deleted photo no longer in listings. (7) Toggle album_enabled=false: public GET returns enabled:false, items:[], total:0; public POST returns 403 (disabled). (8) Toggle back on works correctly. (9) Stats.album_count reflects current photo count. (10) Cascade delete: project deletion removes album_photos, public GET returns 404. All Album API endpoints working correctly. Ready for production."

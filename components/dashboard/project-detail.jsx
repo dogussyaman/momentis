@@ -14,6 +14,7 @@ import { getEventType } from '@/lib/data/events'
 import { formatEventDate } from '@/lib/projects'
 import { GuestsTab } from './guests-tab'
 import { SendTab } from './send-tab'
+import { AlbumTab } from './album-tab'
 
 const tabCls = 'rounded-2xl border-b-2 border-transparent px-0 pb-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:border-midnight data-[state=active]:bg-transparent data-[state=active]:text-midnight data-[state=active]:shadow-none'
 
@@ -92,11 +93,13 @@ export function ProjectDetail() {
           <TabsTrigger value="guests" className={tabCls} data-testid="tab-guests">Davetliler</TabsTrigger>
           <TabsTrigger value="rsvps" className={tabCls} data-testid="tab-rsvps">RSVP Yanıtları</TabsTrigger>
           <TabsTrigger value="send" className={tabCls} data-testid="tab-send">Toplu Gönderim</TabsTrigger>
+          <TabsTrigger value="album" className={tabCls} data-testid="tab-album">Anı Albümü</TabsTrigger>
           <TabsTrigger value="settings" className={tabCls} data-testid="tab-settings">Ayarlar</TabsTrigger>
         </TabsList>
         <TabsContent value="guests" className="mt-8"><GuestsTab projectId={id} onChanged={load} /></TabsContent>
         <TabsContent value="rsvps" className="mt-8"><RsvpsTab projectId={id} /></TabsContent>
         <TabsContent value="send" className="mt-8"><SendTab projectId={id} project={project} onSent={load} /></TabsContent>
+        <TabsContent value="album" className="mt-8"><AlbumTab projectId={id} project={project} onChanged={load} /></TabsContent>
         <TabsContent value="settings" className="mt-8">
           <div className="border border-destructive/30 bg-ivory-50 p-8">
             <p className="text-[11px] uppercase tracking-[0.3em] text-destructive">Tehlikeli Bölge</p>

@@ -1,7 +1,8 @@
 'use client'
 
+import { useRef } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InvitationPreview } from '@/components/shared/invitation-preview'
@@ -11,20 +12,28 @@ import { EASE } from '@/lib/motion'
 const TEMPLATE_PREVIEW = { palette: { bg: '#F8F4EC', accent: '#C9A96E', text: '#101827', muted: '#8B8577' }, layout: 'classic' }
 
 export function Hero() {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '20%'])
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.15])
+  const contentY = useTransform(scrollYProgress, [0, 1], ['0%', '-12%'])
+  const fadeOut = useTransform(scrollYProgress, [0, 0.8], [1, 0])
+
   return (
-    <section className="relative min-h-screen overflow-hidden bg-midnight text-ivory" data-testid="hero">
+    <section ref={ref} className="relative min-h-screen overflow-hidden bg-midnight text-ivory" data-testid="hero">
       <motion.div
         initial={{ scale: 1.08, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 2.2, ease: EASE }}
-        className="absolute inset-0"
+        style={{ y: bgY, scale: bgScale }}
+        className="absolute inset-0 will-change-transform"
       >
-        <img src={IMAGES.hero} alt="" className="h-full w-full object-cover object-center" />
+        <img src={IMAGES.hero} alt="" className="h-[118%] w-full object-cover object-center" />
       </motion.div>
       <div className="absolute inset-0 bg-gradient-to-r from-midnight via-midnight/85 to-midnight/30" />
       <div className="absolute inset-0 bg-gradient-to-t from-midnight via-transparent to-midnight/40" />
 
-      <div className="container relative flex min-h-screen flex-col justify-end pb-16 pt-36 lg:justify-center lg:pb-24">
+      <motion.div style={{ y: contentY }} className="container relative flex min-h-screen flex-col justify-end pb-16 pt-36 lg:justify-center lg:pb-24">
         <div className="grid items-center gap-16 lg:grid-cols-12">
           <div className="lg:col-span-7">
             <motion.p
@@ -82,7 +91,7 @@ export function Hero() {
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 1.5, ease: EASE }}
-                className="absolute -bottom-16 -right-20 w-56 border border-ivory/10 bg-midnight/80 p-5 backdrop-blur-xl"
+                className="absolute -bottom-16 -right-20 w-56 rounded-2xl border border-ivory/10 bg-midnight/80 p-5 backdrop-blur-xl"
               >
                 <p className="text-[10px] uppercase tracking-[0.28em] text-champagne">Canlı RSVP</p>
                 <p className="mt-2 font-serif text-3xl">184 <span className="text-base text-ivory/60">/ 210</span></p>
@@ -106,7 +115,7 @@ export function Hero() {
             </div>
           ))}
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   )
 }

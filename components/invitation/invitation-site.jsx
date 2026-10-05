@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { MapPin, CalendarDays, Clock, Shirt, ChevronDown, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getEventType } from '@/lib/data/events'
 import { formatEventDate, DEFAULT_MENU_OPTIONS } from '@/lib/projects'
+import { AlbumSection } from '@/components/invitation/album-section'
 import { EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
@@ -35,15 +36,19 @@ export function InvitationSite({ project, template }) {
   const type = getEventType(project.event_type)
   const names = [project.host_a, project.host_b].filter(Boolean)
   const countdown = useCountdown(project.date, project.time)
+  const heroRef = useRef(null)
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
+  const coverY = useTransform(scrollYProgress, [0, 1], ['0%', '22%'])
+  const coverScale = useTransform(scrollYProgress, [0, 1], [1, 1.14])
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([project.venue, project.address, project.city].filter(Boolean).join(', '))}`
   const deadlinePassed = project.rsvp_deadline ? new Date(`${project.rsvp_deadline}T23:59:59`) < new Date() : false
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: p.bg, color: p.text }} data-testid="invitation-site">
       {/* HERO */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
+      <section ref={heroRef} className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
         {t.cover && (
-          <motion.img initial={{ scale: 1.1, opacity: 0 }} animate={{ scale: 1, opacity: isDark ? 0.45 : 0.22 }} transition={{ duration: 2.4, ease: EASE }} src={t.cover} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <motion.img initial={{ scale: 1.1, opacity: 0 }} animate={{ scale: 1, opacity: isDark ? 0.45 : 0.22 }} transition={{ duration: 2.4, ease: EASE }} style={{ y: coverY, scale: coverScale }} src={t.cover} alt="" className="absolute inset-0 h-[120%] w-full object-cover will-change-transform" />
         )}
         <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${p.bg}22 0%, ${p.bg}AA 55%, ${p.bg} 100%)` }} />
         <div className="pointer-events-none absolute inset-6 border md:inset-10" style={{ borderColor: `${p.accent}55` }} />
@@ -71,7 +76,7 @@ export function InvitationSite({ project, template }) {
         <section className="px-6 py-20">
           <Reveal className="mx-auto grid max-w-3xl grid-cols-4 gap-4 text-center" data-testid="countdown">
             {[['Gün', countdown.days], ['Saat', countdown.hours], ['Dakika', countdown.minutes], ['Saniye', countdown.seconds]].map(([l, v]) => (
-              <div key={l} className="border py-6" style={{ borderColor: `${p.accent}44` }}>
+              <div key={l} className="rounded-2xl border py-6" style={{ borderColor: `${p.accent}44` }}>
                 <p className="font-serif text-4xl md:text-5xl">{String(v).padStart(2, '0')}</p>
                 <p className="mt-2 text-[10px] uppercase tracking-[0.3em]" style={{ color: p.muted }}>{l}</p>
               </div>
@@ -134,6 +139,8 @@ export function InvitationSite({ project, template }) {
         </div>
       </section>
 
+      {project.album_enabled !== false && <AlbumSection project={project} p={p} isDark={isDark} />}
+
       <footer className="px-6 py-12 text-center">
         <div className="mx-auto mb-6 h-px w-12" style={{ backgroundColor: p.accent }} />
         <p className="font-serif text-2xl">{names.join(' & ')}</p>
@@ -176,7 +183,7 @@ function RsvpForm({ project, p, isDark }) {
 
   if (done) {
     return (
-      <div className="border p-10 text-center" style={{ borderColor: `${p.accent}66` }} data-testid="rsvp-success">
+      <div className="rounded-3xl border p-10 text-center" style={{ borderColor: `${p.accent}66` }} data-testid="rsvp-success">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: p.accent, color: p.bg }}><Check className="h-5 w-5" /></div>
         <p className="mt-6 font-serif text-3xl">Teşekkürler!</p>
         <p className="mt-3" style={{ color: p.muted }}>{done.rsvp?.attending ? 'Katılımınız kaydedildi. Sizi aramızda görmek için sabırsızlanıyoruz.' : 'Yanıtınız kaydedildi. Sizi çok özleyeceğiz.'}</p>
@@ -189,7 +196,7 @@ function RsvpForm({ project, p, isDark }) {
     <form onSubmit={submit} className="space-y-6" data-testid="rsvp-form">
       <div className="grid grid-cols-2 gap-3">
         {[{ v: true, l: 'Katılıyorum' }, { v: false, l: 'Katılamıyorum' }].map((o) => (
-          <button key={String(o.v)} type="button" onClick={() => setForm({ ...form, attending: o.v })} data-testid={`rsvp-attending-${o.v}`} className="border py-4 text-[11px] uppercase tracking-[0.2em] transition-all" style={form.attending === o.v ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66`, color: p.text }}>{o.l}</button>
+          <button key={String(o.v)} type="button" onClick={() => setForm({ ...form, attending: o.v })} data-testid={`rsvp-attending-${o.v}`} className="rounded-2xl border py-4 text-[11px] uppercase tracking-[0.2em] transition-all" style={form.attending === o.v ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66`, color: p.text }}>{o.l}</button>
         ))}
       </div>
       <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Ad Soyad *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl" style={fieldStyle} data-testid="rsvp-name" /></div>
@@ -201,11 +208,11 @@ function RsvpForm({ project, p, isDark }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Kişi Sayısı</Label>
-            <div className="flex gap-2">{[1, 2, 3, 4].map((n) => <button key={n} type="button" onClick={() => setForm({ ...form, guest_count: n })} data-testid={`rsvp-count-${n}`} className="h-12 flex-1 border font-serif text-lg" style={form.guest_count === n ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66` }}>{n}</button>)}</div>
+            <div className="flex gap-2">{[1, 2, 3, 4].map((n) => <button key={n} type="button" onClick={() => setForm({ ...form, guest_count: n })} data-testid={`rsvp-count-${n}`} className="h-12 flex-1 rounded-xl border font-serif text-lg" style={form.guest_count === n ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66` }}>{n}</button>)}</div>
           </div>
           <div className="space-y-2">
             <Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Menü Tercihi</Label>
-            <div className="flex flex-wrap gap-2">{menuOptions.map((m) => <button key={m} type="button" onClick={() => setForm({ ...form, menu: m })} data-testid={`rsvp-menu-${m}`} className="h-12 flex-1 border px-3 text-xs uppercase tracking-[0.15em]" style={form.menu === m ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66` }}>{m}</button>)}</div>
+            <div className="flex flex-wrap gap-2">{menuOptions.map((m) => <button key={m} type="button" onClick={() => setForm({ ...form, menu: m })} data-testid={`rsvp-menu-${m}`} className="h-12 flex-1 rounded-xl border px-3 text-xs uppercase tracking-[0.15em]" style={form.menu === m ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66` }}>{m}</button>)}</div>
           </div>
         </div>
       )}

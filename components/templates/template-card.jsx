@@ -8,7 +8,7 @@ export function TemplateCard({ template, className }) {
   const category = getEventType(template.category)
   const style = getStyle(template.style)
   return (
-    <Link href={`/tasarimlar/${template.slug}`} className={cn('group block', className)} data-testid={`template-card-${template.slug}`}>
+    <Link href={`/tasarimlar/${template.slug}`} className={cn('group block transition-transform duration-500 ease-out hover:-translate-y-1.5', className)} data-testid={`template-card-${template.slug}`}>
       <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted">
         <img src={template.cover} alt={template.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-midnight/70 via-midnight/10 to-transparent opacity-80 transition-opacity duration-700 group-hover:opacity-95" />

@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { InvitationPreview } from '@/components/shared/invitation-preview'
 import { EVENT_TYPES } from '@/lib/data/events'
+import { THEME_PRESETS } from '@/lib/data/themes'
 import { formatEventDate } from '@/lib/projects'
 import { cn } from '@/lib/utils'
 
@@ -55,6 +56,8 @@ export function ProjectEditor() {
 
   const setPaletteColor = (k, v) => setForm((f) => ({ ...f, palette: { ...(f.palette || template?.palette || {}), [k]: v.toUpperCase() } }))
   const resetPalette = () => setForm((f) => ({ ...f, palette: null }))
+  const applyPreset = (preset) => setForm((f) => ({ ...f, palette: { ...preset.palette } }))
+  const activePreset = THEME_PRESETS.find((t) => effectivePalette && t.palette.bg === effectivePalette.bg && t.palette.accent === effectivePalette.accent && t.palette.text === effectivePalette.text && t.palette.muted === effectivePalette.muted)
 
   const updateProgram = (i, k, v) => setForm((f) => ({ ...f, program: f.program.map((p, idx) => (idx === i ? { ...p, [k]: v } : p)) }))
   const addProgram = () => setForm((f) => ({ ...f, program: [...f.program, { time: '', title: '' }] }))
@@ -160,6 +163,28 @@ export function ProjectEditor() {
                       <p className="mt-2 truncate font-serif text-sm text-midnight">{t.name}</p>
                     </button>
                   ))}
+                </div>
+              </div>
+              <div className="border border-border bg-ivory p-8">
+                <Label className="text-[11px] uppercase tracking-[0.2em]">Hazır Temalar</Label>
+                <p className="mt-1 text-xs text-muted-foreground">Yuvarlak kart temalarından birine dokunun; renkler anında önizlemeye yansır.</p>
+                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {THEME_PRESETS.map((t) => {
+                    const active = activePreset?.id === t.id
+                    return (
+                      <button
+                        key={t.id} type="button" onClick={() => applyPreset(t)}
+                        data-testid={`theme-${t.id}`}
+                        className={cn('group overflow-hidden rounded-2xl border p-3 text-left transition-all', active ? 'border-midnight ring-2 ring-midnight/70' : 'border-border hover:border-midnight/40 hover:-translate-y-0.5')}
+                      >
+                        <div className="flex h-14 w-full items-center justify-center gap-1 rounded-xl" style={{ backgroundColor: t.palette.bg }}>
+                          <span className="font-serif text-lg" style={{ color: t.palette.text }}>Aa</span>
+                          <span className="ml-1 h-6 w-6 rounded-full" style={{ backgroundColor: t.palette.accent }} />
+                        </div>
+                        <p className="mt-2 truncate text-[11px] font-medium uppercase tracking-[0.12em] text-midnight">{t.name}</p>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
               <div className="border border-border bg-ivory p-8">
