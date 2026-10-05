@@ -282,7 +282,10 @@ async function handleRoute(request, { params }) {
   } catch (error) {
     console.error('API Error:', error)
     return handleCORS(NextResponse.json(
-      { error: "Internal server error" }, 
+      {
+        error: "Internal server error",
+        ...(process.env.NODE_ENV !== 'production' ? { detail: `${error?.name || 'Error'}: ${error?.message || error}` } : {}),
+      },
       { status: 500 }
     ))
   }

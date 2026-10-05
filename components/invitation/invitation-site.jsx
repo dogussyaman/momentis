@@ -19,11 +19,18 @@ const FALLBACK = { palette: { bg: '#F8F4EC', accent: '#C9A96E', text: '#101827',
 
 function useCountdown(date, time) {
   const target = useMemo(() => (date ? new Date(`${date}T${time || '12:00'}:00`).getTime() : null), [date, time])
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
+  // `now` starts as null so the server render and the first client render are identical
+  // (avoids hydration mismatch); the real time is filled in after mount.
+  const [now, setNow] = useState(null)
+  useEffect(() => {
+    setNow(Date.now())
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
   if (!target) return null
+  if (now === null) return { days: null, hours: null, minutes: null, seconds: null, passed: false, ready: false }
   const diff = Math.max(target - now, 0)
-  return { days: Math.floor(diff / 86400000), hours: Math.floor((diff / 3600000) % 24), minutes: Math.floor((diff / 60000) % 60), seconds: Math.floor((diff / 1000) % 60), passed: diff === 0 }
+  return { ready: true, days: Math.floor(diff / 86400000), hours: Math.floor((diff / 3600000) % 24), minutes: Math.floor((diff / 60000) % 60), seconds: Math.floor((diff / 1000) % 60), passed: diff === 0 }
 }
 
 function Reveal({ children, className, delay = 0, style }) {
@@ -68,13 +75,16 @@ export function InvitationSite({ project, template }) {
   const type = getEventType(project.event_type)
   const names = [project.host_a, project.host_b].filter(Boolean)
   const countdown = useCountdown(project.date, project.time)
-  const isNear = countdown && !countdown.passed && countdown.days <= 7
+  const isNear = !!countdown?.ready && !countdown.passed && countdown.days <= 7
   const heroRef = useRef(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
   const coverY = useTransform(scrollYProgress, [0, 1], ['0%', '22%'])
   const coverScale = useTransform(scrollYProgress, [0, 1], [1, 1.14])
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([project.venue, project.address, project.city].filter(Boolean).join(', '))}`
-  const deadlinePassed = project.rsvp_deadline ? new Date(`${project.rsvp_deadline}T23:59:59`) < new Date() : false
+  const [deadlinePassed, setDeadlinePassed] = useState(false)
+  useEffect(() => {
+    setDeadlinePassed(project.rsvp_deadline ? new Date(`${project.rsvp_deadline}T23:59:59`) < new Date() : false)
+  }, [project.rsvp_deadline])
   const spotifyEmbed = spotifyEmbedUrl(project.spotify_url)
   const copyIban = async () => {
     try { await navigator.clipboard.writeText((project.gift_iban || '').replace(/\s+/g, '')); toast.success('IBAN kopyalandı') } catch { toast.error('Kopyalanamadı') }
@@ -144,7 +154,7 @@ export function InvitationSite({ project, template }) {
                       animate={isNear ? { y: [0, -4, 0] } : {}}
                       transition={isNear ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.18 } : {}}
                     >
-                      <p className="font-serif text-4xl md:text-5xl">{String(v).padStart(2, '0')}</p>
+                      <p className="font-serif text-4xl md:text-5xl">{v === null ? '--' : String(v).padStart(2, '0')}</p>
                       <p className="mt-2 text-[10px] uppercase tracking-[0.3em]" style={{ color: p.muted }}>{l}</p>
                     </motion.div>
                   ))}

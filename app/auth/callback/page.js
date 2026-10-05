@@ -11,23 +11,17 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const sessionId = new URLSearchParams(window.location.hash.slice(1)).get('session_id')
-    if (!sessionId) { setError('Oturum kimliği bulunamadı. Lütfen tekrar giriş yapmayı deneyin.'); return }
-    window.history.replaceState({}, document.title, '/auth/callback')
-    fetch('/api/auth/google/exchange', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-      body: JSON.stringify({ sessionId }),
-    })
-      .then(async (r) => {
-        const data = await r.json().catch(() => ({}))
-        if (!r.ok) throw new Error(data?.error || 'Giriş başarısız')
-        setUser(data.user)
-        let next = '/panel'
-        try { next = sessionStorage.getItem('momentis_after_login') || '/panel'; sessionStorage.removeItem('momentis_after_login') } catch {}
-        router.replace(next)
-      })
-      .catch((e) => setError(e.message))
-  }, [router, setUser])
+    const queryError = new URLSearchParams(window.location.search).get('error')
+    if (queryError) {
+      setError(queryError)
+    } else {
+      // If we landed here without an error, the backend auth flow is likely still processing
+      // or we reached this page by mistake. We'll just wait or let the user click to go back.
+      setTimeout(() => {
+        if (!queryError) setError('Giriş işlemi tamamlanamadı. Lütfen tekrar deneyin.')
+      }, 5000)
+    }
+  }, [])
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-ivory px-6 text-center">

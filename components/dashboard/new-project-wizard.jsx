@@ -13,6 +13,7 @@ import { EVENT_TYPES } from '@/lib/data/events'
 import { formatEventDate } from '@/lib/projects'
 import { cn } from '@/lib/utils'
 import { PageHeader } from './projects-list'
+import { StoryTemplatesModal } from './story-templates-modal'
 
 const STEPS = ['Etkinlik Türü', 'Detaylar', 'Tasarım', 'Özet']
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
@@ -98,7 +99,10 @@ export function NewProjectWizard() {
                 <div className="space-y-2"><Label className="text-[11px] uppercase tracking-[0.2em]">RSVP Son Tarihi</Label><Input type="date" value={form.rsvp_deadline} onChange={set('rsvp_deadline')} className={inputCls} data-testid="rsvp-deadline" /></div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-[0.2em]">Hikâyeniz (isteğe bağlı)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] uppercase tracking-[0.2em]">Hikâyeniz (isteğe bağlı)</Label>
+                  <StoryTemplatesModal onSelect={(content) => setForm((f) => ({ ...f, story: content }))} />
+                </div>
                 <Textarea value={form.story} onChange={set('story')} rows={4} placeholder="Nasıl tanıştınız, bu gün sizin için ne ifade ediyor…" className="rounded-2xl border-border bg-ivory-50" data-testid="story" />
               </div>
             </div>

@@ -17,6 +17,7 @@ import { EVENT_TYPES } from '@/lib/data/events'
 import { THEME_PRESETS } from '@/lib/data/themes'
 import { formatEventDate } from '@/lib/projects'
 import { cn } from '@/lib/utils'
+import { StoryTemplatesModal } from './story-templates-modal'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const tabCls = 'rounded-2xl border-b-2 border-transparent px-0 pb-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:border-midnight data-[state=active]:bg-transparent data-[state=active]:text-midnight data-[state=active]:shadow-none'
@@ -139,7 +140,10 @@ export function ProjectEditor() {
 
             <TabsContent value="content" className="mt-8 space-y-8 border border-border bg-ivory p-8">
               <div className="space-y-2">
-                <Label className="text-[11px] uppercase tracking-[0.2em]">Hikâyeniz</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] uppercase tracking-[0.2em]">Hikâyeniz</Label>
+                  <StoryTemplatesModal onSelect={(content) => setForm((f) => ({ ...f, story: content }))} />
+                </div>
                 <Textarea rows={5} value={form.story} onChange={set('story')} className="rounded-2xl border-border bg-ivory-50" data-testid="edit-story" />
               </div>
               <div>

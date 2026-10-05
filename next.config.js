@@ -23,6 +23,7 @@ const nextConfig = {
     }
     return config;
   },
+  turbopack: {},
   onDemandEntries: {
     maxInactiveAge: 10000,
     pagesBufferLength: 2,

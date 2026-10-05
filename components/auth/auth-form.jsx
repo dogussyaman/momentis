@@ -66,9 +66,7 @@ export function AuthForm({ mode = 'login' }) {
   const onGoogle = () => {
     const q = nextParams()
     const next = searchParams.get('next') || (q ? `/panel/yeni?${q}` : '/panel')
-    try { sessionStorage.setItem('momentis_after_login', next) } catch {}
-    const redirect = `${window.location.origin}/auth/callback`
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirect)}`
+    window.location.href = `/api/auth/google/start?next=${encodeURIComponent(next)}`
   }
 
   return (
