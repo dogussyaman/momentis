@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import QRCode from 'qrcode'
-import { Trash2, Download, QrCode, Images, Loader2 } from 'lucide-react'
+import { Trash2, Download, QrCode, Images, Loader2, Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -136,6 +136,11 @@ export function AlbumTab({ projectId, project, onChanged }) {
             {items.map((ph) => (
               <div key={ph.id} className="group relative overflow-hidden rounded-2xl border border-border">
                 <img src={ph.data_url} alt={ph.uploader_name} loading="lazy" className="aspect-square w-full object-cover" />
+                {(ph.likes || 0) > 0 && (
+                  <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-medium text-white backdrop-blur">
+                    <Heart className="h-3 w-3 fill-rose-500 text-rose-500" /> {ph.likes}
+                  </span>
+                )}
                 <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/60 to-transparent px-3 pb-2 pt-8 text-[10px] uppercase tracking-[0.15em] text-white/90">{ph.uploader_name}</span>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

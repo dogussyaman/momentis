@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Upload, X, ImagePlus, Loader2 } from 'lucide-react'
+import { Camera, Upload, X, ImagePlus, Loader2, Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,13 +39,35 @@ export function AlbumSection({ project, p, isDark }) {
   const [uploading, setUploading] = useState(false)
   const [uploader, setUploader] = useState('')
   const [lightbox, setLightbox] = useState(null)
+  const [liked, setLiked] = useState(() => new Set())
   const fileRef = useRef(null)
+
+  const likesKey = `momentis_album_likes_${project.slug}`
+  const maxLikes = photos.reduce((m, x) => Math.max(m, x.likes || 0), 0)
 
   const fieldStyle = { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', borderColor: `${p.accent}66`, color: p.text }
 
   useEffect(() => {
     try { const n = localStorage.getItem('momentis_album_name'); if (n) setUploader(n) } catch {}
+    try { const raw = localStorage.getItem(likesKey); if (raw) setLiked(new Set(JSON.parse(raw))) } catch {}
+    // eslint-disable-next-line
   }, [])
+
+  const toggleLike = async (ph) => {
+    const isLiked = liked.has(ph.id)
+    const next = new Set(liked)
+    if (isLiked) next.delete(ph.id); else next.add(ph.id)
+    setLiked(next)
+    try { localStorage.setItem(likesKey, JSON.stringify([...next])) } catch {}
+    setPhotos((arr) => arr.map((x) => (x.id === ph.id ? { ...x, likes: Math.max(0, (x.likes || 0) + (isLiked ? -1 : 1)) } : x)))
+    if (lightbox?.id === ph.id) setLightbox((l) => ({ ...l, likes: Math.max(0, (l.likes || 0) + (isLiked ? -1 : 1)) }))
+    try {
+      await fetch(`/api/public/album/${project.slug}/like`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_id: ph.id, liked: !isLiked }),
+      })
+    } catch { /* best effort */ }
+  }
 
   const load = async () => {
     try {
@@ -134,21 +156,39 @@ export function AlbumSection({ project, p, isDark }) {
             </motion.div>
           ) : (
             <div className="columns-2 gap-4 md:columns-3 lg:columns-4 [&>*]:mb-4" data-testid="album-gallery">
-              {photos.map((ph, i) => (
-                <motion.button
-                  key={ph.id} type="button" onClick={() => setLightbox(ph)}
-                  initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.7, delay: (i % 8) * 0.05, ease: EASE }}
-                  whileHover={{ scale: 1.015 }}
-                  className="group relative block w-full overflow-hidden rounded-2xl"
-                  style={{ boxShadow: '0 20px 40px -24px rgba(16,24,39,0.5)' }}
-                >
-                  <img src={ph.data_url} alt={`${ph.uploader_name} tarafından`} loading="lazy" className="w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <span className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/55 to-transparent px-3 pb-2 pt-8 text-left text-[10px] uppercase tracking-[0.15em] text-white/90 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Camera className="h-3 w-3" /> {ph.uploader_name}
-                  </span>
-                </motion.button>
-              ))}
+              {photos.map((ph, i) => {
+                const isLiked = liked.has(ph.id)
+                const isTop = (ph.likes || 0) > 0 && (ph.likes || 0) === maxLikes
+                return (
+                  <motion.div
+                    key={ph.id}
+                    initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }}
+                    transition={{ duration: 0.7, delay: (i % 8) * 0.05, ease: EASE }}
+                    className="group relative block w-full overflow-hidden rounded-2xl"
+                    style={{ boxShadow: isTop ? `0 22px 48px -20px ${p.accent}` : '0 20px 40px -24px rgba(16,24,39,0.5)' }}
+                  >
+                    {isTop && (
+                      <span className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ backgroundColor: p.accent, color: p.bg }}>
+                        <Heart className="h-2.5 w-2.5 fill-current" /> En Beğenilen
+                      </span>
+                    )}
+                    <button type="button" onClick={() => setLightbox(ph)} className="block w-full" aria-label="Fotoğrafı büyüt">
+                      <img src={ph.data_url} alt={`${ph.uploader_name} tarafından`} loading="lazy" className="w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    </button>
+                    <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/55 to-transparent px-3 pb-2 pt-8 text-left text-[10px] uppercase tracking-[0.15em] text-white/90 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Camera className="h-3 w-3" /> {ph.uploader_name}
+                    </span>
+                    <button
+                      type="button" onClick={() => toggleLike(ph)} data-testid={`album-like-${ph.id}`}
+                      className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1.5 text-[11px] font-medium text-white backdrop-blur transition-all hover:bg-black/60"
+                      aria-label="Beğen"
+                    >
+                      <Heart className={`h-3.5 w-3.5 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : 'text-white'}`} />
+                      {(ph.likes || 0) > 0 && <span>{ph.likes}</span>}
+                    </button>
+                  </motion.div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -168,7 +208,13 @@ export function AlbumSection({ project, p, isDark }) {
             <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} onClick={(e) => e.stopPropagation()} className="max-h-[88vh] max-w-3xl overflow-hidden rounded-3xl">
               <img src={lightbox.data_url} alt={lightbox.uploader_name} className="max-h-[88vh] w-auto object-contain" />
             </motion.div>
-            <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-[0.2em] text-white/70">{lightbox.uploader_name}</p>
+            <p className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-white/70">
+              {lightbox.uploader_name}
+              <button type="button" onClick={() => toggleLike(lightbox)} className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-white hover:bg-white/20" aria-label="Beğen" data-testid="lightbox-like">
+                <Heart className={`h-3.5 w-3.5 ${liked.has(lightbox.id) ? 'fill-rose-500 text-rose-500' : 'text-white'}`} />
+                {(lightbox.likes || 0) > 0 && <span>{lightbox.likes}</span>}
+              </button>
+            </p>
           </motion.div>
         )}
       </AnimatePresence>

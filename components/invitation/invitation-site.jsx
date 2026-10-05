@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { getEventType } from '@/lib/data/events'
 import { formatEventDate, DEFAULT_MENU_OPTIONS, spotifyEmbedUrl } from '@/lib/projects'
 import { AlbumSection } from '@/components/invitation/album-section'
+import { InviteActions } from '@/components/invitation/invite-actions'
 import { EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
@@ -109,6 +110,7 @@ export function InvitationSite({ project, template }) {
             <Detail icon={MapPin} label="Mekân" value={project.venue || '—'} sub={[project.address, project.city].filter(Boolean).join(', ')} link={project.venue ? { href: mapsUrl, label: 'Yol tarifi al' } : null} p={p} />
           </div>
           {project.dress_code && <Reveal className="mt-10 flex items-center justify-center gap-3 text-sm"><Shirt className="h-4 w-4" style={{ color: p.accent }} /> <span style={{ color: p.muted }}>Kıyafet:</span> {project.dress_code}</Reveal>}
+          <Reveal><InviteActions project={project} p={p} /></Reveal>
         </div>
       </section>
 
@@ -138,6 +140,9 @@ export function InvitationSite({ project, template }) {
             <div className="mt-10 overflow-hidden rounded-3xl shadow-[0_30px_60px_-28px_rgba(16,24,39,0.5)]">
               <iframe title="Spotify" src={spotifyEmbed} width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ display: 'block', border: 0 }} />
             </div>
+            <a href={project.spotify_url} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] underline-offset-4 hover:underline" style={{ color: p.accent }}>
+              <Music className="h-3.5 w-3.5" /> Spotify'da Aç
+            </a>
           </Reveal>
         </section>
       )}
