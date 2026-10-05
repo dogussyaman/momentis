@@ -341,7 +341,8 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Invitation interactions: countdown celebration/sparkles (near <=7d & passed), album photo like toggle, Add-to-calendar (.ics download + Google link), WhatsApp share"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"

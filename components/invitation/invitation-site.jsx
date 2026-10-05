@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { MapPin, CalendarDays, Clock, Shirt, ChevronDown, Check, Gift, Music, Copy } from 'lucide-react'
+import { MapPin, CalendarDays, Clock, Shirt, ChevronDown, Check, Gift, Music, Copy, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +30,37 @@ function Reveal({ children, className, delay = 0, style }) {
   return <motion.div style={style} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.9, delay, ease: EASE }} className={className}>{children}</motion.div>
 }
 
+// Deterministic sparkle positions (fixed to avoid SSR/client hydration mismatch).
+const SPARKLE_POINTS = [
+  { left: '5%', top: '18%', size: 16, delay: 0 },
+  { left: '15%', top: '70%', size: 11, delay: 0.9 },
+  { left: '28%', top: '30%', size: 9, delay: 1.6 },
+  { left: '40%', top: '80%', size: 13, delay: 0.5 },
+  { left: '52%', top: '12%', size: 10, delay: 1.2 },
+  { left: '63%', top: '68%', size: 15, delay: 0.3 },
+  { left: '74%', top: '28%', size: 11, delay: 1.8 },
+  { left: '85%', top: '74%', size: 9, delay: 0.7 },
+  { left: '93%', top: '22%', size: 14, delay: 1.4 },
+  { left: '48%', top: '50%', size: 8, delay: 2.1 },
+]
+
+function SparkleField({ color }) {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden data-testid="countdown-sparkles">
+      {SPARKLE_POINTS.map((s, i) => (
+        <motion.span
+          key={i} className="absolute" style={{ left: s.left, top: s.top, color }}
+          initial={{ opacity: 0, scale: 0, rotate: 0 }}
+          animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], rotate: [0, 120, 0] }}
+          transition={{ duration: 2.4, delay: s.delay, repeat: Infinity, repeatDelay: 1.6, ease: 'easeInOut' }}
+        >
+          <Sparkles style={{ width: s.size, height: s.size }} className="fill-current" />
+        </motion.span>
+      ))}
+    </div>
+  )
+}
+
 export function InvitationSite({ project, template }) {
   const t = template || FALLBACK
   const p = project.palette || t.palette || FALLBACK.palette
@@ -37,6 +68,7 @@ export function InvitationSite({ project, template }) {
   const type = getEventType(project.event_type)
   const names = [project.host_a, project.host_b].filter(Boolean)
   const countdown = useCountdown(project.date, project.time)
+  const isNear = countdown && !countdown.passed && countdown.days <= 7
   const heroRef = useRef(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
   const coverY = useTransform(scrollYProgress, [0, 1], ['0%', '22%'])
@@ -77,16 +109,49 @@ export function InvitationSite({ project, template }) {
       </section>
 
       {/* COUNTDOWN */}
-      {countdown && !countdown.passed && (
-        <section className="px-6 py-20">
-          <Reveal className="mx-auto grid max-w-3xl grid-cols-4 gap-4 text-center" data-testid="countdown">
-            {[['Gün', countdown.days], ['Saat', countdown.hours], ['Dakika', countdown.minutes], ['Saniye', countdown.seconds]].map(([l, v]) => (
-              <div key={l} className="rounded-2xl border py-6" style={{ borderColor: `${p.accent}44` }}>
-                <p className="font-serif text-4xl md:text-5xl">{String(v).padStart(2, '0')}</p>
-                <p className="mt-2 text-[10px] uppercase tracking-[0.3em]" style={{ color: p.muted }}>{l}</p>
-              </div>
-            ))}
-          </Reveal>
+      {countdown && (
+        <section className="relative overflow-hidden px-6 py-20" data-testid="countdown-section">
+          {(isNear || countdown.passed) && <SparkleField color={p.accent} />}
+          <div className="relative mx-auto max-w-3xl">
+            {countdown.passed ? (
+              <Reveal className="text-center" data-testid="countdown-celebration">
+                <motion.div animate={{ scale: [1, 1.12, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} className="mx-auto flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: p.accent, color: p.bg }}>
+                  <Sparkles className="h-7 w-7 fill-current" />
+                </motion.div>
+                <p className="mt-6 text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}>Nihayet</p>
+                <h2 className="mt-4 font-serif text-4xl md:text-5xl">Bugün büyük gün!</h2>
+              </Reveal>
+            ) : (
+              <>
+                {isNear && (
+                  <Reveal className="mb-8 text-center">
+                    <motion.span
+                      animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] uppercase tracking-[0.3em]"
+                      style={{ backgroundColor: `${p.accent}22`, color: p.accent, border: `1px solid ${p.accent}55` }}
+                      data-testid="countdown-near-badge"
+                    >
+                      <Sparkles className="h-3 w-3 fill-current" /> {countdown.days === 0 ? 'Son saatler' : `Son ${countdown.days} gün`} · Heyecan dorukta
+                    </motion.span>
+                  </Reveal>
+                )}
+                <Reveal className="grid grid-cols-4 gap-4 text-center" data-testid="countdown">
+                  {[['Gün', countdown.days], ['Saat', countdown.hours], ['Dakika', countdown.minutes], ['Saniye', countdown.seconds]].map(([l, v], i) => (
+                    <motion.div
+                      key={l}
+                      className="rounded-2xl border py-6"
+                      style={{ borderColor: isNear ? `${p.accent}99` : `${p.accent}44`, boxShadow: isNear ? `0 18px 48px -22px ${p.accent}` : 'none' }}
+                      animate={isNear ? { y: [0, -4, 0] } : {}}
+                      transition={isNear ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.18 } : {}}
+                    >
+                      <p className="font-serif text-4xl md:text-5xl">{String(v).padStart(2, '0')}</p>
+                      <p className="mt-2 text-[10px] uppercase tracking-[0.3em]" style={{ color: p.muted }}>{l}</p>
+                    </motion.div>
+                  ))}
+                </Reveal>
+              </>
+            )}
+          </div>
         </section>
       )}
 
