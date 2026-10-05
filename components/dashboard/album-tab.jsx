@@ -14,6 +14,7 @@ export function AlbumTab({ projectId, project, onChanged }) {
   const [qr, setQr] = useState(null)
   const [enabled, setEnabled] = useState(project.album_enabled !== false)
   const [toggling, setToggling] = useState(false)
+  const [zipping, setZipping] = useState(false)
 
   const albumUrl = `${project.url}#album`
 
@@ -57,6 +58,29 @@ export function AlbumTab({ projectId, project, onChanged }) {
     } catch { toast.error('Silinemedi') }
   }
 
+  const downloadAll = async () => {
+    if (!items?.length) return
+    setZipping(true)
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      items.forEach((ph, i) => {
+        const m = /^data:image\/([a-z]+);base64,(.*)$/i.exec(ph.data_url || '')
+        if (!m) return
+        const ext = m[1] === 'jpeg' ? 'jpg' : m[1]
+        const safe = String(ph.uploader_name || 'misafir').replace(/[^a-z0-9ğüşıöç]+/gi, '-').slice(0, 24)
+        zip.file(`${String(i + 1).padStart(3, '0')}-${safe}.${ext}`, m[2], { base64: true })
+      })
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `momentis-album-${project.slug}.zip`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Albüm indiriliyor')
+    } catch { toast.error('İndirilemedi') } finally { setZipping(false) }
+  }
+
   return (
     <div className="space-y-8" data-testid="album-tab">
       {/* QR + toggle */}
@@ -92,7 +116,14 @@ export function AlbumTab({ projectId, project, onChanged }) {
 
       {/* Gallery */}
       <div>
-        <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-muted-foreground"><Images className="h-3.5 w-3.5 text-champagne-dark" /> Yüklenen Fotoğraflar {items ? `· ${items.length}` : ''}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-muted-foreground"><Images className="h-3.5 w-3.5 text-champagne-dark" /> Yüklenen Fotoğraflar {items ? `· ${items.length}` : ''}</p>
+          {items && items.length > 0 && (
+            <Button type="button" variant="outline" size="sm" disabled={zipping} onClick={downloadAll} className="rounded-xl border-midnight/20 text-[10px] uppercase tracking-[0.18em]" data-testid="album-download-all">
+              {zipping ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Hazırlanıyor…</> : <><Download className="mr-2 h-3.5 w-3.5" /> Tümünü İndir (ZIP)</>}
+            </Button>
+          )}
+        </div>
         {items === null ? (
           <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}</div>
         ) : items.length === 0 ? (

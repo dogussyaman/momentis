@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
 import { InvitationPreview } from '@/components/shared/invitation-preview'
 import { EVENT_TYPES } from '@/lib/data/events'
 import { THEME_PRESETS } from '@/lib/data/themes'
@@ -30,6 +31,12 @@ function pick(project) {
     menu_options: Array.isArray(project.menu_options) ? project.menu_options : [],
     template_slug: project.template_slug || 'aurelia',
     palette: project.palette || null,
+    spotify_url: project.spotify_url || '',
+    gift_enabled: Boolean(project.gift_enabled),
+    gift_message: project.gift_message || '',
+    gift_iban: project.gift_iban || '',
+    gift_account_name: project.gift_account_name || '',
+    gift_url: project.gift_url || '',
     slug: project.slug || '',
   }
 }
@@ -150,6 +157,30 @@ export function ProjectEditor() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-2 border-t border-border pt-7">
+                <Label className="text-[11px] uppercase tracking-[0.2em]">Spotify Çalma Listesi</Label>
+                <p className="text-xs text-muted-foreground">Çalma listesi, albüm veya şarkı bağlantısını yapıştırın; davetiyede gömülü çalar olarak görünür.</p>
+                <Input value={form.spotify_url} onChange={set('spotify_url')} placeholder="https://open.spotify.com/playlist/..." className={inputCls} data-testid="edit-spotify" />
+              </div>
+
+              <div className="space-y-4 border-t border-border pt-7">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-[11px] uppercase tracking-[0.2em]">Hediye Tercihi</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">IBAN ve/veya hediye listesi bağlantısı ekleyin.</p>
+                  </div>
+                  <Switch checked={form.gift_enabled} onCheckedChange={(v) => setForm((f) => ({ ...f, gift_enabled: v }))} data-testid="edit-gift-toggle" />
+                </div>
+                {form.gift_enabled && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2"><Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Mesaj</Label><Textarea rows={2} value={form.gift_message} onChange={set('gift_message')} placeholder="Varlığınız en büyük hediye; dilerseniz…" className="rounded-2xl border-border bg-ivory-50" data-testid="edit-gift-message" /></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Hesap Sahibi</Label><Input value={form.gift_account_name} onChange={set('gift_account_name')} placeholder="Ad Soyad" className={inputCls} data-testid="edit-gift-name" /></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">IBAN</Label><Input value={form.gift_iban} onChange={set('gift_iban')} placeholder="TR00 0000 0000 0000 0000 0000 00" className={cn(inputCls, 'font-mono text-xs')} data-testid="edit-gift-iban" /></div>
+                    <div className="space-y-2 sm:col-span-2"><Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Hediye Listesi Bağlantısı (opsiyonel)</Label><Input value={form.gift_url} onChange={set('gift_url')} placeholder="https://..." className={inputCls} data-testid="edit-gift-url" /></div>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

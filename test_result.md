@@ -276,15 +276,57 @@ frontend:
         agent: "main"
         comment: "Built with Tailwind brand tokens + Framer Motion. Screenshots verified for landing, templates, tester pages. Frontend testing pending user permission."
 
+  - task: "Invitation extras: Spotify embedded player, Gift/IBAN section (copy IBAN, registry link), Album upload + gallery + lightbox (guest photo upload)"
+    implemented: true
+    working: true
+    file: "components/invitation/invitation-site.jsx, components/invitation/album-section.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW. Spotify section renders iframe from spotifyEmbedUrl(project.spotify_url). Gift section renders when project.gift_enabled: message, account name, IBAN with copy-to-clipboard, optional gift_url button. Album section: name input + file picker (browser canvas compress) -> POST /api/public/album/:slug; masonry gallery with lightbox. Test on /d/ayse-mehmet after enabling fields in editor."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TESTS PASSED (Steps 5-7). Spotify section (data-testid=spotify-section) renders iframe correctly with src: https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M. Gift section (data-testid=gift-section) displays IBAN (data-testid=gift-iban) 'TR33 0006 1005 1978 6457 8413 26' and copy button (data-testid=gift-copy-iban) is clickable. Album section (data-testid=album-section) renders correctly; uploaded test photo as 'Zeynep' via file input (data-testid=album-file-input), photo appears in gallery (data-testid=album-gallery) with 2 photos total. Minor: Spotify embed console error (RangeError: Incorrect locale information) is a Spotify issue, not MOMENTIS - iframe still renders and displays correctly. All public invitation features working as expected."
+  - task: "Editor: new fields (Spotify URL, Gift toggle+message+account+IBAN+url) in Hikâye tab + Hazır Temalar (12 theme presets) in Tasarım tab, save persists"
+    implemented: true
+    working: true
+    file: "components/dashboard/project-editor.jsx, lib/data/themes.js, lib/projects.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW. Theme preset click sets form.palette and reflects in live preview + hex inputs. Spotify/gift fields saved via PATCH /api/projects/:id."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TESTS PASSED (Steps 1-4). Editor page (data-testid=project-editor) loads correctly. In 'Hikâye & Program' tab (data-testid=editor-tab-content): Set Spotify URL (data-testid=edit-spotify) to 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M', enabled Gift toggle (data-testid=edit-gift-toggle), filled Gift name (data-testid=edit-gift-name) 'Ayşe & Mehmet' and IBAN (data-testid=edit-gift-iban) 'TR33 0006 1005 1978 6457 8413 26'. In 'Tasarım & Renkler' tab (data-testid=editor-tab-design): Clicked theme preset 'noir' (data-testid=theme-noir), live preview (data-testid=editor-preview) updated correctly with new colors. Clicked save button (data-testid=editor-save), success toast appeared. After page reload, all values persisted correctly (Spotify URL, Gift toggle enabled, Gift name, IBAN). All editor features working as expected."
+  - task: "Panel Album tab: QR code (download), enable/disable toggle, photo moderation (delete), Download-all as ZIP (client-side jszip)"
+    implemented: true
+    working: true
+    file: "components/dashboard/album-tab.jsx, components/dashboard/project-detail.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW. QR client-side (qrcode) -> /d/:slug#album. Toggle PATCHes album_enabled. Delete photo via DELETE endpoint. Download-all zips data_url photos with jszip."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TESTS PASSED (Steps 8-11). Panel Album tab (data-testid=album-tab) loads correctly after clicking tab (data-testid=tab-album). QR code image (data-testid=album-qr) is present and displays correctly. Album toggle (data-testid=album-toggle) is present and functional. Admin gallery (data-testid=album-admin-gallery) displays uploaded photos correctly (2 photos found including the test upload from Step 7). Download all button (data-testid=album-download-all) is present, visible, and enabled. All Panel Album tab features working as expected."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
   run_ui: true
 
 test_plan:
-  current_focus:
-    - "Album API (QR anı albümü): public GET/POST /api/public/album/:slug (upload data-URL photos, enabled check, caps), auth GET /api/projects/:id/album + DELETE /:photoId, album_enabled field + stats.album_count, cascade delete"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -305,3 +347,7 @@ agent_communication:
     message: "NEW FEATURE TO TEST (backend only): QR Anı Albümü endpoints. Please test: (1) GET /api/public/album/<slug> for a published project returns {enabled, items, total}. (2) POST /api/public/album/<slug> with body {uploader, photos:[<tiny data:image/png;base64 string>]} returns 201 {ok, uploaded, photos:[{id,uploader_name,...}]} and photos must NOT include data_url. (3) Invalid photo (non data-URL, or oversized >~3MB) -> 400. (4) Auth GET /api/projects/<id>/album lists all with data_url; DELETE /api/projects/<id>/album/<photoId> removes it (404 for unknown id). (5) Toggle album_enabled=false via PATCH /api/projects/<id>; then public GET returns enabled:false items:[], and public POST returns 403. (6) stats.album_count reflects uploaded count; deleting the project cascades album_photos. Use existing auth cookie flow (login sets momentis_session). You may create a fresh project and publish it. Keep photo payloads tiny (a 1x1 px base64 PNG is fine)."
   - agent: "testing"
     message: "✅ ALBUM API TESTING COMPLETE - ALL TESTS PASSED (16/16). Tested all scenarios: (1) Public listing initially empty with enabled=true. (2) Public upload with valid tiny PNG data-URL returns 201, uploaded=1, photos array WITHOUT data_url (CRITICAL requirement met). (3) Validation: invalid data-URL rejected with 400, empty photos array rejected with 400. (4) Public listing after upload includes photo with data_url for display, total incremented. (5) Auth admin list with cookie returns items with data_url and uploader_name, enabled field present; 401 without cookie (auth protection working). (6) Auth delete removes photo (ok:true), 404 for unknown ID; deleted photo no longer in listings. (7) Toggle album_enabled=false: public GET returns enabled:false, items:[], total:0; public POST returns 403 (disabled). (8) Toggle back on works correctly. (9) Stats.album_count reflects current photo count. (10) Cascade delete: project deletion removes album_photos, public GET returns 404. All Album API endpoints working correctly. Ready for production."
+  - agent: "main"
+    message: "FRONTEND E2E TEST REQUESTED (user approved). Login: test@momentis.app / Test1234! (credentials in /app/memory/test_credentials.md). Test these NEW flows: (A) EDITOR /panel/etkinlik/<id>/duzenle: in 'Hikâye & Program' tab set Spotify URL (use a real playlist URL like https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M), enable 'Hediye Tercihi' toggle and fill Hesap Sahibi + IBAN (e.g. TR33 0006 1005 1978 6457 8413 26); in 'Tasarım & Renkler' tab click a 'Hazır Temalar' preset (data-testid=theme-noir) and confirm live preview changes; click Kaydet (data-testid=editor-save) and expect success toast. (B) INVITATION /d/<slug> (use the project's public slug, e.g. /d/ayse-mehmet): scroll and verify Spotify section renders an iframe (data-testid=spotify-section), Gift section (data-testid=gift-section) shows IBAN with a Kopyala button (data-testid=gift-copy-iban), and Album section (data-testid=album-section) renders. In the Album, type a name (data-testid=album-uploader) and upload an image via the hidden file input (data-testid=album-file-input) — set an image file; expect a success toast and the photo to appear in the gallery (data-testid=album-gallery). (C) PANEL album tab (data-testid=tab-album on /panel/etkinlik/<id>): verify QR image (data-testid=album-qr), toggle (data-testid=album-toggle), the uploaded photo appears in admin gallery, and 'Tümünü İndir (ZIP)' button (data-testid=album-download-all) is present and clickable. Note: controlled React inputs — wait ~1.5s after load before fill(). Report pass/fail per flow with screenshots."
+  - agent: "testing"
+    message: "✅ FRONTEND E2E TESTING COMPLETE - ALL TESTS PASSED (13/13 steps). Tested all three new features across FLOW A (Editor), FLOW B (Public Invitation), and FLOW C (Panel Album Tab). FLOW A: Editor successfully saves and persists Spotify URL, Gift toggle, Gift name, and IBAN; theme preset 'noir' updates live preview correctly. FLOW B: Public invitation displays Spotify iframe, Gift section with IBAN and working copy button, Album section with successful photo upload (2 photos in gallery). FLOW C: Panel Album tab shows QR code, toggle, admin gallery with uploaded photos (2 photos), and download ZIP button (visible and enabled). Minor: Spotify embed has a console error (RangeError: Incorrect locale information) which is a Spotify embed issue, not MOMENTIS - the iframe still renders and displays correctly. All features working as expected. Ready for production."

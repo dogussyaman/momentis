@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { MapPin, CalendarDays, Clock, Shirt, ChevronDown, Check } from 'lucide-react'
+import { MapPin, CalendarDays, Clock, Shirt, ChevronDown, Check, Gift, Music, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getEventType } from '@/lib/data/events'
-import { formatEventDate, DEFAULT_MENU_OPTIONS } from '@/lib/projects'
+import { formatEventDate, DEFAULT_MENU_OPTIONS, spotifyEmbedUrl } from '@/lib/projects'
 import { AlbumSection } from '@/components/invitation/album-section'
 import { EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -42,6 +42,10 @@ export function InvitationSite({ project, template }) {
   const coverScale = useTransform(scrollYProgress, [0, 1], [1, 1.14])
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([project.venue, project.address, project.city].filter(Boolean).join(', '))}`
   const deadlinePassed = project.rsvp_deadline ? new Date(`${project.rsvp_deadline}T23:59:59`) < new Date() : false
+  const spotifyEmbed = spotifyEmbedUrl(project.spotify_url)
+  const copyIban = async () => {
+    try { await navigator.clipboard.writeText((project.gift_iban || '').replace(/\s+/g, '')); toast.success('IBAN kopyalandı') } catch { toast.error('Kopyalanamadı') }
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: p.bg, color: p.text }} data-testid="invitation-site">
@@ -122,6 +126,54 @@ export function InvitationSite({ project, template }) {
               ))}
             </ol>
           </div>
+        </section>
+      )}
+
+      {/* SPOTIFY */}
+      {spotifyEmbed && (
+        <section className="px-6 py-20" data-testid="spotify-section">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <p className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}><Music className="h-3.5 w-3.5" /> Gecenin Sesi</p>
+            <h2 className="mt-6 font-serif text-4xl md:text-5xl">Çalma listemiz</h2>
+            <div className="mt-10 overflow-hidden rounded-3xl shadow-[0_30px_60px_-28px_rgba(16,24,39,0.5)]">
+              <iframe title="Spotify" src={spotifyEmbed} width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ display: 'block', border: 0 }} />
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* GIFT */}
+      {project.gift_enabled && (
+        <section id="hediye" className="px-6 py-20" data-testid="gift-section">
+          <Reveal className="mx-auto max-w-xl text-center">
+            <p className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.4em]" style={{ color: p.accent }}><Gift className="h-3.5 w-3.5" /> Hediye</p>
+            <h2 className="mt-6 font-serif text-4xl md:text-5xl">Hediye tercihi</h2>
+            {project.gift_message && <p className="mx-auto mt-6 max-w-md text-sm leading-relaxed" style={{ color: p.muted }}>{project.gift_message}</p>}
+            {(project.gift_iban || project.gift_account_name) && (
+              <div className="mx-auto mt-10 rounded-3xl border p-7 text-left" style={{ borderColor: `${p.accent}55` }}>
+                {project.gift_account_name && (
+                  <div className="mb-4">
+                    <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Hesap Sahibi</p>
+                    <p className="mt-1 font-serif text-xl">{project.gift_account_name}</p>
+                  </div>
+                )}
+                {project.gift_iban && (
+                  <>
+                    <p className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>IBAN</p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="break-all font-mono text-sm" data-testid="gift-iban">{project.gift_iban}</p>
+                      <button type="button" onClick={copyIban} className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[10px] uppercase tracking-[0.18em] transition-opacity hover:opacity-80" style={{ backgroundColor: p.accent, color: p.bg }} data-testid="gift-copy-iban"><Copy className="h-3 w-3" /> Kopyala</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {project.gift_url && (
+              <a href={project.gift_url} target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[11px] uppercase tracking-[0.2em] transition-opacity hover:opacity-90" style={{ backgroundColor: p.accent, color: p.bg }} data-testid="gift-url">
+                Hediye Listesini Gör <Gift className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </Reveal>
         </section>
       )}
 
