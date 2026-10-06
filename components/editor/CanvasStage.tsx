@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Stage, Layer, Rect, Text, Circle, Line } from 'react-konva'
 import { useEditorStore } from '@/store/editor-store'
 import { SelectionTransformer } from './SelectionTransformer'
+import { fontStack } from '@/lib/editor-fonts'
 
 export default function CanvasStage() {
   const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom } = useEditorStore()
@@ -23,6 +24,44 @@ export default function CanvasStage() {
     window.addEventListener('click', handleClick)
     return () => window.removeEventListener('click', handleClick)
   }, [])
+
+  // Font loading mechanism for Canvas
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts) return
+    
+    let isMounted = true
+    let needsRender = false
+
+    const loadMissingFonts = async () => {
+      const fontsToLoad = new Set<string>()
+      design.elements.forEach((el) => {
+        if (el.type === 'text' && el.fontFamily) {
+          // Standard CSS font string format for document.fonts
+          fontsToLoad.add(`16px "${el.fontFamily}"`)
+        }
+      })
+
+      for (const font of Array.from(fontsToLoad)) {
+        try {
+          if (!document.fonts.check(font)) {
+            await document.fonts.load(font)
+            needsRender = true
+          }
+        } catch (e) {
+          console.warn("Font yüklenemedi:", font, e)
+        }
+      }
+
+      if (isMounted && needsRender) {
+        // Trigger a tiny dummy state update to force Konva to re-render the canvas
+        setStageSize(prev => ({ ...prev }))
+      }
+    }
+
+    loadMissingFonts()
+    
+    return () => { isMounted = false }
+  }, [design.elements])
 
   useEffect(() => {
     const handleResize = () => {
@@ -116,13 +155,26 @@ export default function CanvasStage() {
     node.scaleX(1)
     node.scaleY(1)
 
-    updateElement(id, {
-      x: node.x(),
-      y: node.y(),
-      width: Math.max(5, node.width() * scaleX),
-      height: Math.max(5, node.height() * scaleY),
-      rotation: node.rotation()
-    })
+    const element = design.elements.find((el: any) => el.id === id)
+
+    if (element?.type === 'text') {
+      updateElement(id, {
+        x: node.x(),
+        y: node.y(),
+        width: Math.max(5, node.width() * scaleX),
+        height: Math.max(5, node.height() * scaleY),
+        fontSize: Math.max(8, (element.fontSize || 16) * scaleY),
+        rotation: node.rotation()
+      })
+    } else {
+      updateElement(id, {
+        x: node.x(),
+        y: node.y(),
+        width: Math.max(5, node.width() * scaleX),
+        height: Math.max(5, node.height() * scaleY),
+        rotation: node.rotation()
+      })
+    }
   }
 
   const handleContextMenu = (e: any) => {
@@ -198,10 +250,9 @@ export default function CanvasStage() {
                   height={el.height}
                   rotation={el.rotation || 0}
                   text={el.text}
-                  fontFamily={el.fontFamily}
+                  fontFamily={fontStack(el.fontFamily)}
                   fontSize={el.fontSize}
-                  fontStyle={el.fontStyle || 'normal'}
-                  fontVariant={el.fontWeight === 700 ? 'bold' : 'normal'}
+                  fontStyle={`${el.fontStyle === 'italic' ? 'italic ' : ''}${el.fontWeight === 700 ? 'bold' : 'normal'}`.trim()}
                   textDecoration={el.textDecoration || ''}
                   letterSpacing={el.letterSpacing || 0}
                   lineHeight={el.lineHeight || 1.1}
@@ -385,7 +436,7 @@ export default function CanvasStage() {
             width: Math.max(editingText.width, 100) + 20, // Some extra padding so it doesn't wrap abruptly
             height: editingText.height + 40,
             fontSize: `${editingText.fontSize}px`,
-            fontFamily: editingText.fontFamily,
+            fontFamily: fontStack(editingText.fontFamily),
             fontStyle: editingText.fontStyle,
             fontWeight: editingText.fontWeight,
             textDecoration: editingText.textDecoration,
