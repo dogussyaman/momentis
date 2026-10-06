@@ -3,7 +3,7 @@ import { useEditorStore } from '@/store/editor-store'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { YAZI_TIPLERI } from '@/lib/davetiye-svg'
+import { EDITOR_FONTS } from '@/lib/editor-fonts'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Check, ChevronsUpDown, Type, Image as ImageIcon, Sparkles, Shapes, Move, Maximize2, RotateCw, Palette, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Layers, ArrowUpToLine, ArrowDownToLine, ArrowUp, ArrowDown } from 'lucide-react'
@@ -221,15 +221,15 @@ export function RightSidebar() {
                       </CommandGroup>
 
                       <CommandGroup heading="Premium Fontlar" className="text-[10px] uppercase text-muted-foreground font-semibold px-1 mt-2">
-                        {YAZI_TIPLERI.map(y => (
+                        {EDITOR_FONTS.map(y => (
                           <CommandItem
-                            key={y.ad}
-                            value={y.ad}
+                            key={y.name}
+                            value={y.name}
                             onSelect={(val) => handleUpdate('fontFamily', val)}
                             className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer aria-selected:bg-ivory"
                           >
-                            <span className="text-base text-midnight truncate" style={{ fontFamily: y.ad }}>{y.ad}</span>
-                            {selectedElement.fontFamily === y.ad && <Check className="h-4 w-4" />}
+                            <span className="text-base text-midnight truncate" style={{ fontFamily: y.name }}>{y.name}</span>
+                            {selectedElement.fontFamily === y.name && <Check className="h-4 w-4" />}
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -287,6 +287,22 @@ export function RightSidebar() {
                     <AlignRight className="h-4 w-4" />
                   </ToggleGroupItem>
                 </ToggleGroup>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1">
+              <button onClick={() => handleUpdate('fontWeight', selectedElement.fontWeight === 700 ? 400 : 700)} className={`h-9 rounded-lg border text-sm font-bold ${selectedElement.fontWeight === 700 ? 'bg-midnight text-white border-midnight' : 'bg-white border-border'}`} title="Kalın">B</button>
+              <button onClick={() => handleUpdate('fontStyle', selectedElement.fontStyle === 'italic' ? 'normal' : 'italic')} className={`h-9 rounded-lg border text-sm italic ${selectedElement.fontStyle === 'italic' ? 'bg-midnight text-white border-midnight' : 'bg-white border-border'}`} title="İtalik">I</button>
+              <button onClick={() => handleUpdate('textDecoration', selectedElement.textDecoration === 'underline' ? '' : 'underline')} className={`h-9 rounded-lg border text-sm underline ${selectedElement.textDecoration === 'underline' ? 'bg-midnight text-white border-midnight' : 'bg-white border-border'}`} title="Altı çizili">U</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase text-muted-foreground">Satır Aralığı</Label>
+                <Input type="number" step="0.05" min="0.7" max="3" value={selectedElement.lineHeight || 1.1} onChange={e => handleUpdate('lineHeight', parseFloat(e.target.value))} className="h-9 text-xs" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase text-muted-foreground">Harf Aralığı</Label>
+                <Input type="number" step="0.5" min="-10" max="30" value={selectedElement.letterSpacing || 0} onChange={e => handleUpdate('letterSpacing', parseFloat(e.target.value))} className="h-9 text-xs" />
               </div>
             </div>
 

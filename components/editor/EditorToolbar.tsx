@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useEditorStore } from '@/store/editor-store'
-import { YAZI_TIPLERI } from '@/lib/davetiye-svg'
+import { EDITOR_FONTS } from '@/lib/editor-fonts'
 
 export function EditorToolbar() {
   const { zoom, setZoom, selectedIds, design, updateElement } = useEditorStore()
@@ -42,7 +42,7 @@ export function EditorToolbar() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Georgia">Georgia</SelectItem>
-                {YAZI_TIPLERI.map(y => <SelectItem key={y.ad} value={y.ad} style={{ fontFamily: y.ad }}>{y.ad}</SelectItem>)}
+                {EDITOR_FONTS.map(y => <SelectItem key={y.name} value={y.name} style={{ fontFamily: y.name }}>{y.name}</SelectItem>)}
                 <SelectItem value="Arial">Arial</SelectItem>
                 <SelectItem value="Times New Roman">Times New Roman</SelectItem>
               </SelectContent>
@@ -54,6 +54,12 @@ export function EditorToolbar() {
               <Button variant="ghost" size="icon" className="h-7 w-7 text-xs hover:bg-black/5" onClick={() => updateElement(selectedElement.id, { fontSize: Math.max(10, (selectedElement.fontSize || 16) - 2) })}>-</Button>
               <span className="text-xs w-6 text-center font-medium">{Math.round(selectedElement.fontSize || 16)}</span>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-xs hover:bg-black/5" onClick={() => updateElement(selectedElement.id, { fontSize: (selectedElement.fontSize || 16) + 2 })}>+</Button>
+            </div>
+
+            <div className="flex items-center gap-0.5">
+              <Button variant={selectedElement.fontWeight === 700 ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => updateElement(selectedElement.id, { fontWeight: selectedElement.fontWeight === 700 ? 400 : 700 })}><Bold className="h-3.5 w-3.5" /></Button>
+              <Button variant={selectedElement.fontStyle === 'italic' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => updateElement(selectedElement.id, { fontStyle: selectedElement.fontStyle === 'italic' ? 'normal' : 'italic' })}><Italic className="h-3.5 w-3.5" /></Button>
+              <Button variant={selectedElement.textDecoration === 'underline' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => updateElement(selectedElement.id, { textDecoration: selectedElement.textDecoration === 'underline' ? '' : 'underline' })}><Underline className="h-3.5 w-3.5" /></Button>
             </div>
 
             <div className="w-px h-4 bg-border mx-1" />
