@@ -6,6 +6,17 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useEditorStore } from '@/store/editor-store'
 import { EDITOR_FONTS } from '@/lib/editor-fonts'
 
+
+async function loadEditorFont(fontFamily: string, fontWeight = 400, fontStyle = 'normal') {
+  if (typeof document === 'undefined' || !fontFamily) return
+  if (fontFamily === 'Georgia' || fontFamily === 'Arial' || fontFamily === 'Times New Roman') return
+  try {
+    await document.fonts.load(`${fontStyle} ${fontWeight} 32px "${fontFamily}"`)
+  } catch (error) {
+    console.warn(`Font yüklenemedi: ${fontFamily}`, error)
+  }
+}
+
 export function EditorToolbar() {
   const { zoom, setZoom, selectedIds, design, updateElement } = useEditorStore()
   
@@ -35,7 +46,10 @@ export function EditorToolbar() {
             
             <Select 
               value={selectedElement.fontFamily} 
-              onValueChange={val => updateElement(selectedElement.id, { fontFamily: val })}
+              onValueChange={async val => {
+                await loadEditorFont(val, selectedElement.fontWeight || 400, selectedElement.fontStyle || 'normal')
+                updateElement(selectedElement.id, { fontFamily: val })
+              }}
             >
               <SelectTrigger className="h-8 w-[140px] text-xs border-transparent bg-transparent hover:bg-black/5 shadow-none">
                 <SelectValue placeholder="Yazı Tipi" />
