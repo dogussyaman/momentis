@@ -200,6 +200,11 @@ export default function CanvasStage() {
                   text={el.text}
                   fontFamily={el.fontFamily}
                   fontSize={el.fontSize}
+                  fontStyle={el.fontStyle || 'normal'}
+                  fontVariant={el.fontWeight === 700 ? 'bold' : 'normal'}
+                  textDecoration={el.textDecoration || ''}
+                  letterSpacing={el.letterSpacing || 0}
+                  lineHeight={el.lineHeight || 1.1}
                   fill={el.fill}
                   align={el.align}
                   opacity={editingText?.id === el.id ? 0 : (el.opacity || 1)}
@@ -225,6 +230,11 @@ export default function CanvasStage() {
                       height: textNode.height() * textNode.getAbsoluteScale().y,
                       fontSize: (el.fontSize || 16) * textNode.getAbsoluteScale().y,
                       fontFamily: el.fontFamily || 'sans-serif',
+                      fontStyle: el.fontStyle || 'normal',
+                      fontWeight: el.fontWeight || 400,
+                      textDecoration: el.textDecoration || '',
+                      letterSpacing: el.letterSpacing || 0,
+                      lineHeight: el.lineHeight || 1.1,
                       fill: el.fill || '#000000',
                       align: el.align || 'left',
                       rotation: textNode.rotation()
