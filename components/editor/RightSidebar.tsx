@@ -229,7 +229,7 @@ export function RightSidebar() {
                             className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer aria-selected:bg-ivory"
                           >
                             <span className="text-base text-midnight truncate" style={{ fontFamily: y.name }}>{y.name}</span>
-                            {selectedElement.fontFamily === y.ad && <Check className="h-4 w-4" />}
+                            {selectedElement.fontFamily === y.name && <Check className="h-4 w-4" />}
                           </CommandItem>
                         ))}
                       </CommandGroup>
