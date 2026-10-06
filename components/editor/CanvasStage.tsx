@@ -12,7 +12,7 @@ export default function CanvasStage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [contextMenu, setContextMenu] = useState<{ visible: boolean, x: number, y: number, elementId: string | null }>({ visible: false, x: 0, y: 0, elementId: null })
   const [editingText, setEditingText] = useState<{
-    id: string, text: string, x: number, y: number, width: number, height: number, fontSize: number, fontFamily: string, fill: string, align: string, rotation: number
+    id: string, text: string, x: number, y: number, width: number, height: number, fontSize: number, fontFamily: string, fontStyle: string, fontWeight: number, textDecoration: string, letterSpacing: number, lineHeight: number, fill: string, align: string, rotation: number
   } | null>(null)
   
   const verticalGuideRef = useRef<any>(null)
