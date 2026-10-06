@@ -5,6 +5,17 @@ import { Stage, Layer, Rect, Text, Circle, Line } from 'react-konva'
 import { useEditorStore } from '@/store/editor-store'
 import { SelectionTransformer } from './SelectionTransformer'
 
+
+async function ensureCanvasFont(fontFamily: string, fontWeight = 400, fontStyle = 'normal') {
+  if (typeof document === 'undefined' || !fontFamily) return
+  if (fontFamily === 'Georgia' || fontFamily === 'Arial' || fontFamily === 'Times New Roman') return
+  try {
+    await document.fonts.load(`${fontStyle} ${fontWeight} 32px "${fontFamily}"`)
+  } catch (error) {
+    console.warn(`Canvas font yüklenemedi: ${fontFamily}`, error)
+  }
+}
+
 export default function CanvasStage() {
   const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom } = useEditorStore()
   const stageRef = useRef<any>(null)
