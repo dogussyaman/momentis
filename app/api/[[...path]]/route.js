@@ -18,15 +18,23 @@ async function connectToMongo() {
   return getDb()
 }
 
+let templatesSeeded = false;
+
 // Seed the template catalogue into Mongo on first use (idempotent by slug).
 async function ensureTemplatesSeeded(db) {
-  const col = db.collection('templates')
-  const count = await col.countDocuments()
-  if (count >= TEMPLATES.length) return
+  if (templatesSeeded) return;
+  const col = db.collection('templates');
   const ops = TEMPLATES.map((t) => ({
-    updateOne: { filter: { slug: t.slug }, update: { $set: { ...t, updated_at: new Date() }, $setOnInsert: { created_at: new Date() } }, upsert: true },
-  }))
-  await col.bulkWrite(ops)
+    updateOne: { 
+      filter: { slug: t.slug }, 
+      update: { $set: { ...t, updated_at: new Date() }, $setOnInsert: { created_at: new Date() } }, 
+      upsert: true 
+    },
+  }));
+  if (ops.length > 0) {
+    await col.bulkWrite(ops);
+  }
+  templatesSeeded = true;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
