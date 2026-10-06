@@ -19,7 +19,21 @@ export default function TemplatesPage() {
           <p className="mt-6 max-w-xl text-lg text-muted-foreground">Her tasarım, renkleri ve bloklarıyla tamamen özelleştirilebilir. Etkinlik türünüze göre filtreleyin.</p>
         </div>
         <div className="mt-14">
-          <Suspense fallback={<Skeleton className="h-[60vh] rounded-2xl" />}>
+          <Suspense fallback={
+            <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="block">
+                  <Skeleton className="aspect-[3/4] w-full rounded-2xl bg-midnight/5" />
+                  <div className="mt-3 flex items-center gap-1.5">
+                    {Array.from({ length: 4 }).map((_, j) => (
+                       <Skeleton key={j} className="h-2.5 w-2.5 rounded-full bg-midnight/5" />
+                    ))}
+                    <Skeleton className="ml-2 h-3 w-16 bg-midnight/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          }>
             <TemplateGallery />
           </Suspense>
         </div>

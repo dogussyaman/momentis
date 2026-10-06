@@ -25,6 +25,7 @@ import { Slider } from '@/components/ui/slider'
 import { compressImageFile } from '@/lib/compress-image'
 import { DatePickerField } from '@/components/ui/date-picker-field'
 import { CardMessageTemplates } from './card-message-templates'
+import { CanvasEditor } from '@/components/editor/CanvasEditor'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
@@ -113,6 +114,24 @@ export function NewProjectWizard() {
       toast.success('Etkinliğiniz oluşturuldu ve yayında!')
       router.replace(`/panel/etkinlik/${data.project.id}/duzenle`)
     } catch (e) { toast.error(e.message) } finally { setSaving(false) }
+  }
+
+  if (designTarget === 'card') {
+    return (
+      <div className="-mt-2 flex h-[calc(100dvh-5rem)] flex-col gap-3 pb-3 lg:-mt-4 lg:h-[calc(100dvh-6rem)] w-full" data-testid="new-project-wizard-canvas">
+        <div className="flex items-center justify-between shrink-0">
+          <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-3">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
+          </Button>
+          <Button onClick={submit} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
+            <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Kaydediliyor…' : 'Kaydet'}
+          </Button>
+        </div>
+        <div className="flex-1 w-full relative overflow-hidden rounded-2xl border border-border shadow-sm bg-white">
+          <CanvasEditor />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -424,7 +443,7 @@ export function NewProjectWizard() {
         {/* Device Frame */}
         <div className={cn(
           'relative transition-all duration-500 ease-out',
-          previewMode === 'card' ? 'h-full max-h-full w-full max-w-none overflow-visible rounded-none border-0 bg-transparent shadow-none' :
+          previewMode === 'card' ? 'h-full w-full max-w-none overflow-hidden rounded-none border-0 bg-transparent shadow-none' :
           device === 'mobile' ? 'mt-2 h-[min(700px,calc(100%-0.5rem))] max-h-[78dvh] w-[min(88vw,340px)] overflow-hidden rounded-[2rem] border-[5px] border-midnight bg-ivory shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] sm:rounded-[2.5rem] sm:border-[6px]' :
           device === 'tablet' ? 'mt-2 h-[min(700px,calc(100%-0.5rem))] max-h-[78dvh] w-[min(92vw,560px)] overflow-hidden rounded-[1.5rem] border-[5px] border-midnight bg-ivory shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] sm:rounded-[2rem] sm:border-[6px]' :
           'mt-2 h-[min(700px,calc(100%-0.5rem))] max-h-[78dvh] w-full max-w-[1000px] overflow-hidden rounded-xl border-[5px] border-midnight bg-ivory shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] sm:rounded-2xl sm:border-[6px]'
@@ -432,8 +451,8 @@ export function NewProjectWizard() {
           <iframe
             ref={iframeRef}
             src="/preview"
-            className={cn('h-full w-full border-0', previewMode === 'card' ? 'bg-transparent' : 'bg-ivory')}
-            title={previewMode === 'card' ? 'Davetiye kartı önizlemesi' : 'Davet sitesi önizlemesi'}
+            className={cn('h-full w-full border-0 bg-ivory')}
+            title={'Davet sitesi önizlemesi'}
           />
         </div>
 

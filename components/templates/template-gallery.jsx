@@ -42,9 +42,16 @@ export function TemplateGallery() {
         if (!r.ok) throw new Error('Tasarımlar yüklenemedi')
         return r.json()
       })
-      .then((data) => setItems(data?.items || []))
-      .catch((e) => { if (e.name !== 'AbortError') setError(e.message) })
-      .finally(() => setLoading(false))
+      .then((data) => {
+        if (controller.signal.aborted) return
+        setItems(data?.items || [])
+        setLoading(false)
+      })
+      .catch((e) => { 
+        if (controller.signal.aborted) return
+        setError(e.message) 
+        setLoading(false)
+      })
     return () => controller.abort()
   }, [category, style, tier, debouncedQ])
 
@@ -115,7 +122,17 @@ export function TemplateGallery() {
 
       {loading ? (
         <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />)}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="block">
+              <Skeleton className="aspect-[3/4] w-full rounded-2xl bg-midnight/5" />
+              <div className="mt-3 flex items-center gap-1.5">
+                {Array.from({ length: 4 }).map((_, j) => (
+                   <Skeleton key={j} className="h-2.5 w-2.5 rounded-full bg-midnight/5" />
+                ))}
+                <Skeleton className="ml-2 h-3 w-16 bg-midnight/5" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : items.length === 0 && !error ? (
         <div className="mt-20 text-center" data-testid="template-empty">
