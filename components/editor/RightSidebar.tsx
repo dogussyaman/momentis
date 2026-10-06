@@ -9,6 +9,17 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown, Type, Image as ImageIcon, Sparkles, Shapes, Move, Maximize2, RotateCw, Palette, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Layers, ArrowUpToLine, ArrowDownToLine, ArrowUp, ArrowDown } from 'lucide-react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
+
+async function loadEditorFont(fontFamily: string, fontWeight = 400, fontStyle = 'normal') {
+  if (typeof document === 'undefined' || !fontFamily) return
+  if (fontFamily === 'Georgia' || fontFamily === 'Arial' || fontFamily === 'Times New Roman') return
+  try {
+    await document.fonts.load(`${fontStyle} ${fontWeight} 32px "${fontFamily}"`)
+  } catch (error) {
+    console.warn(`Font yüklenemedi: ${fontFamily}`, error)
+  }
+}
+
 export function RightSidebar() {
   const { design, selectedIds, updateElement, arrangeElement } = useEditorStore()
 
@@ -225,7 +236,10 @@ export function RightSidebar() {
                           <CommandItem
                             key={y.name}
                             value={y.name}
-                            onSelect={(val) => handleUpdate('fontFamily', val)}
+                            onSelect={async (val) => {
+                              await loadEditorFont(val, selectedElement.fontWeight || 400, selectedElement.fontStyle || 'normal')
+                              handleUpdate('fontFamily', val)
+                            }}
                             className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer aria-selected:bg-ivory"
                           >
                             <span className="text-base text-midnight truncate" style={{ fontFamily: y.name }}>{y.name}</span>
