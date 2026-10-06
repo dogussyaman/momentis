@@ -253,6 +253,11 @@ export default function CanvasStage() {
                       height: textNode.height() * textNode.getAbsoluteScale().y,
                       fontSize: (el.fontSize || 16) * textNode.getAbsoluteScale().y,
                       fontFamily: el.fontFamily || 'sans-serif',
+                      fontStyle: el.fontStyle || 'normal',
+                      fontWeight: el.fontWeight || 400,
+                      textDecoration: el.textDecoration || '',
+                      letterSpacing: el.letterSpacing || 0,
+                      lineHeight: el.lineHeight || 1.1,
                       fill: el.fill || '#000000',
                       align: el.align || 'left',
                       rotation: textNode.rotation()
@@ -381,6 +386,10 @@ export default function CanvasStage() {
             height: editingText.height + 40,
             fontSize: `${editingText.fontSize}px`,
             fontFamily: editingText.fontFamily,
+            fontStyle: editingText.fontStyle,
+            fontWeight: editingText.fontWeight,
+            textDecoration: editingText.textDecoration,
+            letterSpacing: editingText.letterSpacing,
             color: editingText.fill,
             textAlign: editingText.align as any,
             transform: `rotate(${editingText.rotation}deg)`,
@@ -392,7 +401,7 @@ export default function CanvasStage() {
             outline: 'none',
             resize: 'none',
             overflow: 'hidden',
-            lineHeight: 1.1,
+            lineHeight: editingText.lineHeight,
             zIndex: 100
           }}
         />
