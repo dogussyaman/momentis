@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { LayoutTemplate, Type, Image as ImageIcon, Sparkles, Shapes, ImagePlus, Copy, Layers } from 'lucide-react'
+import { renderToString } from 'react-dom/server'
+import { LayoutTemplate, Type, Image as ImageIcon, Sparkles, Shapes, ImagePlus, Copy, Layers, Clock, MapPin, Home, Users, icons } from 'lucide-react'
 import { useEditorStore } from '@/store/editor-store'
 import { v4 as uuidv4 } from 'uuid'
 import { SABLONLAR, SEMBOLLER, TEMALAR, KAGITLAR, GRADYANLAR, KATEGORILER } from '@/lib/davetiye-svg'
@@ -99,9 +100,63 @@ const svgFiles = [
   "Siyah Beyaz Minimalist Düğün Davetiye.png"
 ]
 
+const weddingPhotos = [
+  "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&q=80",
+  "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&q=80",
+  "https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=400&q=80",
+  "https://images.unsplash.com/photo-1532712938310-34cb3982ef74?w=400&q=80",
+  "https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=400&q=80",
+  "https://images.unsplash.com/photo-1606800052052-a08af7148866?w=400&q=80",
+  "https://images.unsplash.com/photo-1606490656461-f349be9d424b?w=400&q=80",
+  "https://images.unsplash.com/photo-1550005809-91ad75fb315f?w=400&q=80",
+  "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=400&q=80",
+  "https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=400&q=80",
+  "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400&q=80",
+  "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&q=80"
+];
+
 export function LeftSidebar() {
   const [activeTab, setActiveTab] = useState('elements')
+  const [iconSearch, setIconSearch] = useState('')
+  const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const { design, updateElement } = useEditorStore()
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setUploadedImages(prev => [event.target!.result as string, ...prev])
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const addExternalImageToCanvas = (url: string) => {
+    useEditorStore.setState((state) => ({
+      design: {
+        ...state.design,
+        elements: [
+          ...state.design.elements,
+          {
+            id: `img_${uuidv4().split('-')[0]}`,
+            type: 'image',
+            src: url,
+            x: 200,
+            y: 200,
+            width: 300,
+            height: 420,
+            rotation: 0,
+            opacity: 1,
+            visible: true,
+            locked: false
+          }
+        ]
+      }
+    }))
+  }
 
   const addImageToCanvas = (filename: string) => {
     useEditorStore.setState((state) => ({
@@ -265,6 +320,32 @@ export function LeftSidebar() {
             opacity: 1,
             visible: true,
             locked: false
+          } as any
+        ]
+      }
+    }))
+  }
+
+  const addIconToCanvas = (svgContent: string) => {
+    useEditorStore.setState((state) => ({
+      design: {
+        ...state.design,
+        elements: [
+          ...state.design.elements,
+          {
+            id: `icon_${uuidv4().split('-')[0]}`,
+            type: 'icon',
+            svgContent,
+            fill: '#3b2f27',
+            x: 200,
+            y: 200,
+            width: 50,
+            height: 50,
+            rotation: 0,
+            opacity: 1,
+            visible: true,
+            locked: false,
+            centered: true
           } as any
         ]
       }
@@ -454,6 +535,27 @@ export function LeftSidebar() {
                 Gövde Metni Ekle
               </button>
             </div>
+
+            <div className="flex flex-col gap-3 border-t pt-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Hazır Davetiye Sözleri</h3>
+              
+              {[
+                "Birlikteliğimizi sonsuzluğa taşırken sizleri de aramızda görmekten mutluluk duyarız.",
+                "Hayat boyu birlikte ilerlemeye karar verdiğimiz bu yolda bizimle olmanız dileğiyle...",
+                "Sevgi, saygı ve anlayışla temelini attığımız beraberliğimizi taçlandıracağımız düğün törenimizde sizleri de bekliyoruz.",
+                "Bu mutlu günümüzde yanımızda olmanız dileğiyle...",
+                "Ömür boyu sürecek mutlu beraberliğimizin başlangıcında sizleri de aramızda görmekten onur duyarız."
+              ].map((text, i) => (
+                <button 
+                  key={i}
+                  onClick={() => addTextToCanvas(text, 32, 'Montserrat')} 
+                  className="w-full text-left bg-ivory-50 border border-border p-3 rounded-xl text-xs text-midnight hover:bg-ivory hover:border-midnight/40 transition-colors line-clamp-2"
+                  title={text}
+                >
+                  "{text}"
+                </button>
+              ))}
+            </div>
             
             <div className="flex flex-col gap-3 border-t pt-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Yazı Kombinasyonları</h3>
@@ -522,10 +624,10 @@ export function LeftSidebar() {
         )}
 
         {activeTab === 'shapes' && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 h-full">
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Temel Şekiller</h3>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2 shrink-0">
                 <DragAddButton dragData={{ kind: 'shape', shapeType: 'rect' }} onClick={() => addShapeToCanvas('rect')} className="aspect-square bg-ivory-50 border border-border rounded-xl flex items-center justify-center hover:bg-ivory hover:border-midnight/40 transition-colors" title="Dikdörtgen">
                   <div className="w-12 h-10 bg-midnight/20 rounded-sm" />
                 </DragAddButton>
@@ -537,6 +639,36 @@ export function LeftSidebar() {
                     <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(asset.svg)}`} alt={asset.name} className="w-full h-full object-contain" />
                   </button>
                 ))}
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-3 flex-1 pt-3 border-t">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tüm İkonlar</h3>
+              <input 
+                type="text" 
+                placeholder="İkon ara (örn: heart, star...)" 
+                value={iconSearch}
+                onChange={(e) => setIconSearch(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-midnight bg-ivory-50"
+              />
+              <div className="grid grid-cols-4 gap-2 overflow-y-auto max-h-[300px] pr-1">
+                {Object.entries(icons)
+                  .filter(([name]) => name.toLowerCase().includes(iconSearch.toLowerCase()))
+                  .slice(0, 100)
+                  .map(([name, Icon]) => (
+                    <button 
+                      key={name}
+                      onClick={() => {
+                        const svgString = renderToString(<Icon size={24} strokeWidth={1.5} color="#3b2f27" />);
+                        const innerSvg = svgString.replace(/^<svg[^>]*>|<\/svg>$/g, '');
+                        addIconToCanvas(innerSvg);
+                      }}
+                      className="aspect-square flex items-center justify-center border border-transparent hover:border-border hover:bg-ivory-50 rounded-lg transition-colors text-midnight"
+                      title={name}
+                    >
+                      <Icon size={20} strokeWidth={1.5} />
+                    </button>
+                  ))}
               </div>
             </div>
             <p className="text-[10px] leading-relaxed text-muted-foreground border-t pt-3">
@@ -651,14 +783,30 @@ export function LeftSidebar() {
 
         {activeTab === 'uploads' && (
            <div className="flex flex-col gap-4">
-             <button className="w-full bg-midnight text-ivory rounded-xl p-3 text-xs uppercase tracking-wider font-medium hover:bg-midnight/90 transition-colors flex items-center justify-center gap-2">
+             <label className="w-full bg-midnight text-ivory rounded-xl p-3 text-xs uppercase tracking-wider font-medium hover:bg-midnight/90 transition-colors flex items-center justify-center gap-2 cursor-pointer">
                <ImagePlus className="w-4 h-4" /> Görsel Yükle
-             </button>
+               <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+             </label>
              <p className="text-[10px] text-muted-foreground text-center px-2">
-               Yüklediğiniz görseller (PNG, JPG, SVG) burada listelenecek ve tıklayarak davetiyenize ekleyebileceksiniz.
+               Yüklediğiniz görseller burada listelenecek ve tıklayarak davetiyenize ekleyebileceksiniz. (Sadece bu tarayıcıda geçicidir)
              </p>
 
-             <div className="grid grid-cols-2 gap-2 mt-2">
+             {uploadedImages.length > 0 && (
+               <div className="grid grid-cols-2 gap-2 mt-2">
+                 {uploadedImages.map((src, i) => (
+                   <button
+                     key={i}
+                     onClick={() => addExternalImageToCanvas(src)}
+                     className="aspect-[3/4] border border-border bg-ivory-50 rounded-xl overflow-hidden hover:border-midnight/40 transition-all flex items-center justify-center group"
+                   >
+                     <img src={src} alt="Uploaded" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                   </button>
+                 ))}
+               </div>
+             )}
+
+             <div className="grid grid-cols-2 gap-2 mt-4">
+               <h3 className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Hazır Grafikler</h3>
                {svgFiles.map(filename => (
                  <button
                    key={filename}
@@ -673,9 +821,22 @@ export function LeftSidebar() {
            </div>
         )}
 
-        {['photos'].includes(activeTab) && (
-           <div className="text-sm text-muted-foreground p-4 text-center border border-dashed rounded-xl border-border bg-ivory-50">
-             Bu özellik yakında eklenecek...
+        {activeTab === 'photos' && (
+           <div className="flex flex-col gap-4">
+             <p className="text-[10px] text-muted-foreground text-center px-2">
+               Düğün, gelin ve damat fotoğrafları. Tıklayarak davetiyenize ekleyebilirsiniz.
+             </p>
+             <div className="grid grid-cols-2 gap-2">
+               {weddingPhotos.map((url, i) => (
+                 <button
+                   key={i}
+                   onClick={() => addExternalImageToCanvas(url)}
+                   className="aspect-[3/4] border border-border bg-ivory-50 rounded-xl overflow-hidden hover:border-midnight/40 transition-all flex items-center justify-center group"
+                 >
+                   <img src={url} alt="Wedding" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                 </button>
+               ))}
+             </div>
            </div>
         )}
       </div>

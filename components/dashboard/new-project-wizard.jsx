@@ -26,6 +26,7 @@ import { compressImageFile } from '@/lib/compress-image'
 import { DatePickerField } from '@/components/ui/date-picker-field'
 import { CardMessageTemplates } from './card-message-templates'
 import { CanvasEditor } from '@/components/editor/CanvasEditor'
+import { useEditorStore } from '@/store/editor-store'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
@@ -41,6 +42,8 @@ export function NewProjectWizard() {
   const [designTarget, setDesignTarget] = useState('site')
   const [openSection, setOpenSection] = useState('details')
   const iframeRef = useRef(null)
+  
+  const { design: canvasDesign } = useEditorStore()
 
   const [form, setForm] = useState({
     event_type: 'dugun', host_a: '', host_b: '',
@@ -104,10 +107,17 @@ export function NewProjectWizard() {
   const removeMenu = (m) => setForm((f) => ({ ...f, menu_options: f.menu_options.filter((x) => x !== m) }))
 
   const submit = async () => {
-    if (!form.host_a || !form.date) { toast.error('Gelin adı ve tarih zorunludur'); return }
+    const isManual = designTarget === 'card'
+    if (!isManual && (!form.host_a || !form.date)) { toast.error('Gelin adı ve tarih zorunludur'); return }
     setSaving(true)
     try {
-      const body = { ...form, palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null }
+      const body = { 
+        ...form, 
+        host_a: form.host_a || 'İsimsiz', 
+        date: form.date || new Date().toISOString(),
+        palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
+        canvas_design: isManual ? canvasDesign : form.canvas_design
+      }
       const res = await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Etkinlik oluşturulamadı')

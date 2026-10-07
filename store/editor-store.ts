@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { temporal } from 'zundo'
 
-export type ElementType = 'text' | 'image' | 'svg' | 'rect' | 'circle' | 'line' | 'group'
+export type ElementType = 'text' | 'image' | 'svg' | 'rect' | 'circle' | 'line' | 'group' | 'icon'
 
 export interface CanvasElement {
   id: string
@@ -38,6 +39,7 @@ interface EditorState {
   duplicateElement: (id: string) => void
   arrangeElement: (id: string, action: 'up' | 'down' | 'front' | 'back') => void
   setZoom: (zoom: number) => void
+  setDesign: (design: CanvasDocument) => void
 }
 
 const initialDesign: CanvasDocument = {
@@ -81,8 +83,9 @@ const initialDesign: CanvasDocument = {
 }
 
 export const useEditorStore = create<EditorState>()(
-  persist(
-    (set) => ({
+  temporal(
+    persist(
+      (set) => ({
       design: initialDesign,
       selectedIds: [],
       zoom: 1,
@@ -136,10 +139,16 @@ export const useEditorStore = create<EditorState>()(
       }),
 
       setZoom: (zoom) => set({ zoom }),
+      setDesign: (design) => set({ design }),
     }),
     {
       name: 'momentis-editor-storage',
       partialize: (state) => ({ design: state.design }), // only save design state
     }
-  )
+  ),
+  {
+    partialize: (state) => ({ design: state.design }), // zundo only tracks design changes
+    limit: 50
+  }
+)
 )

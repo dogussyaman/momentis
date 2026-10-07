@@ -3,11 +3,31 @@ import { useEditorStore } from '@/store/editor-store'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { EDITOR_FONTS } from '@/lib/editor-fonts'
+import { EDITOR_FONTS, fontStack } from '@/lib/editor-fonts'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Check, ChevronsUpDown, Type, Image as ImageIcon, Sparkles, Shapes, Move, Maximize2, RotateCw, Palette, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Layers, ArrowUpToLine, ArrowDownToLine, ArrowUp, ArrowDown } from 'lucide-react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+
+function DebouncedColorPicker({ value, onChange, className }: { value: string, onChange: (v: string) => void, className?: string }) {
+  const [color, setColor] = React.useState(value);
+  const timeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
+
+  React.useEffect(() => {
+    setColor(value);
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    setColor(newColor);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      onChange(newColor);
+    }, 100);
+  };
+
+  return <input type="color" value={color} onChange={handleChange} className={className} />;
+}
 
 export function RightSidebar() {
   const { design, selectedIds, updateElement, arrangeElement } = useEditorStore()
@@ -188,7 +208,7 @@ export function RightSidebar() {
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="flex h-9 w-full items-center justify-between rounded-xl border border-border bg-white px-3 py-2 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-midnight/20">
-                    <span className="truncate" style={{ fontFamily: selectedElement.fontFamily }}>
+                    <span className="truncate" style={{ fontFamily: fontStack(selectedElement.fontFamily) }}>
                       {selectedElement.fontFamily || "Yazı Tipi Seçin"}
                     </span>
                     <ChevronsUpDown className="h-4 w-4 opacity-50" />
@@ -215,7 +235,7 @@ export function RightSidebar() {
                           onSelect={() => { }}
                           className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer aria-selected:bg-ivory"
                         >
-                          <span className="text-base text-midnight" style={{ fontFamily: selectedElement.fontFamily }}>{selectedElement.fontFamily}</span>
+                          <span className="text-base text-midnight" style={{ fontFamily: fontStack(selectedElement.fontFamily) }}>{selectedElement.fontFamily}</span>
                           <Check className="h-4 w-4" />
                         </CommandItem>
                       </CommandGroup>
@@ -228,7 +248,7 @@ export function RightSidebar() {
                             onSelect={(val) => handleUpdate('fontFamily', val)}
                             className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer aria-selected:bg-ivory"
                           >
-                            <span className="text-base text-midnight truncate" style={{ fontFamily: y.name }}>{y.name}</span>
+                            <span className="text-base text-midnight truncate" style={{ fontFamily: fontStack(y.name) }}>{y.name}</span>
                             {selectedElement.fontFamily === y.name && <Check className="h-4 w-4" />}
                           </CommandItem>
                         ))}
@@ -242,7 +262,7 @@ export function RightSidebar() {
                             onSelect={(val) => handleUpdate('fontFamily', val)}
                             className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer aria-selected:bg-ivory"
                           >
-                            <span className="text-sm text-midnight" style={{ fontFamily: font }}>{font}</span>
+                            <span className="text-sm text-midnight" style={{ fontFamily: fontStack(font) }}>{font}</span>
                             {selectedElement.fontFamily === font && <Check className="h-4 w-4" />}
                           </CommandItem>
                         ))}
@@ -315,10 +335,9 @@ export function RightSidebar() {
                 />
               </Label>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
+                <DebouncedColorPicker
                   value={selectedElement.fill || '#000000'}
-                  onChange={e => handleUpdate('fill', e.target.value)}
+                  onChange={val => handleUpdate('fill', val)}
                   className="w-10 h-10 rounded cursor-pointer border-none p-0 outline-none"
                 />
                 <Input
@@ -357,10 +376,9 @@ export function RightSidebar() {
                 />
               </Label>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
+                <DebouncedColorPicker
                   value={selectedElement.fill || '#e9e4d9'}
-                  onChange={e => handleUpdate('fill', e.target.value)}
+                  onChange={val => handleUpdate('fill', val)}
                   className="w-10 h-10 rounded cursor-pointer border-none p-0 outline-none"
                 />
                 <Input
@@ -371,6 +389,21 @@ export function RightSidebar() {
                 />
               </div>
             </div>
+
+            {selectedElement.type === 'rect' && (
+              <div className="space-y-1.5 mt-4">
+                <Label className="text-[10px] flex justify-between uppercase text-muted-foreground">
+                  <span>Köşe Ovallığı (Border Radius)</span>
+                  <span>{selectedElement.cornerRadius || 0}px</span>
+                </Label>
+                <input
+                  type="range" min="0" max="100"
+                  value={selectedElement.cornerRadius || 0}
+                  onChange={e => handleUpdate('cornerRadius', parseFloat(e.target.value))}
+                  className="w-full accent-midnight"
+                />
+              </div>
+            )}
           </div>
         )}
 

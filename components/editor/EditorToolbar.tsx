@@ -4,7 +4,27 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useEditorStore } from '@/store/editor-store'
-import { EDITOR_FONTS } from '@/lib/editor-fonts'
+import { EDITOR_FONTS, fontStack } from '@/lib/editor-fonts'
+
+function DebouncedColorPicker({ value, onChange, className, title }: { value: string, onChange: (v: string) => void, className?: string, title?: string }) {
+  const [color, setColor] = React.useState(value);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    setColor(value);
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    setColor(newColor);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      onChange(newColor);
+    }, 100);
+  };
+
+  return <input type="color" value={color} onChange={handleChange} className={className} title={title} />;
+}
 
 export function EditorToolbar() {
   const { zoom, setZoom, selectedIds, design, updateElement } = useEditorStore()
@@ -25,8 +45,8 @@ export function EditorToolbar() {
   return (
     <div className="h-12 border-b bg-white flex items-center justify-between px-4 shrink-0">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Undo2 className="w-4 h-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Redo2 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => (useEditorStore as any).temporal.getState().undo()}><Undo2 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => (useEditorStore as any).temporal.getState().redo()}><Redo2 className="w-4 h-4" /></Button>
         <div className="w-px h-4 bg-border mx-2" />
         
         {/* Dynamic Context Toolbar */}
@@ -41,10 +61,10 @@ export function EditorToolbar() {
                 <SelectValue placeholder="Yazı Tipi" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Georgia">Georgia</SelectItem>
-                {EDITOR_FONTS.map(y => <SelectItem key={y.name} value={y.name} style={{ fontFamily: y.name }}>{y.name}</SelectItem>)}
-                <SelectItem value="Arial">Arial</SelectItem>
-                <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                <SelectItem value="Georgia" style={{ fontFamily: fontStack('Georgia') }}>Georgia</SelectItem>
+                {EDITOR_FONTS.map(y => <SelectItem key={y.name} value={y.name} style={{ fontFamily: fontStack(y.name) }}>{y.name}</SelectItem>)}
+                <SelectItem value="Arial" style={{ fontFamily: fontStack('Arial') }}>Arial</SelectItem>
+                <SelectItem value="Times New Roman" style={{ fontFamily: fontStack('Times New Roman') }}>Times New Roman</SelectItem>
               </SelectContent>
             </Select>
 
@@ -65,10 +85,9 @@ export function EditorToolbar() {
             <div className="w-px h-4 bg-border mx-1" />
 
             <div className="flex items-center gap-1.5 px-2">
-               <input 
-                 type="color" 
+               <DebouncedColorPicker 
                  value={selectedElement.fill || '#000000'}
-                 onChange={e => updateElement(selectedElement.id, { fill: e.target.value })}
+                 onChange={val => updateElement(selectedElement.id, { fill: val })}
                  className="w-5 h-5 rounded cursor-pointer border-none p-0 outline-none"
                  title="Metin Rengi"
                />
@@ -95,13 +114,12 @@ export function EditorToolbar() {
           </div>
         )}
 
-        {selectedElement?.type === 'rect' && (
+        {(selectedElement?.type === 'rect' || selectedElement?.type === 'circle' || selectedElement?.type === 'svg' || selectedElement?.type === 'icon') && (
            <div className="flex items-center gap-2 bg-ivory-50 px-2 py-1 rounded-md border border-border">
               <span className="text-xs font-medium text-muted-foreground mr-1">Renk:</span>
-              <input 
-                type="color" 
+              <DebouncedColorPicker 
                 value={selectedElement.fill || '#e9e4d9'}
-                onChange={e => updateElement(selectedElement.id, { fill: e.target.value })}
+                onChange={val => updateElement(selectedElement.id, { fill: val })}
                 className="w-6 h-6 rounded cursor-pointer"
               />
            </div>

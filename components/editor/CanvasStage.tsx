@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { Stage, Layer, Rect, Text, Circle, Line } from 'react-konva'
+import { Stage, Layer, Group, Rect, Text, Circle, Line } from 'react-konva'
 import { useEditorStore } from '@/store/editor-store'
 import { SelectionTransformer } from './SelectionTransformer'
 import { fontStack } from '@/lib/editor-fonts'
 import { SEMBOLLER, GRADYANLAR } from '@/lib/davetiye-svg'
 
 export default function CanvasStage() {
-  const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom } = useEditorStore()
+  const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds } = useEditorStore()
   const stageRef = useRef<any>(null)
   const [stageSize, setStageSize] = useState({ width: 1000, height: 800 })
   const containerRef = useRef<HTMLDivElement>(null)
@@ -25,6 +25,41 @@ export default function CanvasStage() {
     window.addEventListener('click', handleClick)
     return () => window.removeEventListener('click', handleClick)
   }, [])
+
+  // Keyboard shortcuts (Delete, Undo, Redo)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not trigger if typing in an input, textarea, or editing a canvas text
+      if (
+        editingText || 
+        document.activeElement?.tagName === 'INPUT' || 
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) return
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedIds.length > 0) {
+          selectedIds.forEach((id: string) => deleteElement(id))
+          clearSelection()
+        }
+      }
+
+      // Undo (Ctrl+Z)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        // @ts-ignore
+        useEditorStore.temporal.getState().undo()
+      }
+      
+      // Redo (Ctrl+Y or Ctrl+Shift+Z)
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        // @ts-ignore
+        useEditorStore.temporal.getState().redo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedIds, editingText, deleteElement, clearSelection])
 
   // Font loading mechanism for Canvas
   useEffect(() => {
@@ -300,7 +335,6 @@ export default function CanvasStage() {
         onContextMenu={handleContextMenu}
       >
         <Layer x={stageX} y={stageY} scaleX={scale} scaleY={scale}>
-          {/* Document Background */}
           <Rect
             x={0}
             y={0}
@@ -313,7 +347,8 @@ export default function CanvasStage() {
             shadowOffset={{ x: 0, y: 10 }}
           />
 
-          {design.elements.map((el) => {
+          <Group clipX={0} clipY={0} clipWidth={design.width} clipHeight={design.height}>
+            {design.elements.map((el: any) => {
             if (el.type === 'text') {
               return (
                 <Text
@@ -334,7 +369,7 @@ export default function CanvasStage() {
                   fill={el.fill}
                   align={el.align}
                   opacity={editingText?.id === el.id ? 0 : (el.opacity || 1)}
-                  draggable
+                  draggable={!el.locked}
                   onClick={(e) => {
                     e.cancelBubble = true
                     selectElement(el.id)
@@ -407,7 +442,8 @@ export default function CanvasStage() {
                   rotation={el.rotation || 0}
                   fill={el.fill}
                   opacity={el.opacity || 1}
-                  draggable
+                  cornerRadius={el.cornerRadius || 0}
+                  draggable={!el.locked}
                   onClick={(e) => {
                     e.cancelBubble = true
                     selectElement(el.id)
@@ -431,7 +467,7 @@ export default function CanvasStage() {
                   radius={el.width / 2}
                   fill={el.fill}
                   opacity={el.opacity || 1}
-                  draggable
+                  draggable={!el.locked}
                   onClick={(e) => {
                     e.cancelBubble = true
                     selectElement(el.id)
@@ -464,8 +500,17 @@ export default function CanvasStage() {
                 onDragEnd={(e: any) => handleDragEnd(e, el.id)}
               />
             }
+            if (el.type === 'icon') {
+              return <CanvasIcon 
+                key={el.id} 
+                element={el} 
+                onDragMove={(e: any) => handleDragMove(e, el)}
+                onDragEnd={(e: any) => handleDragEnd(e, el.id)}
+              />
+            }
             return null
           })}
+          </Group>
           <SelectionTransformer />
           {/* Render Snapping Guides (Directly mutated via refs) */}
           <Line
@@ -539,6 +584,14 @@ export default function CanvasStage() {
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onContextMenu={(e) => e.preventDefault()}
         >
+          <button onClick={() => {
+            const el = design.elements.find((e: any) => e.id === contextMenu.elementId);
+            if (el) updateElement(el.id, { locked: !el.locked });
+            setContextMenu({ ...contextMenu, visible: false });
+          }} className="w-full text-left px-4 py-2 hover:bg-black/5 text-midnight">
+            {design.elements.find((e: any) => e.id === contextMenu.elementId)?.locked ? 'Kilidi Aç' : 'Ögeyi Sabitle'}
+          </button>
+          <div className="h-px bg-border my-1 w-full" />
           <button onClick={() => arrangeElement(contextMenu.elementId!, 'front')} className="w-full text-left px-4 py-2 hover:bg-black/5 text-midnight">En Öne Getir</button>
           <button onClick={() => arrangeElement(contextMenu.elementId!, 'up')} className="w-full text-left px-4 py-2 hover:bg-black/5 text-midnight">Bir Üste Taşı</button>
           <button onClick={() => arrangeElement(contextMenu.elementId!, 'down')} className="w-full text-left px-4 py-2 hover:bg-black/5 text-midnight">Bir Alta Taşı</button>
@@ -591,7 +644,68 @@ function CanvasImage({ element, onDragMove, onDragEnd }: { element: any, onDragM
       height={height}
       rotation={element.rotation || 0}
       opacity={element.opacity || 1}
-      draggable
+      draggable={!element.locked}
+      onClick={(e: any) => {
+        e.cancelBubble = true
+        selectElement(element.id)
+      }}
+      onTap={(e: any) => {
+        e.cancelBubble = true
+        selectElement(element.id)
+      }}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
+      onTransformEnd={(e: any) => {
+        const node = e.target
+        const scaleX = node.scaleX()
+        const scaleY = node.scaleY()
+        node.scaleX(1)
+        node.scaleY(1)
+        updateElement(element.id, {
+          x: node.x(),
+          y: node.y(),
+          width: Math.max(5, node.width() * scaleX),
+          height: Math.max(5, node.height() * scaleY),
+          rotation: node.rotation()
+        })
+      }}
+    />
+  )
+}
+
+function CanvasIcon({ element, onDragMove, onDragEnd }: { element: any, onDragMove: any, onDragEnd: any }) {
+  const { selectElement, updateElement } = useEditorStore()
+  const [image, setImage] = useState<any>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const img = new window.Image()
+    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100" height="100" fill="none" stroke="${element.fill || '#3b2f27'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${element.svgContent}</svg>`
+    img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(fullSvg)))}`
+    img.crossOrigin = 'Anonymous'
+    img.onload = () => setImage(img)
+  }, [element.svgContent, element.fill])
+
+  const { Image: KonvaImage } = require('react-konva')
+  
+  const width = element.width || 50
+  const height = element.height || 50
+  
+  if (!image) return null;
+
+  return (
+    <KonvaImage
+      id={element.id}
+      image={image}
+      x={element.x}
+      y={element.y}
+      offsetX={element.centered ? width / 2 : 0}
+      offsetY={element.centered ? height / 2 : 0}
+      width={width}
+      height={height}
+      rotation={element.rotation || 0}
+      opacity={element.opacity || 1}
+      draggable={!element.locked}
       onClick={(e: any) => {
         e.cancelBubble = true
         selectElement(element.id)

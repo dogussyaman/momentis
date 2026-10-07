@@ -26,6 +26,8 @@ import { Slider } from '@/components/ui/slider'
 import { compressImageFile } from '@/lib/compress-image'
 import { DatePickerField } from '@/components/ui/date-picker-field'
 import { CardMessageTemplates } from './card-message-templates'
+import { CanvasEditor } from '@/components/editor/CanvasEditor'
+import { useEditorStore } from '@/store/editor-store'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
@@ -59,6 +61,7 @@ function pick(project) {
     gift_account_name: project.gift_account_name || '',
     gift_url: project.gift_url || '',
     slug: project.slug || '',
+    canvas_design: project.canvas_design || null,
   }
 }
 
@@ -75,8 +78,18 @@ export function ProjectEditor() {
   const [openSection, setOpenSection] = useState('details')
   const iframeRef = useRef(null)
 
+  const { design: canvasDesign, setDesign } = useEditorStore()
+
   useEffect(() => {
-    fetch(`/api/projects/${id}`, { credentials: 'include', cache: 'no-store' }).then((r) => r.json()).then((d) => { if (d.project) { setProject(d.project); setForm(pick(d.project)) } }).catch(() => {})
+    fetch(`/api/projects/${id}`, { credentials: 'include', cache: 'no-store' }).then((r) => r.json()).then((d) => { 
+      if (d.project) { 
+        setProject(d.project); 
+        setForm(pick(d.project));
+        if (d.project.canvas_design) {
+          setDesign(d.project.canvas_design);
+        }
+      } 
+    }).catch(() => {})
   }, [id])
 
   // Davetiye-svg temalarını Next.js'in beklediği palet yapısına uyarlama
@@ -127,10 +140,17 @@ export function ProjectEditor() {
   const removeMenu = (m) => setForm((f) => ({ ...f, menu_options: f.menu_options.filter((x) => x !== m) }))
 
   const save = async () => {
-    if (!form.host_a || !form.date) { toast.error('Gelin adı ve tarih zorunludur'); return }
+    const isManual = designTarget === 'card'
+    if (!isManual && (!form.host_a || !form.date)) { toast.error('Gelin adı ve tarih zorunludur'); return }
     setSaving(true)
     try {
-      const body = { ...form, palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null }
+      const body = { 
+        ...form, 
+        host_a: form.host_a || 'İsimsiz', 
+        date: form.date || new Date().toISOString(),
+        palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
+        canvas_design: isManual ? canvasDesign : form.canvas_design
+      }
       const res = await fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Kaydedilemedi')
@@ -141,6 +161,29 @@ export function ProjectEditor() {
   }
 
   if (!form) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-96 rounded-2xl" /></div>
+
+  if (designTarget === 'card') {
+    return (
+      <div className="-mt-2 flex h-[calc(100dvh-5rem)] flex-col gap-3 pb-3 lg:-mt-4 lg:h-[calc(100dvh-6rem)] w-full" data-testid="project-editor-canvas">
+        <div className="flex items-center justify-between shrink-0">
+          <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-3">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
+          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
+               <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
+            </Button>
+            <Button onClick={save} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
+              <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Güncelleniyor…' : 'Güncelle'}
+            </Button>
+          </div>
+        </div>
+        <div className="flex-1 w-full relative overflow-hidden rounded-2xl border border-border shadow-sm bg-white">
+          <CanvasEditor />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="-mt-2 flex min-h-[calc(100dvh-5rem)] flex-col gap-3 pb-3 lg:-mt-4 lg:h-[calc(100dvh-6rem)] lg:min-h-0 lg:flex-row lg:gap-6" data-testid="project-editor">
