@@ -136,3 +136,58 @@ body {
     @apply bg-background text-foreground;
     }
 }
+
+/* ------------------------------------------------------------------ */
+/*  MOMENTIS Site Builder — theme-driven rendering                     */
+/* ------------------------------------------------------------------ */
+.sb-root {
+  font-family: var(--sb-body-font);
+  color: var(--sb-text);
+  background: var(--sb-bg);
+  container-type: inline-size;
+}
+.sb-root * { border-color: var(--sb-line); }
+.sb-heading { font-family: var(--sb-heading-font); letter-spacing: var(--sb-heading-tracking); line-height: 1.1; }
+.sb-script { font-family: var(--sb-script-font); line-height: 1.15; letter-spacing: 0; }
+.sb-body { font-family: var(--sb-body-font); }
+.sb-eyebrow { font-family: var(--sb-body-font); letter-spacing: 0.32em; text-transform: uppercase; font-size: 11px; font-weight: 500; }
+.sb-accent { color: var(--sb-accent); }
+.sb-bg-accent { background-color: var(--sb-accent); }
+.sb-surface { background-color: var(--sb-surface); }
+.sb-muted { opacity: 0.72; }
+.sb-radius { border-radius: var(--sb-radius); }
+.sb-card {
+  background-color: color-mix(in srgb, var(--sb-surface) 92%, transparent);
+  border: 1px solid var(--sb-line);
+  border-radius: var(--sb-radius);
+}
+.sb-input {
+  width: 100%;
+  background: color-mix(in srgb, var(--sb-surface) 85%, transparent);
+  border: 1px solid var(--sb-line);
+  border-radius: calc(var(--sb-radius) * 0.6);
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  color: inherit;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.sb-input:focus { border-color: var(--sb-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sb-accent) 20%, transparent); }
+.sb-input::placeholder { color: currentColor; opacity: .45; }
+.sb-no-scrollbar::-webkit-scrollbar { display: none; }
+.sb-no-scrollbar { scrollbar-width: none; }
+
+@keyframes sb-kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.12); }
+}
+.sb-kenburns { animation: sb-kenburns 18s ease-in-out infinite alternate; }
+
+@keyframes sb-bounce-soft {
+  0%, 100% { transform: translateY(0); opacity: .6; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+.sb-scroll-hint { animation: sb-bounce-soft 2s ease-in-out infinite; }
+
+@keyframes sb-spin { to { transform: rotate(360deg); } }
+.sb-spin-slow { animation: sb-spin 8s linear infinite; }
