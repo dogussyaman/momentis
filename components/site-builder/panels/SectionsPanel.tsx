@@ -1,47 +1,14 @@
+'use client'
 import { useSiteEditorStore } from '@/store/site-editor-store'
-import { Button } from '@/components/ui/button'
-import { Plus, LayoutTemplate, Heart, Image as ImageIcon, MapPin, CalendarHeart, Clock, Send, Music, MessageSquare } from 'lucide-react'
+import { SECTION_DEFINITIONS, SECTION_CATEGORIES } from '@/lib/site-builder/definitions'
 import { cn } from '@/lib/utils'
 
-const SECTION_TYPES = [
-  { id: 'hero', name: 'Hero (Kapak)', icon: LayoutTemplate, desc: 'Ana karşılama ekranı' },
-  { id: 'couple', name: 'Çift', icon: Heart, desc: 'Gelin ve damat bilgileri' },
-  { id: 'story', name: 'Hikayemiz', icon: Clock, desc: 'Zaman tüneli' },
-  { id: 'gallery', name: 'Galeri', icon: ImageIcon, desc: 'Fotoğraf albümü' },
-  { id: 'event', name: 'Etkinlik', icon: MapPin, desc: 'Tarih ve mekan bilgisi' },
-  { id: 'countdown', name: 'Geri Sayım', icon: CalendarHeart, desc: 'Düğüne kalan zaman' },
-  { id: 'rsvp', name: 'LCV (Katılım)', icon: Send, desc: 'Katılım formu' },
-  { id: 'music', name: 'Müzik', icon: Music, desc: 'Arka plan müziği' },
-  { id: 'faq', name: 'S.S.S.', icon: MessageSquare, desc: 'Sıkça sorulan sorular' }
-]
-
-export function SectionsPanel() {
-  const { addSection, site } = useSiteEditorStore()
-
-  return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="p-4 border-b border-border bg-ivory-50/50">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-midnight">Bölüm Ekle</h3>
-        <p className="text-[10px] text-muted-foreground mt-1">Sitenize eklemek istediğiniz bölümü seçin.</p>
-      </div>
-      
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="grid grid-cols-2 gap-2">
-          {SECTION_TYPES.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => addSection(section.id)}
-              className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-ivory-50 hover:border-midnight/40 hover:bg-ivory transition-colors text-midnight text-center group"
-            >
-              <section.icon className="w-6 h-6 text-midnight/60 group-hover:text-midnight transition-colors" />
-              <div>
-                <div className="text-[11px] font-semibold">{section.name}</div>
-                <div className="text-[9px] text-muted-foreground mt-0.5 leading-tight hidden xl:block">{section.desc}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+export function SectionsPanel(){
+ const {addSection}=useSiteEditorStore()
+ return <div className="flex h-full flex-col bg-white">
+  <div className="border-b bg-ivory-50/50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider">Bölüm Ekle</h3><p className="mt-1 text-[10px] text-muted-foreground">Hazır bölümlerden seçin. Ekledikten sonra sırasını ve ayarlarını düzenleyebilirsiniz.</p></div>
+  <div className="flex-1 overflow-y-auto p-3">
+   {SECTION_CATEGORIES.map(cat=>{const defs=SECTION_DEFINITIONS.filter(x=>x.category===cat);if(!defs.length)return null;return <div key={cat} className="mb-5"><h4 className="mb-2 px-1 text-[9px] font-semibold uppercase tracking-[.18em] text-muted-foreground">{cat}</h4><div className="grid grid-cols-2 gap-2">{defs.map(d=>{const Icon=d.icon;return <button key={d.type} onClick={()=>addSection(d.type)} className={cn('flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-xl border border-border bg-ivory-50 p-3 text-center transition hover:border-midnight/40 hover:bg-ivory')}><Icon className="h-5 w-5 text-midnight/60"/><span className="text-[10px] font-semibold">{d.name}</span><span className="line-clamp-2 text-[8px] leading-tight text-muted-foreground">{d.description}</span></button>})}</div></div>})}
+  </div>
+ </div>
 }
