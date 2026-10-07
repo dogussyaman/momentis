@@ -5,6 +5,7 @@ import { Stage, Layer, Rect, Text, Circle, Line } from 'react-konva'
 import { useEditorStore } from '@/store/editor-store'
 import { SelectionTransformer } from './SelectionTransformer'
 import { fontStack } from '@/lib/editor-fonts'
+import { SEMBOLLER, GRADYANLAR } from '@/lib/davetiye-svg'
 
 export default function CanvasStage() {
   const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom } = useEditorStore()
@@ -18,69 +19,6 @@ export default function CanvasStage() {
   
   const verticalGuideRef = useRef<any>(null)
   const horizontalGuideRef = useRef<any>(null)
-
-  const addSidebarElementAtPosition = React.useCallback((data: any, clientX: number, clientY: number) => {
-    if (!containerRef.current || !scale) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const x = Math.max(0, Math.min(design.width, (clientX - rect.left - stageX) / scale))
-    const y = Math.max(0, Math.min(design.height, (clientY - rect.top - stageY) / scale))
-
-    if (data.kind === 'asset') {
-      const asset = data.asset
-      const assetScale = Math.min(1, 700 / Math.max(asset.width, asset.height))
-      const width = Math.round(asset.width * assetScale)
-      const height = Math.round(asset.height * assetScale)
-      useEditorStore.setState(state => ({
-        design: { ...state.design, elements: [...state.design.elements, {
-          id: 'asset_' + Math.random().toString(36).slice(2, 10),
-          type: 'image',
-          src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(asset.svg),
-          x: Math.max(width / 2, Math.min(state.design.width - width / 2, x)),
-          y: Math.max(height / 2, Math.min(state.design.height - height / 2, y)),
-          width, height, rotation: 0, opacity: 1, visible: true, locked: false,
-          centered: true, assetId: asset.id, assetCategory: asset.category
-        }] }
-      }))
-      return
-    }
-
-    if (data.kind === 'ornament') {
-      const sembol = SEMBOLLER[data.key as keyof typeof SEMBOLLER]
-      if (!sembol) return
-      const width = sembol.varsayilanGenislik * 1.5
-      const height = (sembol.h / sembol.w) * width
-      const defs = GRADYANLAR
-        .replace(/var\(--p1\)/g, '#d9a441')
-        .replace(/var\(--p2\)/g, '#b8742a')
-        .replace(/var\(--l1\)/g, '#5f9564')
-        .replace(/var\(--l2\)/g, '#3f7a4f')
-      const fullSvg = '<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>' + defs + '</defs>' + sembol.svg + '</svg>'
-      const src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(fullSvg)))
-      useEditorStore.setState(state => ({
-        design: { ...state.design, elements: [...state.design.elements, {
-          id: 'svg_' + Math.random().toString(36).slice(2, 10),
-          type: 'image', src,
-          x: Math.max(width / 2, Math.min(state.design.width - width / 2, x)),
-          y: Math.max(height / 2, Math.min(state.design.height - height / 2, y)),
-          width, height, rotation: 0, opacity: 1, visible: true, locked: false, centered: true
-        }] }
-      }))
-      return
-    }
-
-    if (data.kind === 'shape') {
-      const width = 150, height = 150
-      useEditorStore.setState(state => ({
-        design: { ...state.design, elements: [...state.design.elements, {
-          id: 'shape_' + Math.random().toString(36).slice(2, 10),
-          type: data.shapeType,
-          x: Math.max(0, Math.min(state.design.width - width, x - width / 2)),
-          y: Math.max(0, Math.min(state.design.height - height, y - height / 2)),
-          width, height, fill: '#e9e4d9', rotation: 0, opacity: 1, visible: true, locked: false
-        } as any] }
-      }))
-    }
-  }, [design.width, design.height, stageX, stageY, scale])
 
   useEffect(() => {
     const handleClick = () => setContextMenu(prev => ({ ...prev, visible: false }))
@@ -286,6 +224,69 @@ export default function CanvasStage() {
 
   const stageX = stageSize.width / 2 - (design.width * scale) / 2
   const stageY = stageSize.height / 2 - (design.height * scale) / 2
+
+  const addSidebarElementAtPosition = React.useCallback((data: any, clientX: number, clientY: number) => {
+    if (!containerRef.current || !scale) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = Math.max(0, Math.min(design.width, (clientX - rect.left - stageX) / scale))
+    const y = Math.max(0, Math.min(design.height, (clientY - rect.top - stageY) / scale))
+
+    if (data.kind === 'asset') {
+      const asset = data.asset
+      const assetScale = Math.min(1, 700 / Math.max(asset.width, asset.height))
+      const width = Math.round(asset.width * assetScale)
+      const height = Math.round(asset.height * assetScale)
+      useEditorStore.setState(state => ({
+        design: { ...state.design, elements: [...state.design.elements, {
+          id: 'asset_' + Math.random().toString(36).slice(2, 10),
+          type: 'image',
+          src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(asset.svg),
+          x: Math.max(width / 2, Math.min(state.design.width - width / 2, x)),
+          y: Math.max(height / 2, Math.min(state.design.height - height / 2, y)),
+          width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+          centered: true, assetId: asset.id, assetCategory: asset.category
+        }] }
+      }))
+      return
+    }
+
+    if (data.kind === 'ornament') {
+      const sembol = SEMBOLLER[data.key as keyof typeof SEMBOLLER]
+      if (!sembol) return
+      const width = sembol.varsayilanGenislik * 1.5
+      const height = (sembol.h / sembol.w) * width
+      const defs = GRADYANLAR
+        .replace(/var\(--p1\)/g, '#d9a441')
+        .replace(/var\(--p2\)/g, '#b8742a')
+        .replace(/var\(--l1\)/g, '#5f9564')
+        .replace(/var\(--l2\)/g, '#3f7a4f')
+      const fullSvg = '<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>' + defs + '</defs>' + sembol.svg + '</svg>'
+      const src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(fullSvg)))
+      useEditorStore.setState(state => ({
+        design: { ...state.design, elements: [...state.design.elements, {
+          id: 'svg_' + Math.random().toString(36).slice(2, 10),
+          type: 'image', src,
+          x: Math.max(width / 2, Math.min(state.design.width - width / 2, x)),
+          y: Math.max(height / 2, Math.min(state.design.height - height / 2, y)),
+          width, height, rotation: 0, opacity: 1, visible: true, locked: false, centered: true
+        }] }
+      }))
+      return
+    }
+
+    if (data.kind === 'shape') {
+      const width = 150, height = 150
+      useEditorStore.setState(state => ({
+        design: { ...state.design, elements: [...state.design.elements, {
+          id: 'shape_' + Math.random().toString(36).slice(2, 10),
+          type: data.shapeType,
+          x: Math.max(0, Math.min(state.design.width - width, x - width / 2)),
+          y: Math.max(0, Math.min(state.design.height - height, y - height / 2)),
+          width, height, fill: '#e9e4d9', rotation: 0, opacity: 1, visible: true, locked: false
+        } as any] }
+      }))
+    }
+  }, [design.width, design.height, stageX, stageY, scale])
 
   return (
     <div ref={containerRef} className="h-full w-full bg-[#f5f5f5] flex items-center justify-center overflow-hidden relative">
