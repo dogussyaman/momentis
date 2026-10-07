@@ -112,7 +112,7 @@ export function NewProjectWizard() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Etkinlik oluşturulamadı')
       toast.success('Etkinliğiniz oluşturuldu ve yayında!')
-      router.replace(`/panel/etkinlik/${data.project.id}/duzenle`)
+      router.replace(`/panel/etkinlik/${data.project.id}/site-duzenle`)
     } catch (e) { toast.error(e.message) } finally { setSaving(false) }
   }
 
