@@ -13,7 +13,7 @@ export function Features() {
           tone="light"
           eyebrow="Bir davetiyeden fazlası"
           title={<>Etkinliğinizin tüm akışı, <span className="italic text-champagne-light">tek bir bağlantıda.</span></>}
-          description="Davetiye, RSVP, konuk listesi, anı albümü ve analitik. Hepsi birbiriyle konuşan, zarif bir sistem."
+          description="Davetiye, RSVP yanıtları, konuk listesi ve anı albümü. Hepsi birbiriyle konuşan, zarif bir sistem."
         />
         <div className="mt-20 grid gap-px bg-ivory/10 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => {

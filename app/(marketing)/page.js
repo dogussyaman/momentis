@@ -4,7 +4,6 @@ import { HowItWorks } from '@/components/marketing/how-it-works'
 import { TemplateShowcase } from '@/components/marketing/template-showcase'
 import { Features } from '@/components/marketing/features'
 import { EditorialSplit } from '@/components/marketing/editorial-split'
-import { Testimonials } from '@/components/marketing/testimonials'
 import { PricingSection } from '@/components/marketing/pricing-section'
 import { CTA } from '@/components/marketing/cta'
 import { IMAGES } from '@/lib/data/site'
@@ -31,13 +30,12 @@ export default function HomePage() {
         tone="dark"
         eyebrow="QR Anı Albümü"
         title={<>Gecenin her karesi, <span className="italic text-champagne-light">tek bir albümde.</span></>}
-        description="Masalardaki QR kodu okutan konuklarınız, uygulama indirmeden fotoğraflarını ortak albüme yükler. Sabah uyandığınızda yüzlerce an sizi bekler."
-        bullets={['Uygulama gerektirmez', 'Anında yükleme ve moderasyon', 'Yüksek çözünürlük indirme', 'Konuklarla paylaşılabilir galeri']}
+        description="Masalardaki QR kodu okutan konuklarınız, uygulama indirmeden fotoğraflarını ortak albüme yükler. Birlikte paylaştığınız kareler aynı yerde toplanır."
+        bullets={['Uygulama gerektirmez', 'Albüm sahibi fotoğrafları yönetebilir', 'Fotoğrafları ZIP olarak indirme', 'Konuklarla paylaşılabilir galeri']}
         image={IMAGES.dance}
         imageAlt="Gün batımında dans eden çift"
         cta={{ label: 'Nasıl çalışır', href: '/nasil-calisir' }}
       />
-      <Testimonials />
       <PricingSection />
       <CTA />
     </>

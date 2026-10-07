@@ -1,6 +1,7 @@
 import type { SiteSection, SiteSettings, SiteTheme, WeddingSite, SectionStyle, SectionAnimation } from './schema'
 import { btn, createSectionFromDefinition, uid } from './definitions'
 import { STOCK } from './media'
+import { MODERN_TEMPLATES } from './modern-templates'
 
 type SectionSpec = [type: string, overrides?: { props?: Record<string, any>; style?: SectionStyle; animation?: SectionAnimation }]
 
@@ -42,8 +43,8 @@ const baseSettings: SiteSettings = {
   venueAddress: 'Çırağan Cd. No:40, Beşiktaş, İstanbul',
   contactPhone: '+905555555555',
   showNavbar: true,
-  seoTitle: 'Ayşe & Mehmet · 12 Haziran 2027',
-  seoDescription: 'Düğünümüze davetlisiniz.',
+  seoTitle: '',
+  seoDescription: '',
 }
 
 export const TEMPLATES: SiteTemplate[] = [
@@ -55,6 +56,7 @@ export const TEMPLATES: SiteTemplate[] = [
     preview: STOCK.hero1,
     swatches: ['#f8f4ec', '#c9a96e', '#101827'],
     theme: { ...baseTheme },
+    settings: { navStyle: 'centered' },
     sections: [
       ['hero', { props: { buttons: [btn('Katılım Bildir', 'rsvp', 'solid'), btn('Takvime Ekle', 'calendar', 'outline')] }, style: { corners: 'classic', cornerColor: '#e9d8b4' } }],
       ['text', { props: { title: 'Bir ömür, aynı hikâye', eyebrow: 'Birlikteliğimize davetlisiniz', text: '“Ve sizi çiftler halinde yarattık.”\nNebe, 8', variant: 'quote', author: 'Nebe, 8' }, style: { paddingY: 72 } }],
@@ -67,7 +69,7 @@ export const TEMPLATES: SiteTemplate[] = [
       ['rsvp', { props: { layout: 'card', askPhone: true, askGuests: true, askMenu: true, askNote: true } }],
       ['faq', { props: { layout: 'accordion' } }],
       ['share'],
-      ['footer', { props: { monogram: 'A & M', title: 'Bu güzel günde görüşmek üzere', text: 'Sevgiyle, Ayşe & Mehmet', date: '12.06.2027', buttons: [btn('Başa Dön', 'scroll', 'ghost')] } }],
+      ['footer', { props: { layout: 'split', monogram: 'A & M', title: 'Bu güzel günde görüşmek üzere', text: 'Sevgiyle, Ayşe & Mehmet', date: '12.06.2027', buttons: [btn('Başa Dön', 'scroll', 'ghost')] } }],
     ],
   },
 
@@ -94,6 +96,7 @@ export const TEMPLATES: SiteTemplate[] = [
       buttonRadius: 0,
       letterSpacing: 'wide',
     },
+    settings: { navStyle: 'bar' },
     sections: [
       [
         'hero',
@@ -111,7 +114,7 @@ export const TEMPLATES: SiteTemplate[] = [
       ['album'],
       ['rsvp', { props: { layout: 'plain', askGuests: true, askPhone: true, askNote: true } }],
       ['share'],
-      ['footer', { props: { monogram: 'A · M', title: 'Kutlamada görüşmek üzere', text: 'Birlikte daha güzel.', date: '12.06.2027' }, style: { bgType: 'color', bgColor: '#111111', textColor: '#ffffff' } }],
+      ['footer', { props: { layout: 'columns', monogram: 'A · M', title: 'Kutlamada görüşmek üzere', text: 'Birlikte daha güzel.', date: '12.06.2027' }, style: { bgType: 'color', bgColor: '#111111', textColor: '#ffffff' } }],
     ],
   },
 
@@ -136,6 +139,7 @@ export const TEMPLATES: SiteTemplate[] = [
       scriptFont: 'Parisienne',
       borderRadius: 20,
     },
+    settings: { navStyle: 'floating' },
     sections: [
       [
         'hero',
@@ -155,7 +159,7 @@ export const TEMPLATES: SiteTemplate[] = [
       ['album'],
       ['rsvp', { props: { layout: 'split', image: STOCK.bouquet }, style: { marginX: 24, radius: 28, bgType: 'color', bgColor: '#fbfaf6', shadow: 'lg' } }],
       ['share'],
-      ['footer', { props: { monogram: 'A & M', title: 'Birlikte güzelleşen anılar', text: 'Bodrum’da, gün batımında…', date: '12.06.2027' }, style: { bgColor: '#3d4a35' } }],
+      ['footer', { props: { layout: 'columns', monogram: 'A & M', title: 'Birlikte güzelleşen anılar', text: 'Bodrum’da, gün batımında…', date: '12.06.2027' }, style: { bgColor: '#3d4a35' } }],
     ],
   },
 
@@ -180,7 +184,7 @@ export const TEMPLATES: SiteTemplate[] = [
       scriptFont: 'Allura',
       borderRadius: 16,
     },
-    settings: { venueName: 'Bodrum Kempinski', venueAddress: 'Barbaros Mah. Kızılağaç Cad. No:42, Bodrum' },
+    settings: { navStyle: 'transparent', venueName: 'Bodrum Kempinski', venueAddress: 'Barbaros Mah. Kızılağaç Cad. No:42, Bodrum' },
     sections: [
       [
         'hero',
@@ -199,7 +203,7 @@ export const TEMPLATES: SiteTemplate[] = [
       ['gift'],
       ['music', { props: { variant: 'vinyl' } }],
       ['share'],
-      ['footer', { props: { monogram: 'A & M', title: 'Gün batımında görüşmek üzere', text: 'Sevgiyle, Ayşe & Mehmet', date: '12.06.2027' }, style: { bgColor: '#3b2a22' } }],
+      ['footer', { props: { layout: 'columns', monogram: 'A & M', title: 'Gün batımında görüşmek üzere', text: 'Sevgiyle, Ayşe & Mehmet', date: '12.06.2027' }, style: { bgColor: '#3b2a22' } }],
     ],
   },
 
@@ -226,6 +230,7 @@ export const TEMPLATES: SiteTemplate[] = [
       buttonRadius: 4,
       letterSpacing: 'wide',
     },
+    settings: { navStyle: 'floating' },
     sections: [
       [
         'hero',
@@ -245,9 +250,10 @@ export const TEMPLATES: SiteTemplate[] = [
       ['rsvp', { props: { askGuests: true, askPhone: true, askMenu: false }, style: { marginX: 24, radius: 8, borderWidth: 1, borderColor: '#d4b48355', bgType: 'color', bgColor: '#141b31' } }],
       ['faq'],
       ['share', { style: { bgType: 'color', bgColor: '#141b31' } }],
-      ['footer', { props: { monogram: 'A & M', title: 'An unforgettable evening', text: 'We look forward to celebrating with you.', date: '12.06.2027' }, style: { bgType: 'color', bgColor: '#060912', textColor: '#d4b483' } }],
+      ['footer', { props: { layout: 'split', monogram: 'A & M', title: 'An unforgettable evening', text: 'We look forward to celebrating with you.', date: '12.06.2027' }, style: { bgType: 'color', bgColor: '#060912', textColor: '#d4b483' } }],
     ],
   },
+  ...MODERN_TEMPLATES,
 ]
 
 export const TEMPLATE_MAP = Object.fromEntries(TEMPLATES.map((t) => [t.id, t]))

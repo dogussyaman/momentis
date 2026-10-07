@@ -675,11 +675,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         title: 'Dilekleriniz',
         subtitle: 'Bize güzel bir not bırakın.',
         allowNew: true,
-        entries: [
-          { id: uid('g'), name: 'Elif', message: 'Bir ömür boyu mutluluklar! Sizi çok seviyoruz ❤️' },
-          { id: uid('g'), name: 'Can & Deniz', message: 'En güzel hikaye sizinki. Nice mutlu yıllara!' },
-          { id: uid('g'), name: 'Selin Teyze', message: 'Allah bir yastıkta kocatsın yavrularım.' },
-        ],
+        entries: [],
       },
       style: { ...baseStyle },
       animation: baseAnim,
@@ -838,6 +834,8 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       animation: { type: 'fade', duration: 1 },
     },
     fields: [
+      { key: 'layout', label: 'Yerleşim', type: 'select', group: 'Yerleşim', options: [{ value: 'centered', label: 'Ortalı' }, { value: 'split', label: 'İki sütun + linkler' }, { value: 'columns', label: '3 sütunlu' }, { value: 'minimal', label: 'Minimal şerit' }] },
+      { key: 'showLinks', label: 'Hızlı linkleri göster', type: 'toggle', group: 'Yerleşim', showIf: (p) => !p.layout || p.layout === 'centered' },
       { key: 'monogram', label: 'Monogram', type: 'text', group: 'İçerik' },
       { key: 'title', label: 'Başlık', type: 'text', group: 'İçerik' },
       { key: 'text', label: 'Metin', type: 'textarea', group: 'İçerik' },

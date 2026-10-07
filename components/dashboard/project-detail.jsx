@@ -18,6 +18,7 @@ import { formatEventDate } from '@/lib/projects'
 import { GuestsTab } from './guests-tab'
 import { SendTab } from './send-tab'
 import { AlbumTab } from './album-tab'
+import { GuestbookTab } from './guestbook-tab'
 
 const tabCls = 'rounded-2xl border-b-2 border-transparent px-0 pb-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground data-[state=active]:border-midnight data-[state=active]:bg-transparent data-[state=active]:text-midnight data-[state=active]:shadow-none'
 
@@ -136,12 +137,14 @@ export function ProjectDetail() {
           <TabsTrigger value="rsvps" className={tabCls} data-testid="tab-rsvps">RSVP Yanıtları</TabsTrigger>
           <TabsTrigger value="send" className={tabCls} data-testid="tab-send">Toplu Gönderim</TabsTrigger>
           <TabsTrigger value="album" className={tabCls} data-testid="tab-album">Anı Albümü</TabsTrigger>
+          <TabsTrigger value="guestbook" className={tabCls} data-testid="tab-guestbook">Anı Defteri</TabsTrigger>
           <TabsTrigger value="settings" className={tabCls} data-testid="tab-settings">Ayarlar</TabsTrigger>
         </TabsList>
         <TabsContent value="guests" className="mt-8"><GuestsTab projectId={id} onChanged={load} /></TabsContent>
         <TabsContent value="rsvps" className="mt-8"><RsvpsTab projectId={id} /></TabsContent>
         <TabsContent value="send" className="mt-8"><SendTab projectId={id} project={project} onSent={load} /></TabsContent>
         <TabsContent value="album" className="mt-8"><AlbumTab projectId={id} project={project} onChanged={load} /></TabsContent>
+        <TabsContent value="guestbook" className="mt-8"><GuestbookTab projectId={id} /></TabsContent>
         <TabsContent value="settings" className="mt-8">
           <div className="border border-destructive/30 bg-ivory-50 p-8">
             <p className="text-[11px] uppercase tracking-[0.3em] text-destructive">Tehlikeli Bölge</p>
@@ -173,11 +176,29 @@ function Stat({ icon: Icon, label, value, sub, testid }) {
 
 function RsvpsTab({ projectId }) {
   const [items, setItems] = useState(null)
+  const [error, setError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
   useEffect(() => {
-    fetch(`/api/projects/${projectId}/rsvps`, { credentials: 'include', cache: 'no-store' }).then((r) => r.json()).then((d) => setItems(d.items || [])).catch(() => setItems([]))
-  }, [projectId])
+    let active = true
+    setItems(null)
+    setError('')
+    fetch(`/api/projects/${projectId}/rsvps`, { credentials: 'include', cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || 'RSVP yanıtları yüklenemedi')
+        if (active) setItems(Array.isArray(data.items) ? data.items : [])
+      })
+      .catch((loadError) => {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : 'RSVP yanıtları yüklenemedi')
+          setItems([])
+        }
+      })
+    return () => { active = false }
+  }, [projectId, refreshKey])
 
   if (items === null) return <Skeleton className="h-48 rounded-2xl" />
+  if (error) return <div className="border border-destructive/30 bg-ivory-50 px-8 py-10 text-center"><p className="text-sm text-destructive">{error}</p><Button variant="outline" className="mt-4 rounded-xl" onClick={() => setRefreshKey((key) => key + 1)}>Yeniden dene</Button></div>
   if (!items.length) return <div className="border border-dashed border-border bg-ivory-50 px-8 py-16 text-center" data-testid="rsvps-empty"><p className="font-serif text-2xl text-midnight">Henüz yanıt yok.</p><p className="mt-2 text-sm text-muted-foreground">Davetiyenizi paylaştığınızda yanıtlar burada görünecek.</p></div>
 
   return (

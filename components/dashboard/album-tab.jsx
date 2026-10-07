@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 export function AlbumTab({ projectId, project, onChanged }) {
   const [items, setItems] = useState(null)
+  const [loadError, setLoadError] = useState('')
   const [qr, setQr] = useState(null)
   const [enabled, setEnabled] = useState(project.album_enabled !== false)
   const [toggling, setToggling] = useState(false)
@@ -19,12 +20,18 @@ export function AlbumTab({ projectId, project, onChanged }) {
   const albumUrl = `${project.url}#album`
 
   const load = useCallback(async () => {
+    setItems(null)
+    setLoadError('')
     try {
       const res = await fetch(`/api/projects/${projectId}/album`, { credentials: 'include', cache: 'no-store' })
       const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Albüm yüklenemedi')
       setItems(Array.isArray(data.items) ? data.items : [])
       if (typeof data.enabled === 'boolean') setEnabled(data.enabled)
-    } catch { setItems([]) }
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Albüm yüklenemedi')
+      setItems([])
+    }
   }, [projectId])
 
   useEffect(() => { load() }, [load])
@@ -126,6 +133,11 @@ export function AlbumTab({ projectId, project, onChanged }) {
         </div>
         {items === null ? (
           <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-square rounded-2xl" />)}</div>
+        ) : loadError ? (
+          <div className="mt-5 rounded-3xl border border-destructive/30 bg-ivory-50 px-8 py-12 text-center">
+            <p className="text-sm text-destructive">{loadError}</p>
+            <Button type="button" variant="outline" className="mt-4 rounded-xl" onClick={load}>Yeniden dene</Button>
+          </div>
         ) : items.length === 0 ? (
           <div className="mt-5 rounded-3xl border border-dashed border-border bg-ivory-50 px-8 py-16 text-center">
             <p className="font-serif text-2xl text-midnight">Henüz fotoğraf yok</p>

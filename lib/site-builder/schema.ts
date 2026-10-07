@@ -129,6 +129,7 @@ export interface SiteSettings {
   venueAddress?: string
   contactPhone?: string
   showNavbar?: boolean
+  navStyle?: 'bar' | 'floating' | 'centered' | 'transparent'
   rsvpDeadline?: string
 }
 

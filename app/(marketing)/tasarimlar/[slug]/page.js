@@ -27,6 +27,7 @@ export default async function TemplateDetailPage({ params }) {
 
   const category = getEventType(template.category)
   const style = getStyle(template.style)
+  const isWebsite = template.tags?.includes('web sitesi')
   const related = TEMPLATES.filter((t) => t.slug !== template.slug && (t.category === template.category || t.style === template.style)).slice(0, 3)
 
   return (
@@ -38,21 +39,34 @@ export default async function TemplateDetailPage({ params }) {
 
         <div className="mt-10 grid gap-16 lg:grid-cols-12">
           <Reveal className="lg:col-span-7">
-            <div className="relative">
-              <div className="absolute inset-0 overflow-hidden">
-                <img src={template.cover} alt="" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-midnight/40" />
+            <div className="relative overflow-hidden rounded-3xl">
+              <div className="absolute inset-0">
+                <img src={template.cover} alt="" className="h-full w-full object-cover blur-sm" />
+                <div className="absolute inset-0 bg-midnight/30" />
               </div>
               <div className="relative flex items-center justify-center px-8 py-16 md:py-24">
-                <div className="w-full max-w-[360px] [container-type:inline-size]">
-                  <InvitationPreview template={template} greeting={category?.greeting} />
-                </div>
+                {isWebsite ? (
+                  <div className="w-full max-w-[500px] overflow-hidden rounded-xl border-4 border-white/20 bg-ivory shadow-[0_40px_80px_-20px_rgba(16,24,39,0.4)]">
+                    <div className="flex items-center gap-1.5 border-b border-midnight/5 bg-midnight/5 px-4 py-3">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                      <div className="ml-4 h-4 flex-1 rounded-full bg-midnight/5" />
+                    </div>
+                    <img src={template.cover} alt="Website Preview" className="h-[450px] w-full object-cover object-top" />
+                  </div>
+                ) : (
+                  <div className="w-full max-w-[360px] [container-type:inline-size]">
+                    <InvitationPreview template={template} greeting={category?.greeting} />
+                  </div>
+                )}
               </div>
             </div>
           </Reveal>
 
           <Reveal delay={0.15} className="lg:col-span-5">
             <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{isWebsite ? 'Web Sitesi' : 'Davetiye'}</Badge>
               <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{category?.label}</Badge>
               <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{style?.label}</Badge>
               {template.tier === 'premium' ? (
@@ -90,7 +104,12 @@ export default async function TemplateDetailPage({ params }) {
               <Button asChild size="lg" className="group h-14 flex-1 rounded-2xl bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700">
                 <Link href={`/kayit?tasarim=${template.slug}`} data-testid="start-with-template">Bu Tasarımla Başla <ArrowRight className="ml-3 h-4 w-4 transition-transform duration-500 group-hover:translate-x-1" /></Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-14 rounded-2xl border-midnight/30 text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-midnight/5">
+              {isWebsite && (
+                <Button asChild size="lg" variant="outline" className="h-14 flex-1 rounded-2xl border-midnight/30 bg-white text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-midnight/5">
+                  <a href={`/preview?template=${template.slug}`} target="_blank" rel="noopener noreferrer">Demo İncele</a>
+                </Button>
+              )}
+              <Button asChild size="lg" variant="ghost" className="h-14 rounded-2xl text-[12px] uppercase tracking-[0.2em] text-muted-foreground hover:bg-midnight/5 hover:text-midnight">
                 <Link href="/fiyatlandirma">Paketleri Gör</Link>
               </Button>
             </div>

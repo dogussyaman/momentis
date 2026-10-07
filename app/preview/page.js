@@ -9,19 +9,69 @@ import { DavetiyeKart } from '@/components/shared/davetiye-kart'
 import { SABLONLAR } from '@/lib/davetiye-svg'
 import { getEventType } from '@/lib/data/events'
 
+import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
+
 export default function LivePreviewPage() {
   const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const cardRef = useRef(null)
 
   useEffect(() => {
+    // 1) Eğer direkt tarayıcıdan /preview?template=sb-classic gibi gelindiyse
+    const params = new URLSearchParams(window.location.search)
+    const templateSlug = params.get('template')
+
+    if (templateSlug) {
+      // API'den tasarımı çek ve dummy bir proje oluştur
+      fetch(`/api/templates/${templateSlug}`)
+        .then(r => {
+          if (!r.ok) throw new Error('Tasarım bulunamadı')
+          return r.json()
+        })
+        .then(t => {
+          // Eğer site builder (isWebsite) ise buildSiteFromTemplate ile tam tasarımı yükle
+          const isWebsite = t.tags?.includes('web sitesi')
+          if (isWebsite) {
+            const builderId = t.slug.replace(/^sb-/, '') // 'sb-classic' -> 'classic'
+            const siteData = buildSiteFromTemplate(builderId, { title: 'Elif & Kaan' })
+            
+            setData({
+              mode: 'site',
+              project: {
+                title: 'Elif & Kaan',
+                host_a: 'Elif',
+                host_b: 'Kaan',
+                date: '2027-06-12',
+                site_data: siteData
+              },
+              template: t
+            })
+          } else {
+            setData({
+              mode: 'preview',
+              project: { title: 'Demo Çifti', host_a: 'Elif', host_b: 'Kaan' },
+              template: t
+            })
+          }
+          setLoading(false)
+        })
+        .catch(e => {
+          setError(e.message)
+          setLoading(false)
+        })
+      return
+    }
+
+    // 2) Eğer iframe içindeyse parent'tan bekle
     const handler = (e) => {
       if (e.data && e.data.type === 'UPDATE_PREVIEW') {
         setData(e.data.payload)
+        setLoading(false)
       }
     }
     window.addEventListener('message', handler)
     
-    // Parent frame'e hazır olduğumuzu bildirelim ki hemen veriyi göndersin
     if (window.parent) {
       window.parent.postMessage({ type: 'PREVIEW_READY' }, '*')
     }
@@ -29,7 +79,11 @@ export default function LivePreviewPage() {
     return () => window.removeEventListener('message', handler)
   }, [])
 
-  if (!data) {
+  if (error) {
+    return <div className="flex min-h-screen items-center justify-center bg-ivory text-sm text-destructive">{error}</div>
+  }
+
+  if (loading || !data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ivory text-xs tracking-widest text-muted-foreground uppercase">
         Yükleniyor...

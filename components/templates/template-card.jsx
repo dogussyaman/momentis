@@ -12,7 +12,12 @@ export function TemplateCard({ template, className }) {
       <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-muted">
         <img src={template.cover} alt={template.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-midnight/70 via-midnight/10 to-transparent opacity-80 transition-opacity duration-700 group-hover:opacity-95" />
-        <div className="absolute left-4 top-4 flex gap-2">
+        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+          {template.tags?.includes('web sitesi') ? (
+            <Badge className="rounded-full border-0 bg-midnight px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-champagne hover:bg-midnight">Web Sitesi</Badge>
+          ) : (
+            <Badge className="rounded-full border border-ivory/60 bg-transparent px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-ivory hover:bg-transparent">Davetiye</Badge>
+          )}
           {template.tier === 'premium' ? (
             <Badge className="rounded-full border-0 bg-champagne px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne">Premium</Badge>
           ) : (
@@ -34,8 +39,8 @@ export function TemplateCard({ template, className }) {
         </div>
       </div>
       <div className="mt-3 flex items-center gap-1.5">
-        {Object.values(template.palette || {}).slice(0, 4).map((c) => (
-          <span key={c} className="h-2.5 w-2.5 rounded-full border border-midnight/10" style={{ backgroundColor: c }} />
+        {Object.values(template.palette || {}).slice(0, 4).map((c, i) => (
+          <span key={`${c}-${i}`} className="h-2.5 w-2.5 rounded-full border border-midnight/10" style={{ backgroundColor: c }} />
         ))}
         <span className="ml-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{template.layout}</span>
       </div>

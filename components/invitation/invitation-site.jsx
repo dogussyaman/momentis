@@ -369,6 +369,7 @@ function RsvpForm({ project, p, isDark }) {
   const submit = async (e) => {
     e.preventDefault()
     if (form.attending === null) { toast.error('Lütfen katılım durumunuzu seçin'); return }
+    if (!form.email.trim() && !form.phone.trim()) { toast.error('Lütfen e-posta veya telefon numarası girin'); return }
     setLoading(true)
     try {
       const res = await fetch('/api/public/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, slug: project.slug }) })

@@ -17,8 +17,25 @@ export async function generateMetadata({ params }) {
   const { slug } = await params
   const data = await loadInvitation(slug)
   if (!data) return { title: 'Davetiye bulunamadı | MOMENTIS' }
-  const names = [data.project.host_a, data.project.host_b].filter(Boolean).join(' & ')
-  return { title: `${names} | Davetiye`, description: data.project.title, openGraph: { title: `${names} | Davetiye`, images: data.template?.cover ? [data.template.cover] : [] } }
+  const names = [data.project.host_a, data.project.host_b].filter(Boolean).join(' & ') || 'Davetiyemiz'
+  const siteSettings = data.project.site_data?.settings || {}
+  const configuredTitle = String(siteSettings.seoTitle || '').trim()
+  const configuredDescription = String(siteSettings.seoDescription || '').trim()
+  const title = (configuredTitle && configuredTitle !== 'Ayşe & Mehmet · 12 Haziran 2027' ? configuredTitle : `${names} | Davetiye`).slice(0, 120)
+  const fallbackDescription = String(data.project.title || '').trim() || `${names} etkinliğine davetlisiniz.`
+  const description = (configuredDescription && configuredDescription !== 'Düğünümüze davetlisiniz.' ? configuredDescription : fallbackDescription).slice(0, 320)
+  const heroSection = Array.isArray(data.project.site_data?.sections)
+    ? data.project.site_data.sections.find((section) => section.type === 'hero' && section.visible !== false)
+    : null
+  const image = [data.project.hero_image, heroSection?.props?.sideImage, heroSection?.props?.image, heroSection?.style?.bgImage, data.template?.cover]
+    .find((candidate) => typeof candidate === 'string' && candidate && !candidate.startsWith('data:'))
+  const images = image ? [image] : []
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: 'website', images },
+    twitter: { card: images.length ? 'summary_large_image' : 'summary', title, description, images },
+  }
 }
 
 export default async function InvitationPage({ params }) {

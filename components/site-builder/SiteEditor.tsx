@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2 } from 'lucide-react'
+import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { v4 as uuidv4 } from 'uuid'
 import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
@@ -13,6 +13,7 @@ import { InspectorPanel } from './panels/InspectorPanel'
 import { TemplatesPanel } from './panels/TemplatesPanel'
 import { LayersPanel } from './panels/LayersPanel'
 import { SiteCanvas } from './SiteCanvas'
+import { SiteViewer } from './SiteViewer'
 
 interface SiteEditorProps {
   onSwitchToCard: () => void;
@@ -23,6 +24,7 @@ interface SiteEditorProps {
 export function SiteEditor({ onSwitchToCard, isUpdate, onSave }: SiteEditorProps) {
   const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
+  const [previewTextScale, setPreviewTextScale] = useState(100);
 
   const handleSave = async () => {
     if (onSave && site) {
@@ -116,10 +118,39 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave }: SiteEditorProps
             <Monitor className="h-4 w-4" />
           </Button>
         </div>
+        {isPreview && (
+          <div className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-white px-1.5 py-1" role="group" aria-label="Metin okunabilirliği önizlemesi">
+            <Type className="ml-1 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            <Button type="button" variant="ghost" size="sm" onClick={() => setPreviewTextScale((scale) => Math.max(100, scale - 10))} disabled={previewTextScale <= 100} aria-label="Önizleme metnini küçült" className="h-7 w-7 rounded-full p-0 text-xs">A−</Button>
+            <span className="min-w-10 text-center text-[10px] tabular-nums text-muted-foreground" aria-live="polite">{previewTextScale}%</span>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setPreviewTextScale((scale) => Math.min(150, scale + 10))} disabled={previewTextScale >= 150} aria-label="Önizleme metnini büyüt" className="h-7 w-7 rounded-full p-0 text-xs">A+</Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {isPreview ? <div className="flex-1 overflow-y-auto bg-ivory-50 p-8"><div className="mx-auto w-full max-w-[1200px] overflow-hidden rounded-xl bg-white shadow-sm"><SiteCanvas /></div></div> : <>
+        {isPreview ? (
+          <div className="flex-1 overflow-auto bg-ivory-50 p-4 sm:p-8" data-testid="site-responsive-preview">
+            <div className="flex min-h-full min-w-max justify-center">
+              <div
+                className={cn(
+                  'h-fit min-h-[600px] overflow-hidden rounded-xl border border-border bg-white shadow-[0_16px_50px_-20px_rgba(16,24,39,0.28)] transition-all duration-300',
+                  device === 'mobile' ? 'w-[390px]' :
+                  device === 'tablet' ? 'w-[768px]' :
+                  'w-full max-w-[1200px]',
+                )}
+                data-testid={`site-preview-${device}`}
+              >
+                <SiteViewer
+                  site={site}
+                  mode="preview"
+                  viewportHeight={device === 'mobile' ? 844 : device === 'tablet' ? 1024 : undefined}
+                  textScale={previewTextScale}
+                />
+              </div>
+            </div>
+          </div>
+        ) : <>
         {/* Left Sidebar */}
         <div className="w-[300px] border-r border-border bg-white flex shrink-0 overflow-hidden">
           {/* Nav Strip */}
@@ -159,7 +190,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave }: SiteEditorProps
             device === 'mobile' ? 'w-[390px] min-h-[844px]' :
             device === 'tablet' ? 'w-[768px] min-h-[1024px]' :
             'w-full max-w-[1200px] min-h-[600px]'
-          )}>
+          )} style={{ '--sb-screen': device === 'mobile' ? '844px' : device === 'tablet' ? '1024px' : '100vh' } as CSSProperties}>
             <SiteCanvas />
           </div>
           </div>
