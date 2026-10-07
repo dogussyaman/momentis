@@ -6,9 +6,11 @@ import { useEditorStore } from '@/store/editor-store'
 import { SelectionTransformer } from './SelectionTransformer'
 import { fontStack } from '@/lib/editor-fonts'
 import { SEMBOLLER, GRADYANLAR } from '@/lib/davetiye-svg'
+import { applyPaletteToDesign } from '@/lib/themes/color-palettes'
 
 export default function CanvasStage() {
-  const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor } = useEditorStore()
+  const { design, palettePreview, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor } = useEditorStore()
+  const displayDesign = palettePreview ? applyPaletteToDesign(design, palettePreview) : design
   const stageRef = useRef<any>(null)
   const [stageSize, setStageSize] = useState({ width: 1000, height: 800 })
   const containerRef = useRef<HTMLDivElement>(null)
@@ -493,7 +495,7 @@ export default function CanvasStage() {
             y={0}
             width={design.width}
             height={design.height}
-            fill={design.background}
+            fill={displayDesign.background}
             name="background"
             shadowColor="rgba(0,0,0,0.15)"
             shadowBlur={20}
@@ -501,7 +503,7 @@ export default function CanvasStage() {
           />
 
           <Group clipX={0} clipY={0} clipWidth={design.width} clipHeight={design.height}>
-            {design.elements.map((el: any) => {
+            {displayDesign.elements.map((el: any) => {
             if (el.type === 'text') {
               return (
                 <Text

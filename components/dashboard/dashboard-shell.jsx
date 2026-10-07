@@ -53,9 +53,8 @@ function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed }) {
         <div className={cn("relative flex flex-col items-center border-b border-ivory/10 pb-6 pt-7 transition-all duration-300", isCollapsed ? "px-2" : "px-6 items-start")}>
           <div className={cn("transition-all duration-300 w-full flex", isCollapsed ? "mt-2 justify-center" : "")}>
             {isCollapsed ? (
-              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center font-serif text-[18px] tracking-widest text-champagne leading-[1.1] font-medium">
-                <span>M</span>
-                <span>M</span>
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
+                <Logo tone="light" showText={false} />
               </motion.div>
             ) : (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>

@@ -25,10 +25,21 @@ export interface CanvasDocument {
   height: number
   background: string
   elements: CanvasElement[]
+  palette?: { id: string; name: string; colors: Record<string, string> }
+}
+
+type PalettePreview = {
+  id: string
+  name: string
+  description: string
+  category: 'Luxury' | 'Romantic' | 'Natural' | 'Modern' | 'Soft'
+  colors: { primary: string; secondary: string; accent: string; background: string; foreground: string }
+  custom?: boolean
 }
 
 interface EditorState {
   design: CanvasDocument
+  palettePreview: PalettePreview | null
   selectedIds: string[]
   zoom: number // ratio, 1 = 100%
   activeTool: EditorTool
@@ -45,6 +56,7 @@ interface EditorState {
   arrangeElement: (id: string, action: 'up' | 'down' | 'front' | 'back') => void
   setZoom: (zoom: number) => void
   setDesign: (design: CanvasDocument) => void
+  setPalettePreview: (palette: PalettePreview | null) => void
 }
 
 const initialDesign: CanvasDocument = {
@@ -92,6 +104,7 @@ export const useEditorStore = create<EditorState>()(
     persist(
       (set) => ({
       design: initialDesign,
+      palettePreview: null,
       selectedIds: [],
       zoom: 1,
       activeTool: 'select',
@@ -149,6 +162,7 @@ export const useEditorStore = create<EditorState>()(
 
       setZoom: (zoom) => set({ zoom }),
       setDesign: (design) => set({ design }),
+      setPalettePreview: (palettePreview) => set({ palettePreview }),
     }),
     {
       name: 'momentis-editor-storage',

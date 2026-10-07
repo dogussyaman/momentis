@@ -140,7 +140,7 @@ export function NewProjectWizard() {
         <div className="flex-1 w-full relative overflow-hidden bg-ivory">
           <CanvasEditor 
             topbarLeft={
-              <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-2">
+              <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="shrink-0 whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
               </Button>
             }

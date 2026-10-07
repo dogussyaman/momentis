@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { renderToString } from 'react-dom/server'
-import { LayoutTemplate, Type, Image as ImageIcon, Sparkles, Shapes, ImagePlus, Copy, Layers, Clock, MapPin, Home, Users, icons } from 'lucide-react'
+import { LayoutTemplate, Type, Image as ImageIcon, Sparkles, Shapes, ImagePlus, Copy, Layers, Clock, MapPin, Home, Users, Search, PlusCircle, X, Palette, icons } from 'lucide-react'
 import { useEditorStore } from '@/store/editor-store'
 import { v4 as uuidv4 } from 'uuid'
 import { SABLONLAR, SEMBOLLER, TEMALAR, KAGITLAR, GRADYANLAR, KATEGORILER } from '@/lib/davetiye-svg'
 import { DavetiyeKart } from '@/components/shared/davetiye-kart'
 import { EDITOR_ASSETS, EDITOR_ASSET_CATEGORIES, EditorAsset } from '@/lib/editor-assets'
+import { ThemePalettePanel } from './ThemePalettePanel'
 
 const EDITOR_DRAG_EVENT = 'momentis-editor-sidebar-drop'
 
@@ -86,18 +87,27 @@ const tabs = [
   { id: 'uploads', icon: ImagePlus, label: 'Yüklemeler' },
   { id: 'photos', icon: ImageIcon, label: 'Fotoğraflar' },
   { id: 'shapes', icon: Shapes, label: 'Şekiller' },
+  { id: 'theme', icon: Palette, label: 'Renkler' },
   { id: 'background', icon: Copy, label: 'Arka Plan' },
   { id: 'layers', icon: Layers, label: 'Katmanlar' }
 ]
 
 const svgFiles = [
+  "Adsız tasarım (1).svg",
+  "Adsız tasarım (2).svg",
+  "Adsız tasarım (3).svg",
+  "Adsız tasarım (4).svg",
+  "Adsız tasarım (5).svg",
+  "Adsız tasarım2.svg",
   "Beyaz ve Altın Minimalist Düğün Dikey Davetiye (1).png",
   "Beyaz ve Altın Minimalist Düğün Dikey Davetiye (2).png",
   "Beyaz ve Altın Minimalist Düğün Dikey Davetiye.png",
+  "beautiful-archway-decorated-with-floral-composition-outdoors.jpg",
   "Gri Beyaz Minimalist Suluboya Düğün Davetiyesi .png",
   "Mavi Geleneksel Düğün Davetiye (1).png",
   "Mavi Geleneksel Düğün Davetiye.png",
-  "Siyah Beyaz Minimalist Düğün Davetiye.png"
+  "wedding-couple-hold-hands.jpg",
+  "Yeşil ve Antrasit Sade Monogram Yapraklı Düğün Davetiyesi.svg",
 ]
 
 const invitationIconGroups = [
@@ -184,9 +194,17 @@ const weddingPhotos = [
 export function LeftSidebar() {
   const [activeTab, setActiveTab] = useState('elements')
   const [iconSearch, setIconSearch] = useState('')
+  const [uploadSearch, setUploadSearch] = useState('')
   const [iconCategory, setIconCategory] = useState('Tümü')
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const { design, updateElement } = useEditorStore()
+  const filteredSvgFiles = svgFiles.filter((filename) =>
+    filename.replace(/\.(svg|png|jpe?g)$/i, '').toLocaleLowerCase('tr').includes(uploadSearch.trim().toLocaleLowerCase('tr'))
+  )
+  const assetLabel = (filename: string) => filename
+    .replace(/\.(svg|png|jpe?g)$/i, '')
+    .replace(/\s*\((\d+)\)/, ' · $1')
+    .replace(/^Adsız tasarım/i, 'Düğün grafiği')
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -234,7 +252,7 @@ export function LeftSidebar() {
           {
             id: `img_${uuidv4().split('-')[0]}`,
             type: 'image',
-            src: `/svg/${filename}`,
+            src: `/svg/${encodeURIComponent(filename)}`,
             x: 200,
             y: 200,
             width: 300,
@@ -549,9 +567,9 @@ export function LeftSidebar() {
         ))}
       </div>
       <div className="flex-1 overflow-y-auto bg-white p-4">
-        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-border bg-white/95 px-4 py-3 backdrop-blur">
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-6 border-b border-border bg-white/95 px-4 py-4 backdrop-blur">
           <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-champagne-dark">Momentis · Kart</p>
-          <h2 className="mt-1 font-serif text-lg text-midnight">{tabs.find(t => t.id === activeTab)?.label}</h2>
+          <h2 className="mt-1 font-serif text-xl text-midnight">{tabs.find(t => t.id === activeTab)?.label}</h2>
         </div>
         
         {activeTab === 'elements' && (
@@ -943,44 +961,113 @@ export function LeftSidebar() {
         )}
 
         {activeTab === 'uploads' && (
-           <div className="flex flex-col gap-4">
-             <label className="w-full bg-midnight text-ivory rounded-xl p-3 text-xs uppercase tracking-wider font-medium hover:bg-midnight/90 transition-colors flex items-center justify-center gap-2 cursor-pointer">
-               <ImagePlus className="w-4 h-4" /> Görsel Yükle
-               <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-             </label>
-             <p className="text-[10px] text-muted-foreground text-center px-2">
-               Yüklediğiniz görseller burada listelenecek ve tıklayarak davetiyenize ekleyebileceksiniz. (Sadece bu tarayıcıda geçicidir)
-             </p>
+          <div className="space-y-5">
+            <label className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-midnight/20 bg-gradient-to-br from-[#FBF8F1] to-white p-4 transition-all hover:border-champagne hover:shadow-sm">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-midnight text-champagne shadow-sm transition-transform group-hover:scale-105">
+                <ImagePlus className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-semibold text-midnight">Kendi görselini yükle</span>
+                <span className="mt-1 block text-[9px] text-muted-foreground">PNG, JPG veya SVG · Bu oturumda kullanılabilir</span>
+              </span>
+              <PlusCircle className="h-4 w-4 shrink-0 text-midnight/40 transition-colors group-hover:text-champagne-dark" />
+              <input type="file" accept="image/*,.svg" className="hidden" onChange={handleFileUpload} />
+            </label>
 
-             {uploadedImages.length > 0 && (
-               <div className="grid grid-cols-2 gap-2 mt-2">
-                 {uploadedImages.map((src, i) => (
-                   <button
-                     key={i}
-                     onClick={() => addExternalImageToCanvas(src)}
-                     className="aspect-[3/4] border border-border bg-ivory-50 rounded-xl overflow-hidden hover:border-midnight/40 transition-all flex items-center justify-center group"
-                   >
-                     <img src={src} alt="Uploaded" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                   </button>
-                 ))}
-               </div>
-             )}
+            {uploadedImages.length > 0 && (
+              <section className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-midnight">Yüklediklerim</h3>
+                  <span className="rounded-full bg-ivory-50 px-2 py-0.5 text-[9px] tabular-nums text-muted-foreground">{uploadedImages.length}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {uploadedImages.map((src, i) => (
+                    <button
+                      key={`${i}-${src.slice(0, 24)}`}
+                      type="button"
+                      onClick={() => addExternalImageToCanvas(src)}
+                      aria-label={`Yüklenen görsel ${i + 1} tuvale ekle`}
+                      className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-[#F8F6F1] p-1.5 text-left transition-all hover:-translate-y-0.5 hover:border-champagne hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+                    >
+                      <img src={src} alt="" className="h-full w-full rounded-lg object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <span className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-midnight opacity-0 shadow-md transition-all group-hover:opacity-100">
+                        <PlusCircle className="h-4 w-4" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
 
-             <div className="grid grid-cols-2 gap-2 mt-4">
-               <h3 className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Hazır Grafikler</h3>
-               {svgFiles.map(filename => (
-                 <button
-                   key={filename}
-                   onClick={() => addImageToCanvas(filename)}
-                   className="aspect-[3/4] border border-border bg-ivory-50 rounded-xl overflow-hidden hover:border-midnight/40 transition-all flex items-center justify-center group"
-                   title={filename}
-                 >
-                   <img src={`/svg/${filename}`} alt={filename} className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
-                 </button>
-               ))}
-             </div>
-           </div>
+            <section className="space-y-3">
+              <div className="flex items-end justify-between gap-2">
+                <div>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-midnight">Hazır grafikler</h3>
+                  <p className="mt-1 text-[9px] text-muted-foreground">Seçtiğin görsele dokunarak tasarıma ekle.</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[#F5F1E8] px-2 py-1 text-[9px] font-medium tabular-nums text-midnight/70">
+                  {filteredSvgFiles.length} / {svgFiles.length}
+                </span>
+              </div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-midnight/35" />
+                <input
+                  type="search"
+                  value={uploadSearch}
+                  onChange={(event) => setUploadSearch(event.target.value)}
+                  placeholder="Grafiklerde ara..."
+                  aria-label="Hazır grafiklerde ara"
+                  className="h-9 w-full rounded-xl border border-border bg-white pl-9 pr-8 text-[10px] text-midnight outline-none transition focus:border-champagne focus:ring-2 focus:ring-champagne/15"
+                />
+                {uploadSearch && (
+                  <button type="button" onClick={() => setUploadSearch('')} aria-label="Aramayı temizle" className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-midnight/40 hover:bg-ivory-50 hover:text-midnight">
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
+              {filteredSvgFiles.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2.5">
+                  {filteredSvgFiles.map((filename) => {
+                    const label = assetLabel(filename)
+                    const isPhoto = /\.(jpe?g)$/i.test(filename)
+                    return (
+                      <button
+                        key={filename}
+                        type="button"
+                        onClick={() => addImageToCanvas(filename)}
+                        aria-label={`${label} görselini tuvale ekle`}
+                        title={`${label} · Tuvale eklemek için tıkla`}
+                        className="group relative min-w-0 overflow-hidden rounded-xl border border-[#EAE5DC] bg-white p-1.5 text-left shadow-[0_2px_8px_rgba(16,24,39,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-champagne hover:shadow-[0_8px_18px_rgba(16,24,39,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+                      >
+                        <span className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-[linear-gradient(145deg,#F8F6F1,#F0ECE3)] p-2">
+                          <img
+                            src={`/svg/${encodeURIComponent(filename)}`}
+                            alt=""
+                            loading="lazy"
+                            className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${isPhoto ? 'rounded-md object-cover' : 'object-contain'}`}
+                          />
+                          <span className="absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-midnight opacity-0 shadow-md transition-all duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+                            <PlusCircle className="h-4 w-4" />
+                          </span>
+                        </span>
+                        <span className="block truncate px-1 pb-0.5 pt-2 text-[9px] font-medium text-midnight/75">{label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border bg-[#FBFAF7] px-3 py-7 text-center">
+                  <Search className="mx-auto h-5 w-5 text-midnight/25" />
+                  <p className="mt-2 text-[10px] font-medium text-midnight/65">Grafik bulunamadı</p>
+                  <button type="button" onClick={() => setUploadSearch('')} className="mt-1 text-[9px] text-champagne-dark underline underline-offset-2">Aramayı temizle</button>
+                </div>
+              )}
+            </section>
+          </div>
         )}
+
+        {activeTab === 'theme' && <ThemePalettePanel />}
 
         {activeTab === 'photos' && (
            <div className="flex flex-col gap-4">

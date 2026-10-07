@@ -22,7 +22,7 @@ export function EditorToolbar({ topbarLeft, topbarRight }: { topbarLeft?: React.
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
         {topbarLeft && (
           <>
-            {topbarLeft}
+            <div className="shrink-0 pl-8">{topbarLeft}</div>
             <div className="w-px h-5 bg-border mx-2" />
           </>
         )}
