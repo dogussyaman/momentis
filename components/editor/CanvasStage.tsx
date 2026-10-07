@@ -65,17 +65,6 @@ export default function CanvasStage() {
   }, [design.elements])
 
   useEffect(() => {
-    const handleSidebarDrop = (event: Event) => {
-      const detail = (event as CustomEvent).detail || {}
-      const { clientX, clientY, ...data } = detail
-      if (typeof clientX !== 'number' || typeof clientY !== 'number') return
-      addSidebarElementAtPosition(data, clientX, clientY)
-    }
-    window.addEventListener('momentis-editor-sidebar-drop', handleSidebarDrop)
-    return () => window.removeEventListener('momentis-editor-sidebar-drop', handleSidebarDrop)
-  }, [addSidebarElementAtPosition])
-
-  useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
         setStageSize({
@@ -287,6 +276,17 @@ export default function CanvasStage() {
       }))
     }
   }, [design.width, design.height, stageX, stageY, scale])
+
+  useEffect(() => {
+    const handleSidebarDrop = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {}
+      const { clientX, clientY, ...data } = detail
+      if (typeof clientX !== 'number' || typeof clientY !== 'number') return
+      addSidebarElementAtPosition(data, clientX, clientY)
+    }
+    window.addEventListener('momentis-editor-sidebar-drop', handleSidebarDrop)
+    return () => window.removeEventListener('momentis-editor-sidebar-drop', handleSidebarDrop)
+  }, [addSidebarElementAtPosition])
 
   return (
     <div ref={containerRef} className="h-full w-full bg-[#f5f5f5] flex items-center justify-center overflow-hidden relative">
