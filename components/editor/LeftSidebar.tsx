@@ -4,6 +4,7 @@ import { useEditorStore } from '@/store/editor-store'
 import { v4 as uuidv4 } from 'uuid'
 import { SABLONLAR, SEMBOLLER, TEMALAR, KAGITLAR, GRADYANLAR, KATEGORILER } from '@/lib/davetiye-svg'
 import { DavetiyeKart } from '@/components/shared/davetiye-kart'
+import { EDITOR_ASSETS, EDITOR_ASSET_CATEGORIES, EditorAsset } from '@/lib/editor-assets'
 
 const tabs = [
   { id: 'templates', icon: LayoutTemplate, label: 'Şablonlar' },
@@ -138,6 +139,38 @@ export function LeftSidebar() {
       design: {
         ...state.design,
         elements: [...state.design.elements, ...textElements, ...svgElements] as any
+      }
+    }))
+  }
+
+  const addEditorAssetToCanvas = (asset: EditorAsset) => {
+    const scale = Math.min(1, 700 / Math.max(asset.width, asset.height))
+    const width = Math.round(asset.width * scale)
+    const height = Math.round(asset.height * scale)
+    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(asset.svg)}`
+
+    useEditorStore.setState((state) => ({
+      design: {
+        ...state.design,
+        elements: [
+          ...state.design.elements,
+          {
+            id: `asset_${uuidv4().split('-')[0]}`,
+            type: 'image',
+            src: dataUrl,
+            x: state.design.width / 2,
+            y: state.design.height / 2,
+            width,
+            height,
+            rotation: 0,
+            opacity: 1,
+            visible: true,
+            locked: false,
+            centered: true,
+            assetId: asset.id,
+            assetCategory: asset.category
+          }
+        ]
       }
     }))
   }
@@ -311,6 +344,29 @@ export function LeftSidebar() {
                </div>
              ))}
           </div>
+            <div className="pt-4 border-t">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Yeni Dekorasyon Kütüphanesi</h3>
+              <p className="text-[10px] text-muted-foreground mb-3">MOMENTIS için hazır SVG süslemeler. Mevcut kütüphanen korunur.</p>
+              <div className="space-y-3">
+                {EDITOR_ASSET_CATEGORIES.filter(category => category !== 'Shape').map(category => {
+                  const assets = EDITOR_ASSETS.filter(asset => asset.category === category)
+                  if (!assets.length) return null
+                  return (
+                    <div key={category}>
+                      <h4 className="text-[10px] font-semibold uppercase tracking-wider text-midnight/70 mb-2">{category}</h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        {assets.map(asset => (
+                          <button key={asset.id} onClick={() => addEditorAssetToCanvas(asset)} className="aspect-square border border-border bg-ivory-50 rounded-xl p-2 hover:border-midnight/40 hover:bg-ivory transition-colors" title={asset.name}>
+                            <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(asset.svg)}`} alt={asset.name} className="w-full h-full object-contain" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'text' && (
@@ -394,13 +450,26 @@ export function LeftSidebar() {
         )}
 
         {activeTab === 'shapes' && (
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => addShapeToCanvas('rect')} className="aspect-square bg-ivory-50 border border-border rounded-xl flex items-center justify-center hover:bg-ivory hover:border-midnight/40 transition-colors">
-              <div className="w-12 h-12 bg-midnight/20 rounded-sm"></div>
-            </button>
-            <button onClick={() => addShapeToCanvas('circle')} className="aspect-square bg-ivory-50 border border-border rounded-xl flex items-center justify-center hover:bg-ivory hover:border-midnight/40 transition-colors">
-              <div className="w-12 h-12 bg-midnight/20 rounded-full"></div>
-            </button>
+          <div className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Temel Şekiller</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <button onClick={() => addShapeToCanvas('rect')} className="aspect-square bg-ivory-50 border border-border rounded-xl flex items-center justify-center hover:bg-ivory hover:border-midnight/40 transition-colors" title="Dikdörtgen">
+                  <div className="w-12 h-10 bg-midnight/20 rounded-sm" />
+                </button>
+                <button onClick={() => addShapeToCanvas('circle')} className="aspect-square bg-ivory-50 border border-border rounded-xl flex items-center justify-center hover:bg-ivory hover:border-midnight/40 transition-colors" title="Daire">
+                  <div className="w-11 h-11 bg-midnight/20 rounded-full" />
+                </button>
+                {EDITOR_ASSETS.filter(a => a.category === 'Shape').map(asset => (
+                  <button key={asset.id} onClick={() => addEditorAssetToCanvas(asset)} className="aspect-square bg-ivory-50 border border-border rounded-xl p-2 flex items-center justify-center hover:bg-ivory hover:border-midnight/40 transition-colors" title={asset.name}>
+                    <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(asset.svg)}`} alt={asset.name} className="w-full h-full object-contain" />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-[10px] leading-relaxed text-muted-foreground border-t pt-3">
+              Şekiller canvas'a bağımsız katman olarak eklenir; taşıyabilir, büyütüp küçültebilir, döndürebilir ve katman sırasını değiştirebilirsin.
+            </p>
           </div>
         )}
 
