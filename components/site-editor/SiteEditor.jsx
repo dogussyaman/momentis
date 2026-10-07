@@ -21,6 +21,7 @@ export function SiteEditor({ project, templates }) {
   const [selectedId, setSelectedId] = useState(config.sections[0]?.id || null)
   const [device, setDevice] = useState('desktop')
   const [saving, setSaving] = useState(false)
+  const [dragId, setDragId] = useState(null)
   const selected = config.sections.find((s) => s.id === selectedId)
 
   const updateSelected = (patch) => setConfig((c) => ({ ...c, sections: c.sections.map((s) => s.id === selectedId ? { ...s, ...patch } : s) }))
@@ -37,6 +38,8 @@ export function SiteEditor({ project, templates }) {
     setConfig((c) => ({ ...c, sections: [...c.sections, section] }))
     setSelectedId(section.id)
   }
+  const reorder = (targetId) => { if (!dragId || dragId === targetId) return; setConfig((c) => { const from=c.sections.findIndex(s=>s.id===dragId), to=c.sections.findIndex(s=>s.id===targetId); if(from<0||to<0)return c; const sections=[...c.sections]; const [item]=sections.splice(from,1); sections.splice(to,0,item); return {...c,sections} }); setDragId(null) }
+  const changeTemplate = (slug) => { const next=templates.find(t=>t.slug===slug); setConfig(c=>({...c,templateId:slug,theme:{...c.theme,palette:next?.palette||c.theme.palette}})) }
   const remove = () => {
     if (!selected) return
     setConfig((c) => ({ ...c, sections: c.sections.filter((s) => s.id !== selectedId) }))
@@ -61,10 +64,10 @@ export function SiteEditor({ project, templates }) {
         <div><p className="text-[9px] uppercase tracking-[0.25em] text-champagne-dark">MOMENTIS · Site Editor</p><h1 className="mt-1 font-serif text-xl">{project.host_a} & {project.host_b || '...'}</h1></div>
         <Button size="icon" variant="ghost" onClick={() => history.back()}><X className="h-4 w-4"/></Button>
       </div>
-      <div className="border-b p-3"><Button className="h-10 w-full rounded-xl bg-midnight text-ivory" onClick={() => document.getElementById('site-add-section')?.scrollIntoView({block:'center'})}><Plus className="mr-2 h-4 w-4"/> Bölüm ekle</Button></div>
+      <div className="border-b p-3"><Button className="h-10 w-full rounded-xl bg-midnight text-ivory" onClick={() => document.getElementById('site-add-section')?.scrollIntoView({block:'center'})}><Plus className="mr-2 h-4 w-4"/> Bölüm ekle</Button></div><div className="border-b p-3"><Label className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Site şablonu</Label><Select value={config.templateId} onValueChange={changeTemplate}><SelectTrigger className="mt-2 h-9 rounded-xl text-xs"><SelectValue placeholder="Şablon seçin"/></SelectTrigger><SelectContent>{templates.map(t=><SelectItem key={t.slug} value={t.slug}>{t.name}</SelectItem>)}</SelectContent></Select></div>
       <div className="flex-1 overflow-y-auto p-3">
         <p className="px-2 pb-2 text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Sayfa yapısı</p>
-        {config.sections.map((s, i) => <div key={s.id} onClick={() => setSelectedId(s.id)} className={'mb-1 flex cursor-pointer items-center gap-2 rounded-xl border px-2 py-2.5 ' + (selectedId === s.id ? 'border-midnight bg-midnight text-ivory' : 'border-transparent hover:bg-ivory-50')}><GripVertical className="h-3.5 w-3.5 opacity-40"/><span className="flex-1 text-xs">{labels[s.type]}</span><span className="text-[9px] opacity-50">{i+1}</span></div>)}
+        {config.sections.map((s, i) => <div key={s.id} draggable onDragStart={() => setDragId(s.id)} onDragOver={e => e.preventDefault()} onDrop={() => reorder(s.id)} onClick={() => setSelectedId(s.id)} className={'mb-1 flex cursor-grab items-center gap-2 rounded-xl border px-2 py-2.5 ' + (selectedId === s.id ? 'border-midnight bg-midnight text-ivory' : 'border-transparent hover:bg-ivory-50')}><GripVertical className="h-3.5 w-3.5 opacity-40"/><span className="flex-1 text-xs">{labels[s.type]}</span><span className="text-[9px] opacity-50">{i+1}</span></div>)}
         <div id="site-add-section" className="mt-4 border-t pt-4"><p className="px-2 pb-2 text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Yeni bölüm</p><div className="grid grid-cols-2 gap-2">{types.map(type => <button key={type} onClick={() => add(type)} className="rounded-lg border border-border bg-ivory-50 px-2 py-2 text-left text-[10px] hover:border-midnight/40">{labels[type]}</button>)}</div></div>
       </div>
       <div className="border-t p-3"><Button onClick={save} disabled={saving} className="h-10 w-full rounded-xl bg-champagne text-midnight hover:bg-champagne-light"><Save className="mr-2 h-4 w-4"/>{saving ? 'Kaydediliyor…' : 'Kaydet'}</Button></div>
