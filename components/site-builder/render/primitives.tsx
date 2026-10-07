@@ -329,7 +329,7 @@ export function SectionHeading({ eyebrow, title, subtitle, className, style }: {
   const editable = (key: string) => section ? editableTextAttributes(section, key, mode) : {}
   if (!eyebrow && !title && !subtitle) return null
   return (
-    <div className={cn('mb-12 @3xl:mb-16 flex flex-col gap-3', className)} style={{ alignItems: 'inherit', ...style }}>
+    <div className={cn('mb-12 @3xl:mb-16 flex flex-col gap-3', className)} style={style}>
       {eyebrow && (
         <Reveal>
           <span {...editable('eyebrow')} className="sb-eyebrow sb-accent" style={section ? editableTextStyle(section.props, 'eyebrow') : undefined}>{eyebrow}</span>
@@ -344,7 +344,7 @@ export function SectionHeading({ eyebrow, title, subtitle, className, style }: {
       )}
       {subtitle && (
         <Reveal>
-          <p {...editable('subtitle')} className="sb-muted max-w-xl text-[15px] leading-relaxed whitespace-pre-line" style={{ marginInline: 'inherit', ...(section ? editableTextStyle(section.props, 'subtitle') : {}) }}>
+          <p {...editable('subtitle')} className="sb-muted max-w-xl text-[15px] leading-relaxed whitespace-pre-line" style={{ marginInline: 'auto', ...(section ? editableTextStyle(section.props, 'subtitle') : {}) }}>
             {subtitle}
           </p>
         </Reveal>
