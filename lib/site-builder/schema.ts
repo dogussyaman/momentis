@@ -24,6 +24,14 @@ export interface ButtonConfig {
   target?: string
   icon?: string
   newTab?: boolean
+  backgroundColor?: string
+  textColor?: string
+  borderColor?: string
+  borderRadius?: number
+  size?: 'sm' | 'md' | 'lg'
+  eventTitle?: string
+  eventLocation?: string
+  inlineStyle?: Record<string, string | number>
 }
 
 export type BgType = 'theme' | 'color' | 'gradient' | 'image' | 'video'
@@ -61,6 +69,9 @@ export interface SectionStyle {
   divider?: 'none' | 'wave' | 'curve' | 'slant'
   hideOnMobile?: boolean
   hideOnDesktop?: boolean
+  elementGap?: number // Gap between main content blocks (default 20px)
+  buttonMarginTop?: number // Extra margin above buttons (default 12px)
+  titleMarginBottom?: number // Extra margin below title (default 0px)
 }
 
 export type AnimationType = 'none' | 'fade' | 'slide-up' | 'slide-left' | 'slide-right' | 'zoom' | 'blur'

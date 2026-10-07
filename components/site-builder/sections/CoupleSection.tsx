@@ -38,9 +38,9 @@ function Person({ p, prefix, shape, card, horizontal, reverse }: { p: Record<str
         {p[`${prefix}Parents`] && <p className="text-sm italic sb-muted">{p[`${prefix}Parents`]}</p>}
         {p[`${prefix}Bio`] && <p className="text-[15px] leading-relaxed sb-muted max-w-sm mt-1">{p[`${prefix}Bio`]}</p>}
         {ig && (
-          <span className="mt-2 inline-flex items-center gap-1.5 text-xs sb-accent">
+          <a href={`https://www.instagram.com/${encodeURIComponent(ig)}/`} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs sb-accent transition hover:opacity-70">
             <Instagram className="w-3.5 h-3.5" /> @{ig}
-          </span>
+          </a>
         )}
       </div>
     </Reveal>

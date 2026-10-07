@@ -117,29 +117,39 @@ export function NewProjectWizard() {
         host_a: form.host_a || 'İsimsiz', 
         date: form.date || new Date().toISOString(),
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
-        canvas_design: isManual ? canvasDesign : form.canvas_design
+        canvas_design: isManual ? canvasDesign : form.canvas_design,
+        site_data: form.site_data
       }
       const res = await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Etkinlik oluşturulamadı')
       toast.success('Etkinliğiniz oluşturuldu ve yayında!')
-      router.replace(`/panel/etkinlik/${data.project.id}/duzenle`)
+      router.replace(`/panel/etkinlik/${data.project.id}`)
     } catch (e) { toast.error(e.message) } finally { setSaving(false) }
+  }
+
+  const handleSiteSave = async (siteData) => {
+    setForm((f) => ({ ...f, site_data: siteData }));
+    changeDesignTarget('card');
+    toast.success('Site tasarımı kaydedildi. Şimdi davetiye kartını hazırlayabilirsiniz.');
   }
 
   if (designTarget === 'card') {
     return (
-      <div className="-mt-2 flex h-[calc(100dvh-5rem)] flex-col gap-3 pb-3 lg:-mt-4 lg:h-[calc(100dvh-6rem)] w-full" data-testid="new-project-wizard-canvas">
-        <div className="flex items-center justify-between shrink-0">
-          <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-3">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
-          </Button>
-          <Button onClick={submit} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
-            <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Kaydediliyor…' : 'Kaydet'}
-          </Button>
-        </div>
-        <div className="flex-1 w-full relative overflow-hidden rounded-2xl border border-border shadow-sm bg-white">
-          <CanvasEditor />
+      <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full" data-testid="new-project-wizard-canvas">
+        <div className="flex-1 w-full relative overflow-hidden bg-ivory">
+          <CanvasEditor 
+            topbarLeft={
+              <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-2">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
+              </Button>
+            }
+            topbarRight={
+              <Button onClick={submit} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
+                <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Kaydediliyor…' : 'Kaydet'}
+              </Button>
+            }
+          />
         </div>
       </div>
     )
@@ -147,8 +157,8 @@ export function NewProjectWizard() {
 
   if (designTarget === 'site') {
     return (
-      <div className="-mt-2 flex h-[calc(100dvh-5rem)] flex-col gap-3 pb-3 lg:-mt-4 lg:h-[calc(100dvh-6rem)] w-full">
-        <SiteEditor onSwitchToCard={() => changeDesignTarget('card')} />
+      <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full">
+        <SiteEditor onSwitchToCard={() => changeDesignTarget('card')} onSave={handleSiteSave} />
       </div>
     )
   }

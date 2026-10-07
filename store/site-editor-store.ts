@@ -1,211 +1,40 @@
-import { create, useStore } from 'zustand'
-import { temporal } from 'zundo'
-import debounce from 'lodash/debounce'
+import { create } from 'zustand'
 import type { WeddingSite, SiteSection, SectionStyle, SectionAnimation } from '@/lib/site-builder/schema'
 import { createSectionFromDefinition, refreshIds, uid } from '@/lib/site-builder/definitions'
 import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
-
-export type LeftTab = 'add' | 'layers' | 'theme' | 'templates' | 'settings'
-export type InspectorTab = 'content' | 'style' | 'animation'
-export type Device = 'desktop' | 'tablet' | 'mobile'
-
-export const DRAFT_KEY = 'momentis-site-draft-v2'
-
-interface SiteEditorState {
-  site: WeddingSite | null
-  selectedSectionId: string | null
-  hoveredSectionId: string | null
-  leftTab: LeftTab
-  inspectorTab: InspectorTab
-  device: Device
-  isPreview: boolean
-  isSaving: boolean
-  lastSavedAt: number | null
-
-  // UI
-  initSite: (site: WeddingSite) => void
-  loadTemplate: (templateId: string, keepContent?: boolean) => void
-  setDevice: (device: Device) => void
-  setLeftTab: (tab: LeftTab) => void
-  setInspectorTab: (tab: InspectorTab) => void
-  setIsPreview: (isPreview: boolean) => void
-  selectSection: (id: string | null) => void
-  hoverSection: (id: string | null) => void
-
-  // Sections
-  addSection: (type: string, index?: number) => void
-  removeSection: (id: string) => void
-  duplicateSection: (id: string) => void
-  updateSection: (id: string, updates: Partial<SiteSection>) => void
-  updateSectionProps: (id: string, patch: Record<string, any>) => void
-  updateSectionStyle: (id: string, patch: Partial<SectionStyle>) => void
-  updateSectionAnimation: (id: string, patch: Partial<SectionAnimation>) => void
-  toggleVisibility: (id: string) => void
-  toggleLock: (id: string) => void
-  moveSection: (oldIndex: number, newIndex: number) => void
-  moveSectionBy: (id: string, delta: number) => void
-  reorderSections: (sections: SiteSection[]) => void
-
-  // Site
-  updateSite: (updates: Partial<Pick<WeddingSite, 'title' | 'slug' | 'status'>>) => void
-  updateTheme: (updates: Partial<WeddingSite['theme']>) => void
-  updateSettings: (updates: Partial<WeddingSite['settings']>) => void
-
-  save: () => Promise<void>
-  reset: () => void
-}
-
-const mapSections = (site: WeddingSite, id: string, fn: (s: SiteSection) => SiteSection): WeddingSite => ({
-  ...site,
-  sections: site.sections.map((s) => (s.id === id ? fn(s) : s)),
-  updatedAt: new Date().toISOString(),
-})
-
-export const useSiteEditorStore = create<SiteEditorState>()(
-  temporal(
-    (set, get) => ({
-      site: null,
-      selectedSectionId: null,
-      hoveredSectionId: null,
-      leftTab: 'add',
-      inspectorTab: 'content',
-      device: 'desktop',
-      isPreview: false,
-      isSaving: false,
-      lastSavedAt: null,
-
-      initSite: (site) => {
-        set({ site, selectedSectionId: null })
-        useSiteEditorStore.temporal.getState().clear()
-      },
-
-      loadTemplate: (templateId, keepContent = false) =>
-        set((state) => {
-          const next = buildSiteFromTemplate(templateId, state.site ?? undefined)
-          if (keepContent && state.site) {
-            return { site: { ...state.site, theme: next.theme, templateId }, selectedSectionId: null }
-          }
-          return { site: next, selectedSectionId: null }
-        }),
-
-      setDevice: (device) => set({ device }),
-      setLeftTab: (leftTab) => set({ leftTab }),
-      setInspectorTab: (inspectorTab) => set({ inspectorTab }),
-      setIsPreview: (isPreview) => set({ isPreview, selectedSectionId: isPreview ? null : get().selectedSectionId }),
-      selectSection: (id) => set({ selectedSectionId: id }),
-      hoverSection: (id) => set({ hoveredSectionId: id }),
-
-      addSection: (type, index) =>
-        set((state) => {
-          if (!state.site) return state
-          const section = createSectionFromDefinition(type) as SiteSection
-          const sections = [...state.site.sections]
-          const at = index === undefined ? sections.length : Math.max(0, Math.min(index, sections.length))
-          sections.splice(at, 0, section)
-          return {
-            site: { ...state.site, sections: sections.map((s, i) => ({ ...s, order: i })) },
-            selectedSectionId: section.id,
-            inspectorTab: 'content',
-          }
-        }),
-
-      removeSection: (id) =>
-        set((state) => {
-          if (!state.site) return state
-          return {
-            site: { ...state.site, sections: state.site.sections.filter((s) => s.id !== id) },
-            selectedSectionId: state.selectedSectionId === id ? null : state.selectedSectionId,
-          }
-        }),
-
-      duplicateSection: (id) =>
-        set((state) => {
-          if (!state.site) return state
-          const idx = state.site.sections.findIndex((s) => s.id === id)
-          if (idx < 0) return state
-          const copy: SiteSection = { ...refreshIds(JSON.parse(JSON.stringify(state.site.sections[idx]))), id: uid('section') }
-          const sections = [...state.site.sections]
-          sections.splice(idx + 1, 0, copy)
-          return { site: { ...state.site, sections }, selectedSectionId: copy.id }
-        }),
-
-      updateSection: (id, updates) => set((state) => (state.site ? { site: mapSections(state.site, id, (s) => ({ ...s, ...updates })) } : state)),
-
-      updateSectionProps: (id, patch) =>
-        set((state) => (state.site ? { site: mapSections(state.site, id, (s) => ({ ...s, props: { ...s.props, ...patch } })) } : state)),
-
-      updateSectionStyle: (id, patch) =>
-        set((state) => (state.site ? { site: mapSections(state.site, id, (s) => ({ ...s, style: { ...s.style, ...patch } })) } : state)),
-
-      updateSectionAnimation: (id, patch) =>
-        set((state) =>
-          state.site
-            ? { site: mapSections(state.site, id, (s) => ({ ...s, animation: { type: 'fade', ...(s.animation ?? {}), ...patch } })) }
-            : state,
-        ),
-
-      toggleVisibility: (id) => set((state) => (state.site ? { site: mapSections(state.site, id, (s) => ({ ...s, visible: !s.visible })) } : state)),
-      toggleLock: (id) => set((state) => (state.site ? { site: mapSections(state.site, id, (s) => ({ ...s, locked: !s.locked })) } : state)),
-
-      moveSection: (oldIndex, newIndex) =>
-        set((state) => {
-          if (!state.site || oldIndex === newIndex) return state
-          const sections = [...state.site.sections]
-          const [moved] = sections.splice(oldIndex, 1)
-          sections.splice(newIndex, 0, moved)
-          return { site: { ...state.site, sections: sections.map((s, i) => ({ ...s, order: i })) } }
-        }),
-
-      moveSectionBy: (id, delta) => {
-        const site = get().site
-        if (!site) return
-        const idx = site.sections.findIndex((s) => s.id === id)
-        const next = idx + delta
-        if (idx < 0 || next < 0 || next >= site.sections.length) return
-        get().moveSection(idx, next)
-      },
-
-      reorderSections: (sections) =>
-        set((state) => {
-          if (!state.site) return state
-          return { site: { ...state.site, sections: sections.map((s, i) => ({ ...s, order: i })) } }
-        }),
-
-      updateSite: (updates) => set((state) => (state.site ? { site: { ...state.site, ...updates } } : state)),
-      updateTheme: (updates) => set((state) => (state.site ? { site: { ...state.site, theme: { ...state.site.theme, ...updates } } } : state)),
-      updateSettings: (updates) =>
-        set((state) => (state.site ? { site: { ...state.site, settings: { ...state.site.settings, ...updates } } } : state)),
-
-      save: async () => {
-        const site = get().site
-        if (!site) return
-        set({ isSaving: true })
-        try {
-          localStorage.setItem(DRAFT_KEY, JSON.stringify(site))
-          // TODO: Supabase upsert (wedding_sites) when backend table is ready
-          await new Promise((r) => setTimeout(r, 300))
-        } finally {
-          set({ isSaving: false, lastSavedAt: Date.now() })
-        }
-      },
-
-      reset: () => set({ site: null, selectedSectionId: null }),
-    }),
-    {
-      limit: 100,
-      partialize: (state) => ({ site: state.site }),
-      equality: (a, b) => a.site === b.site,
-      // Group rapid edits (typing, slider drags) into a single history step
-      handleSet: (handleSet) =>
-        debounce((...args: any[]) => (handleSet as any)(...args), 400, { leading: true, trailing: false }) as any,
-    },
-  ),
-)
-
-/** Reactive access to undo/redo state */
-export function useEditorHistory() {
-  const pastCount = useStore(useSiteEditorStore.temporal, (s) => s.pastStates.length)
-  const futureCount = useStore(useSiteEditorStore.temporal, (s) => s.futureStates.length)
-  const { undo, redo } = useSiteEditorStore.temporal.getState()
-  return { undo, redo, canUndo: pastCount > 0, canRedo: futureCount > 0 }
-}
+import debounce from 'lodash/debounce'
+export type LeftTab='add'|'layers'|'theme'|'templates'|'settings'
+export type InspectorTab='content'|'style'|'animation'
+export type Device='desktop'|'tablet'|'mobile'
+export const DRAFT_KEY='momentis-site-draft-v3'
+interface State{site:WeddingSite|null;selectedSectionId:string|null;hoveredSectionId:string|null;leftTab:LeftTab;inspectorTab:InspectorTab;device:Device;isPreview:boolean;isSaving:boolean;lastSavedAt:number|null;past:WeddingSite[];future:WeddingSite[];initSite:(s:WeddingSite)=>void;loadTemplate:(id:string,keepContent?:boolean)=>void;setDevice:(d:Device)=>void;setLeftTab:(t:LeftTab)=>void;setInspectorTab:(t:InspectorTab)=>void;setIsPreview:(v:boolean)=>void;selectSection:(id:string|null)=>void;hoverSection:(id:string|null)=>void;addSection:(t:string,i?:number)=>void;removeSection:(id:string)=>void;duplicateSection:(id:string)=>void;updateSection:(id:string,u:Partial<SiteSection>)=>void;updateSectionProps:(id:string,p:Record<string,any>)=>void;updateSectionStyle:(id:string,p:Partial<SectionStyle>)=>void;updateSectionAnimation:(id:string,p:Partial<SectionAnimation>)=>void;toggleVisibility:(id:string)=>void;toggleLock:(id:string)=>void;moveSection:(a:number,b:number)=>void;moveSectionBy:(id:string,d:number)=>void;reorderSections:(s:SiteSection[])=>void;updateSite:(u:Partial<Pick<WeddingSite,'title'|'slug'|'status'>>)=>void;updateTheme:(u:Partial<WeddingSite['theme']>)=>void;updateSettings:(u:Partial<WeddingSite['settings']>)=>void;undo:()=>void;redo:()=>void;canUndo:()=>boolean;canRedo:()=>boolean;save:()=>Promise<void>;reset:()=>void}
+const clone=<T,>(v:T):T=>JSON.parse(JSON.stringify(v))
+const normalize=(s:WeddingSite):WeddingSite=>({...s,sections:s.sections.map((x,i)=>({...x,order:i})),updatedAt:new Date().toISOString()})
+function mutate(set:any,get:()=>State,fn:(s:WeddingSite)=>WeddingSite|null){const cur=get().site;if(!cur)return;const next=fn(cur);if(!next)return;set({site:normalize(next),past:[...get().past,clone(cur)].slice(-80),future:[]})}
+export const useSiteEditorStore=create<State>((set,get)=>({
+ site:null,selectedSectionId:null,hoveredSectionId:null,leftTab:'add',inspectorTab:'content',device:'desktop',isPreview:false,isSaving:false,lastSavedAt:null,past:[],future:[],
+ initSite:s=>set({site:normalize(s),selectedSectionId:null,past:[],future:[]}),
+ loadTemplate:(id,keep=false)=>{const cur=get().site,next=buildSiteFromTemplate(id,cur??undefined);if(!cur){set({site:next,past:[],future:[]});return}mutate(set,get,s=>keep?{...s,theme:next.theme,templateId:id}:next);set({selectedSectionId:null})},
+ setDevice:device=>set({device}),setLeftTab:leftTab=>set({leftTab}),setInspectorTab:inspectorTab=>set({inspectorTab}),setIsPreview:isPreview=>set({isPreview,selectedSectionId:isPreview?null:get().selectedSectionId}),selectSection:selectedSectionId=>set({selectedSectionId}),hoverSection:hoveredSectionId=>set({hoveredSectionId}),
+ addSection:(type,index)=>{const section=createSectionFromDefinition(type) as SiteSection;mutate(set,get,s=>{const a=[...s.sections],i=index===undefined?a.length:Math.max(0,Math.min(index,a.length));a.splice(i,0,section);return {...s,sections:a}});set({selectedSectionId:section.id,inspectorTab:'content'})},
+ removeSection:id=>{mutate(set,get,s=>({...s,sections:s.sections.filter(x=>x.id!==id)}));if(get().selectedSectionId===id)set({selectedSectionId:null})},
+ duplicateSection:id=>{const cur=get().site;if(!cur)return;const i=cur.sections.findIndex(x=>x.id===id);if(i<0)return;const copy=refreshIds(clone(cur.sections[i])) as SiteSection;copy.id=uid('section');mutate(set,get,s=>{const a=[...s.sections];a.splice(i+1,0,copy);return {...s,sections:a}});set({selectedSectionId:copy.id})},
+ updateSection:(id,u)=>mutate(set,get,s=>({...s,sections:s.sections.map(x=>x.id===id?{...x,...u}:x)})),
+ updateSectionProps:(id,p)=>mutate(set,get,s=>({...s,sections:s.sections.map(x=>x.id===id?{...x,props:{...x.props,...p}}:x)})),
+ updateSectionStyle:(id,p)=>mutate(set,get,s=>({...s,sections:s.sections.map(x=>x.id===id?{...x,style:{...x.style,...p}}:x)})),
+ updateSectionAnimation:(id,p)=>mutate(set,get,s=>({...s,sections:s.sections.map(x=>x.id===id?{...x,animation:{type:'fade',...(x.animation||{}),...p}}:x)})),
+ toggleVisibility:id=>mutate(set,get,s=>({...s,sections:s.sections.map(x=>x.id===id?{...x,visible:!x.visible}:x)})),
+ toggleLock:id=>mutate(set,get,s=>({...s,sections:s.sections.map(x=>x.id===id?{...x,locked:!x.locked}:x)})),
+ moveSection:(a,b)=>mutate(set,get,s=>{if(a<0||b<0||a>=s.sections.length||b>=s.sections.length||a===b)return null;const x=[...s.sections],m=x.splice(a,1)[0];x.splice(b,0,m);return {...s,sections:x}}),
+ moveSectionBy:(id,d)=>{const s=get().site;if(!s)return;const i=s.sections.findIndex(x=>x.id===id);get().moveSection(i,i+d)},
+ reorderSections:s=>mutate(set,get,site=>({...site,sections:s})),
+ updateSite:u=>mutate(set,get,s=>({...s,...u})),
+ updateTheme:u=>mutate(set,get,s=>({...s,theme:{...s.theme,...u}})),
+ updateSettings:u=>mutate(set,get,s=>({...s,settings:{...s.settings,...u}})),
+ undo:()=>{const {site,past,future}=get();if(!site||!past.length)return;set({site:clone(past[past.length-1]),past:past.slice(0,-1),future:[clone(site),...future].slice(0,80),selectedSectionId:null})},
+ redo:()=>{const {site,past,future}=get();if(!site||!future.length)return;set({site:clone(future[0]),past:[...past,clone(site)].slice(-80),future:future.slice(1),selectedSectionId:null})},
+ canUndo:()=>get().past.length>0,canRedo:()=>get().future.length>0,
+ save:async()=>{const s=get().site;if(!s||typeof window==='undefined')return;set({isSaving:true});try{localStorage.setItem(DRAFT_KEY,JSON.stringify(s));await new Promise(r=>setTimeout(r,150))}finally{set({isSaving:false,lastSavedAt:Date.now()})}},
+ reset:()=>set({site:null,selectedSectionId:null,past:[],future:[]})
+}))
+export const autosaveSite=debounce(()=>void useSiteEditorStore.getState().save(),900)

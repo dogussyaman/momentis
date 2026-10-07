@@ -1,10 +1,13 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Reveal, SectionHeading, SectionShell, SiteButtons, type SectionComponentProps } from '../render/primitives'
+import { editableTextAttributes, editableTextStyle, Reveal, SectionHeading, SectionShell, SiteButtons, useSiteRender, type SectionComponentProps } from '../render/primitives'
+import { Instagram } from 'lucide-react'
 
 export function TextSection({ section, props }: SectionComponentProps) {
   const align = props.align ?? 'center'
+  const { mode } = useSiteRender()
+  const text = props.text ?? props.body
   
   return (
     <SectionShell section={section}>
@@ -15,12 +18,13 @@ export function TextSection({ section, props }: SectionComponentProps) {
            subtitle={props.subtitle} 
            className={align === 'left' ? 'items-start' : align === 'right' ? 'items-end' : 'items-center'} 
         />
-        {props.text && (
+        {text && (
           <div 
+            {...editableTextAttributes(section, 'text', mode)}
             className="prose prose-sm @2xl:prose-base max-w-none text-[var(--sb-muted)] leading-relaxed whitespace-pre-wrap"
-            style={{ textAlign: align }}
+            style={{ textAlign: align, ...editableTextStyle(props, 'text') }}
           >
-            {props.text}
+            {text}
           </div>
         )}
         <SiteButtons buttons={props.buttons} />
@@ -46,14 +50,24 @@ export function DividerSection({ section, props }: SectionComponentProps) {
 }
 
 export function FooterSection({ section, props }: SectionComponentProps) {
+  const instagram = String(props.instagram ?? '').trim().replace(/^@/, '')
   return (
     <SectionShell section={section} noContainer>
-      <footer className="w-full py-12 px-6 flex flex-col items-center justify-center text-center gap-4">
-        {props.logo && <h2 className="sb-heading text-2xl">{props.logo}</h2>}
-        {props.text && <p className="text-sm sb-muted max-w-md">{props.text}</p>}
-        {props.showCredits && (
-          <div className="mt-8 pt-8 border-t border-current/10 text-xs opacity-50 flex flex-col gap-1">
-             <p>Made with Momentis</p>
+      <footer className="flex w-full flex-col items-center justify-center gap-4 px-6 py-14 text-center">
+        {props.monogram && <p className="sb-script sb-accent text-4xl">{props.monogram}</p>}
+        {props.title && <h2 className="sb-heading text-2xl">{props.title}</h2>}
+        {props.text && <p className="max-w-md whitespace-pre-line text-sm sb-muted">{props.text}</p>}
+        {props.date && <p className="sb-eyebrow">{props.date}</p>}
+        {props.hashtag && <p className="text-sm sb-accent">{props.hashtag}</p>}
+        {instagram && (
+          <a href={`https://www.instagram.com/${encodeURIComponent(instagram)}/`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs sb-accent transition hover:opacity-70">
+            <Instagram className="h-4 w-4" /> @{instagram}
+          </a>
+        )}
+        <SiteButtons buttons={props.buttons} />
+        {props.showCredit && (
+          <div className="mt-6 flex flex-col gap-1 border-t border-current/10 pt-6 text-xs opacity-50">
+             <p>Momentis ile hazırlandı</p>
           </div>
         )}
       </footer>

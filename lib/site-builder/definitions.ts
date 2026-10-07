@@ -1,6 +1,6 @@
 import {
   LayoutTemplate, Heart, Clock, Image as ImageIcon, MapPin, CalendarHeart, Send, Music, MessageSquare,
-  Gift, Hotel, Shirt, BookHeart, Type, Minus, PanelBottom, ListOrdered, type LucideIcon,
+  Gift, Hotel, Shirt, BookHeart, Type, Minus, PanelBottom, ListOrdered, Images, Share2, type LucideIcon,
 } from 'lucide-react'
 import type { ButtonConfig, FieldDef, SectionAnimation, SectionStyle } from './schema'
 import { GALLERY_DEFAULT, STOCK } from './media'
@@ -84,7 +84,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       props: {
         eyebrow: 'Evleniyoruz',
         title: 'Ayşe & Mehmet',
-        date: '12 Haziran 2026 · İstanbul',
+        date: '12 Haziran 2027 · İstanbul',
         subtitle: 'Hayatımızın en özel gününde sizleri de aramızda görmekten mutluluk duyarız.',
         layout: 'center',
         titleFont: 'script',
@@ -314,8 +314,8 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         showDirections: true,
         showCalendar: true,
         events: [
-          { id: uid('ev'), name: 'Nikah Töreni', date: '2026-06-12T17:00', time: '17:00', venue: 'Feriye Sarayı', address: 'Çırağan Cd. No:40, Beşiktaş, İstanbul', note: 'Tören bahçede gerçekleşecektir.', image: STOCK.ceremony },
-          { id: uid('ev'), name: 'Düğün Yemeği', date: '2026-06-12T19:30', time: '19:30', venue: 'Feriye Sarayı', address: 'Çırağan Cd. No:40, Beşiktaş, İstanbul', note: 'Kokteyl ile başlayacaktır.', image: STOCK.table },
+          { id: uid('ev'), name: 'Nikah Töreni', date: '2027-06-12T17:00', time: '17:00', venue: 'Feriye Sarayı', address: 'Çırağan Cd. No:40, Beşiktaş, İstanbul', note: 'Tören bahçede gerçekleşecektir.', image: STOCK.ceremony },
+          { id: uid('ev'), name: 'Düğün Yemeği', date: '2027-06-12T19:30', time: '19:30', venue: 'Feriye Sarayı', address: 'Çırağan Cd. No:40, Beşiktaş, İstanbul', note: 'Kokteyl ile başlayacaktır.', image: STOCK.table },
         ],
       },
       style: { ...baseStyle, width: 'wide' },
@@ -325,7 +325,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       ...headingFields(),
       {
         key: 'events', label: 'Etkinlikler', type: 'list', group: 'Etkinlikler', itemLabelKey: 'name',
-        newItem: () => ({ id: uid('ev'), name: 'Yeni Etkinlik', date: '', time: '20:00', venue: 'Mekan adı', address: '', note: '', image: '' }),
+        newItem: () => ({ id: uid('ev'), name: 'Yeni Etkinlik', date: '', time: '20:00', venue: 'Mekan adı', address: '', note: '', image: '', link: '' }),
         itemFields: [
           { key: 'name', label: 'Etkinlik adı', type: 'text' },
           { key: 'date', label: 'Tarih & saat', type: 'datetime' },
@@ -334,6 +334,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
           { key: 'address', label: 'Adres', type: 'textarea' },
           { key: 'note', label: 'Not', type: 'text' },
           { key: 'image', label: 'Görsel', type: 'image' },
+          { key: 'link', label: 'Ek bağlantı', type: 'url', placeholder: 'https://…' },
         ],
       },
       layoutField([
@@ -434,7 +435,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       props: {
         eyebrow: 'Lütfen Cevap Veriniz',
         title: 'Katılım Durumu',
-        subtitle: 'Planlamamıza yardımcı olmak için lütfen 1 Mayıs’a kadar bildirin.',
+        subtitle: 'Planlamamıza yardımcı olmak için lütfen 1 Haziran 2027’ye kadar bildirin.',
         layout: 'card',
         image: STOCK.bouquet,
         askGuests: true,
@@ -697,6 +698,56 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     ],
   },
 
+  /* ============ ALBUM ============ */
+  {
+    type: 'album',
+    name: 'QR Anı Albümü',
+    description: 'Konuklar QR ile fotoğraf yüklesin',
+    icon: Images,
+    category: 'Etkileşim',
+    defaults: {
+      props: {
+        eyebrow: 'Birlikte Biriktirelim',
+        title: 'Gecenin güzel anıları',
+        subtitle: 'QR kodu okutarak fotoğraflarınızı ortak albümümüze ekleyin.',
+      },
+      style: { ...baseStyle, width: 'wide' },
+      animation: baseAnim,
+    },
+    fields: [
+      ...headingFields(),
+    ],
+  },
+
+  /* ============ SHARE ============ */
+  {
+    type: 'share',
+    name: 'Paylaş & QR',
+    description: 'Davetiyeyi paylaşın veya QR kodunu indirin',
+    icon: Share2,
+    category: 'Etkileşim',
+    defaults: {
+      props: {
+        eyebrow: 'Bu güzel günü paylaşın',
+        title: 'Davetiyemiz cebinizde',
+        subtitle: 'Davet sayfamıza kolayca ulaşın; sevdiklerinizle paylaşın veya QR kodunu kaydedin.',
+        showQr: true,
+        showWhatsapp: true,
+        showInstagram: true,
+        qrLabel: 'Davetiyeyi QR ile aç',
+      },
+      style: { ...baseStyle, width: 'normal', paddingY: 72, bgType: 'color', bgColor: '#ffffff' },
+      animation: { type: 'zoom', duration: 0.65, stagger: true },
+    },
+    fields: [
+      ...headingFields(),
+      { key: 'qrLabel', label: 'QR açıklaması', type: 'text', group: 'Paylaşım' },
+      { key: 'showQr', label: 'QR kod göster', type: 'toggle', group: 'Paylaşım' },
+      { key: 'showWhatsapp', label: 'WhatsApp paylaşımı', type: 'toggle', group: 'Paylaşım' },
+      { key: 'showInstagram', label: 'Instagram paylaşımı', type: 'toggle', group: 'Paylaşım' },
+    ],
+  },
+
   /* ============ TEXT ============ */
   {
     type: 'text',
@@ -708,7 +759,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       props: {
         eyebrow: '',
         title: 'Sevgili Misafirlerimiz',
-        body: 'Bu yolculukta yanımızda olan herkese teşekkür ederiz. Sizinle bu özel günü paylaşmak bizim için tarif edilemez bir mutluluk.',
+        text: 'Bu yolculukta yanımızda olan herkese teşekkür ederiz. Sizinle bu özel günü paylaşmak bizim için tarif edilemez bir mutluluk.',
         variant: 'plain',
         author: '',
         image: '',
@@ -721,7 +772,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     fields: [
       { key: 'eyebrow', label: 'Üst etiket', type: 'text', group: 'İçerik' },
       { key: 'title', label: 'Başlık', type: 'text', group: 'İçerik' },
-      { key: 'body', label: 'Metin', type: 'textarea', group: 'İçerik' },
+      { key: 'text', label: 'Metin', type: 'textarea', group: 'İçerik' },
       {
         key: 'variant', label: 'Stil', type: 'segmented', group: 'Düzen',
         options: [{ value: 'plain', label: 'Düz' }, { value: 'quote', label: 'Alıntı' }, { value: 'script', label: 'El yazısı' }],
@@ -777,7 +828,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         monogram: 'A & M',
         title: 'Sizi bekliyoruz',
         text: 'Sevgiyle,\nAyşe & Mehmet',
-        date: '12.06.2026',
+        date: '12.06.2027',
         hashtag: '#AyseVeMehmet',
         instagram: '',
         showCredit: true,

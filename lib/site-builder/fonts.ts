@@ -1,26 +1,22 @@
+import { EDITOR_FONTS } from '@/lib/editor-fonts'
+
 export const HEADING_FONTS = [
-  'Playfair Display',
-  'Cormorant Garamond',
-  'Cinzel',
-  'Bodoni Moda',
-  'Libre Baskerville',
+  ...EDITOR_FONTS.filter((font) => font.category !== 'Script').map((font) => font.name),
   'Marcellus',
-  'DM Serif Display',
   'Italiana',
-  'Josefin Sans',
-  'Montserrat',
 ]
 
-export const BODY_FONTS = ['Inter', 'DM Sans', 'Lato', 'Jost', 'Nunito Sans', 'Raleway', 'EB Garamond', 'Lora', 'Outfit']
+export const BODY_FONTS = [...new Set([...HEADING_FONTS, 'Lato', 'Jost', 'Nunito Sans', 'Outfit'])]
 
-export const SCRIPT_FONTS = ['Great Vibes', 'Parisienne', 'Pinyon Script', 'Allura', 'Alex Brush', 'Dancing Script', 'Sacramento']
+export const SCRIPT_FONTS = EDITOR_FONTS.filter((font) => font.category === 'Script').map((font) => font.name)
 
 const loaded = new Set<string>()
+const SYSTEM_FONTS = new Set(['Georgia', 'Times New Roman', 'Arial'])
 
 /** Injects a Google Fonts stylesheet for the given families (client only, idempotent). */
 export function loadGoogleFonts(families: (string | undefined)[]) {
   if (typeof document === 'undefined') return
-  const missing = families.filter((f): f is string => !!f && !loaded.has(f))
+  const missing = families.filter((f): f is string => !!f && !SYSTEM_FONTS.has(f) && !loaded.has(f))
   if (!missing.length) return
   missing.forEach((f) => loaded.add(f))
   const query = missing

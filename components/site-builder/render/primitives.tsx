@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { motion, type Variants } from 'framer-motion'
+import { motion, useReducedMotion, type Variants } from 'framer-motion'
 import * as Icons from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ButtonConfig, SectionAnimation, SectionStyle, SiteSection, WeddingSite } from '@/lib/site-builder/schema'
@@ -11,7 +11,7 @@ import { runButtonAction } from '@/lib/site-builder/actions'
 /*  Context                                                            */
 /* ------------------------------------------------------------------ */
 
-export type RenderMode = 'editor' | 'live'
+export type RenderMode = 'editor' | 'live' | 'preview'
 
 interface SiteRenderCtx {
   site: WeddingSite
@@ -20,10 +20,26 @@ interface SiteRenderCtx {
 
 const SiteCtx = createContext<SiteRenderCtx | null>(null)
 export const SiteRenderProvider = SiteCtx.Provider
+const EditableSectionCtx = createContext<SiteSection | null>(null)
+
 export function useSiteRender() {
   const ctx = useContext(SiteCtx)
   if (!ctx) throw new Error('useSiteRender must be used inside SiteRenderProvider')
   return ctx
+}
+
+export function editableTextAttributes(section: SiteSection, key: string, mode: RenderMode) {
+  return {
+    'data-editable-section': section.id,
+    'data-editable-key': key,
+    contentEditable: mode === 'editor',
+    suppressContentEditableWarning: true,
+    spellCheck: false,
+  }
+}
+
+export function editableTextStyle(props: Record<string, any>, key: string): CSSProperties {
+  return props.inlineStyles?.[key] ?? {}
 }
 
 export interface SectionComponentProps {
@@ -59,6 +75,9 @@ function hiddenFor(type: SectionAnimation['type']) {
 /** Child element that animates in when its parent section enters the viewport. */
 export function Reveal({ children, className, style, as = 'div' }: { children: ReactNode; className?: string; style?: CSSProperties; as?: 'div' | 'li' | 'span' }) {
   const anim = useContext(AnimCtx)
+  const { mode } = useSiteRender()
+  const prefersReducedMotion = useReducedMotion()
+  
   const variants: Variants = useMemo(
     () => ({
       hidden: hiddenFor(anim.type),
@@ -69,11 +88,15 @@ export function Reveal({ children, className, style, as = 'div' }: { children: R
     }),
     [anim.type, anim.duration],
   )
+  
   const M = as === 'li' ? motion.li : as === 'span' ? motion.span : motion.div
-  if (anim.type === 'none') {
+  
+  // Disable animations in editor mode to prevent framer-motion strict-mode duplication bug
+  if (anim.type === 'none' || mode === 'editor' || prefersReducedMotion) {
     const Tag = as as any
     return <Tag className={className} style={style}>{children}</Tag>
   }
+  
   return <M variants={variants} className={className} style={style}>{children}</M>
 }
 
@@ -128,11 +151,12 @@ export function SectionShell({
   }
 
   const visibilityCls =
-    mode === 'live'
+    mode !== 'editor'
       ? cn(s.hideOnMobile && '@max-3xl:hidden', s.hideOnDesktop && '@3xl:hidden')
       : undefined
 
   return (
+    <EditableSectionCtx.Provider value={section}>
     <section
       data-section-id={section.id}
       data-section-type={section.type}
@@ -140,36 +164,52 @@ export function SectionShell({
       style={{ padding: hasMargin ? `${s.marginY ?? 0}px ${s.marginX ?? 0}px` : undefined }}
     >
       <div className="relative overflow-hidden flex flex-col justify-center" style={innerStyle}>
-        <SectionBackground style={s} />
+        <SectionBackground style={s} sectionId={section.id} />
         {s.corners && s.corners !== 'none' && <CornerOrnaments variant={s.corners} color={s.cornerColor} />}
 
         <AnimCtx.Provider value={anim}>
-          <motion.div
-            key={`${anim.type}-${anim.duration}-${anim.delay}-${anim.stagger}`}
-            initial={anim.type === 'none' ? false : 'hidden'}
-            whileInView="show"
-            viewport={{ once: true, amount: 0.15 }}
-            variants={containerVariants}
-            className={cn('relative z-[2] w-full', contentClassName)}
-            style={{
-              paddingTop: s.paddingY ?? 96,
-              paddingBottom: s.paddingY ?? 96,
-              paddingLeft: noContainer ? 0 : s.paddingX ?? 24,
-              paddingRight: noContainer ? 0 : s.paddingX ?? 24,
-              textAlign: align,
-            }}
-          >
-            {noContainer ? children : <div className="mx-auto w-full" style={{ maxWidth: WIDTHS[s.width ?? 'normal'] }}>{children}</div>}
-          </motion.div>
+          {mode === 'editor' ? (
+            <div
+              className={cn('relative z-[2] w-full', contentClassName)}
+              style={{
+                paddingTop: s.paddingY ?? 96,
+                paddingBottom: s.paddingY ?? 96,
+                paddingLeft: noContainer ? 0 : s.paddingX ?? 24,
+                paddingRight: noContainer ? 0 : s.paddingX ?? 24,
+                textAlign: align,
+              }}
+            >
+              {noContainer ? children : <div className="mx-auto w-full" style={{ maxWidth: WIDTHS[s.width ?? 'normal'] }}>{children}</div>}
+            </div>
+          ) : (
+            <motion.div
+              key={`${anim.type}-${anim.duration}-${anim.delay}-${anim.stagger}`}
+              initial={anim.type === 'none' ? false : 'hidden'}
+              whileInView="show"
+              viewport={{ once: true, amount: 0.15 }}
+              variants={containerVariants}
+              className={cn('relative z-[2] w-full', contentClassName)}
+              style={{
+                paddingTop: s.paddingY ?? 96,
+                paddingBottom: s.paddingY ?? 96,
+                paddingLeft: noContainer ? 0 : s.paddingX ?? 24,
+                paddingRight: noContainer ? 0 : s.paddingX ?? 24,
+                textAlign: align,
+              }}
+            >
+              {noContainer ? children : <div className="mx-auto w-full" style={{ maxWidth: WIDTHS[s.width ?? 'normal'] }}>{children}</div>}
+            </motion.div>
+          )}
         </AnimCtx.Provider>
 
         {s.divider && s.divider !== 'none' && <ShapeDivider variant={s.divider} />}
       </div>
     </section>
+    </EditableSectionCtx.Provider>
   )
 }
 
-function SectionBackground({ style: s }: { style: SectionStyle }) {
+function SectionBackground({ style: s, sectionId }: { style: SectionStyle; sectionId: string }) {
   const type = s.bgType ?? 'theme'
   const pos = s.bgPosition === 'top' ? 'center top' : s.bgPosition === 'bottom' ? 'center bottom' : 'center'
   return (
@@ -189,6 +229,8 @@ function SectionBackground({ style: s }: { style: SectionStyle }) {
               filter: s.bgBlur ? `blur(${s.bgBlur}px)` : undefined,
               inset: s.bgBlur ? -s.bgBlur * 2 : 0,
             }}
+            data-editable-image-section={sectionId}
+            data-editable-image-key="bgImage"
           />
         )}
         {type === 'video' && s.bgVideo && (
@@ -281,25 +323,28 @@ function ShapeDivider({ variant }: { variant: string }) {
 /*  Heading                                                            */
 /* ------------------------------------------------------------------ */
 
-export function SectionHeading({ eyebrow, title, subtitle, className }: { eyebrow?: string; title?: string; subtitle?: string; className?: string }) {
+export function SectionHeading({ eyebrow, title, subtitle, className, style }: { eyebrow?: string; title?: string; subtitle?: string; className?: string; style?: CSSProperties }) {
+  const section = useContext(EditableSectionCtx)
+  const { mode } = useSiteRender()
+  const editable = (key: string) => section ? editableTextAttributes(section, key, mode) : {}
   if (!eyebrow && !title && !subtitle) return null
   return (
-    <div className={cn('mb-12 @3xl:mb-16 flex flex-col gap-3', className)} style={{ alignItems: 'inherit' }}>
+    <div className={cn('mb-12 @3xl:mb-16 flex flex-col gap-3', className)} style={{ alignItems: 'inherit', ...style }}>
       {eyebrow && (
         <Reveal>
-          <span className="sb-eyebrow sb-accent">{eyebrow}</span>
+          <span {...editable('eyebrow')} className="sb-eyebrow sb-accent" style={section ? editableTextStyle(section.props, 'eyebrow') : undefined}>{eyebrow}</span>
         </Reveal>
       )}
       {title && (
         <Reveal>
-          <h2 className="sb-heading" style={{ fontSize: 'calc(clamp(2rem, 5cqi, 3.4rem) * var(--sb-heading-scale))' }}>
+          <h2 {...editable('title')} className="sb-heading" style={{ fontSize: 'calc(clamp(2rem, 5cqi, 3.4rem) * var(--sb-heading-scale))', ...(section ? editableTextStyle(section.props, 'title') : {}) }}>
             {title}
           </h2>
         </Reveal>
       )}
       {subtitle && (
         <Reveal>
-          <p className="sb-muted max-w-xl text-[15px] leading-relaxed whitespace-pre-line" style={{ marginInline: 'inherit' }}>
+          <p {...editable('subtitle')} className="sb-muted max-w-xl text-[15px] leading-relaxed whitespace-pre-line" style={{ marginInline: 'inherit', ...(section ? editableTextStyle(section.props, 'subtitle') : {}) }}>
             {subtitle}
           </p>
         </Reveal>
@@ -329,22 +374,28 @@ const ACTION_ICONS: Record<string, string> = {
   scroll: 'ArrowDown',
 }
 
-export function SiteButton({ button, size = 'md', className }: { button: ButtonConfig; size?: 'sm' | 'md' | 'lg'; className?: string }) {
+export function SiteButton({ button, size = 'md', className, section, buttonIndex }: { button: ButtonConfig; size?: 'sm' | 'md' | 'lg'; className?: string; section?: SiteSection | null; buttonIndex?: number }) {
   const { site, mode } = useSiteRender()
   const v = button.variant ?? 'solid'
   const iconName = button.icon === 'auto' ? ACTION_ICONS[button.action] : button.icon
-  const sizeCls = size === 'sm' ? 'h-9 px-4 text-[11px]' : size === 'lg' ? 'h-14 px-9 text-[13px]' : 'h-12 px-7 text-[12px]'
+  const buttonSize = button.size ?? size
+  const sizeCls = buttonSize === 'sm' ? 'h-9 px-4 text-[11px]' : buttonSize === 'lg' ? 'h-14 px-9 text-[13px]' : 'h-12 px-7 text-[12px]'
 
   const style: CSSProperties = { borderRadius: 'var(--sb-btn-radius)' }
   if (v === 'solid') Object.assign(style, { background: 'var(--sb-accent)', color: 'var(--sb-on-accent)', borderColor: 'var(--sb-accent)' })
   if (v === 'outline') Object.assign(style, { borderColor: 'currentColor' })
   if (v === 'soft') Object.assign(style, { background: 'color-mix(in srgb, var(--sb-accent) 16%, transparent)', borderColor: 'transparent' })
+  if (button.backgroundColor) style.backgroundColor = button.backgroundColor
+  if (button.textColor) style.color = button.textColor
+  if (button.borderColor) style.borderColor = button.borderColor
+  if (button.borderRadius !== undefined) style.borderRadius = `${button.borderRadius}px`
+  Object.assign(style, button.inlineStyle ?? {})
 
   return (
     <button
       type="button"
       onClick={(e) => {
-        if (mode !== 'live') return
+        if (mode === 'editor') return
         e.preventDefault()
         runButtonAction(button, site)
       }}
@@ -361,17 +412,30 @@ export function SiteButton({ button, size = 'md', className }: { button: ButtonC
       style={style}
     >
       {iconName && <DynamicIcon name={iconName} className="w-4 h-4" />}
-      <span>{button.label}</span>
+      <span
+        {...(section && buttonIndex !== undefined ? {
+          'data-editable-section': section.id,
+          'data-editable-key': 'buttons',
+          'data-editable-index': buttonIndex,
+          contentEditable: mode === 'editor',
+          suppressContentEditableWarning: true,
+          spellCheck: false,
+        } : {})}
+      >
+        {button.label}
+      </span>
     </button>
   )
 }
 
-export function SiteButtons({ buttons, size, className }: { buttons?: ButtonConfig[]; size?: 'sm' | 'md' | 'lg'; className?: string }) {
+export function SiteButtons({ buttons, size, className, style }: { buttons?: ButtonConfig[]; size?: 'sm' | 'md' | 'lg'; className?: string; style?: CSSProperties }) {
+  const section = useContext(EditableSectionCtx)
   if (!buttons?.length) return null
+
   return (
-    <Reveal className={cn('flex flex-wrap items-center gap-3', className)} style={{ justifyContent: 'inherit' }}>
-      {buttons.map((b) => (
-        <SiteButton key={b.id} button={b} size={size} />
+    <Reveal className={cn('flex flex-wrap items-center gap-3', className)} style={{ justifyContent: 'inherit', ...style }}>
+      {buttons.map((b, index) => (
+        <SiteButton key={b.id} button={b} size={size} section={section} buttonIndex={index} />
       ))}
     </Reveal>
   )

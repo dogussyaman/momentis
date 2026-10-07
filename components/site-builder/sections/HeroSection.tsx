@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 import {
-  Reveal, SectionShell, SiteButtons, SbImage, alignToJustify, useCountdown, useSiteRender, type SectionComponentProps,
+  Reveal, SectionShell, SiteButtons, SbImage, alignToJustify, editableTextAttributes, editableTextStyle, useCountdown, useSiteRender, type SectionComponentProps,
 } from '../render/primitives'
 
 function fontClass(f?: string) {
@@ -33,6 +33,7 @@ function MiniCountdown() {
 }
 
 export function HeroSection({ section, props }: SectionComponentProps) {
+  const { mode } = useSiteRender()
   const layout = props.layout ?? 'center'
   const align = section.style.align ?? 'center'
   const justify = alignToJustify(align)
@@ -43,12 +44,13 @@ export function HeroSection({ section, props }: SectionComponentProps) {
   const content = (
     <div
       className={cn(
-        'relative flex flex-col gap-5 @3xl:gap-6',
+        'relative flex flex-col',
         props.contentBox === 'glass' && 'backdrop-blur-md bg-white/10 border border-white/25 px-8 py-12 @3xl:px-16 @3xl:py-16 shadow-2xl',
         props.contentBox === 'solid' && 'sb-surface px-8 py-12 @3xl:px-16 @3xl:py-16 shadow-xl',
         layout === 'frame' && props.contentBox === 'none' && 'px-8 py-14 @3xl:px-16 @3xl:py-20',
       )}
       style={{
+        gap: section.style.elementGap ?? 20,
         alignItems: justify,
         textAlign: align,
         borderRadius: props.contentBox !== 'none' ? 'var(--sb-radius)' : undefined,
@@ -63,11 +65,11 @@ export function HeroSection({ section, props }: SectionComponentProps) {
       )}
       {props.eyebrow && (
         <Reveal>
-          <span className="sb-eyebrow">{props.eyebrow}</span>
+          <span {...editableTextAttributes(section, 'eyebrow', mode)} className="sb-eyebrow" style={editableTextStyle(props, 'eyebrow')}>{props.eyebrow}</span>
         </Reveal>
       )}
-      <Reveal>
-        <h1 className={cn(fontClass(props.titleFont), 'leading-[1.05]')} style={{ fontSize: titleSize }}>
+      <Reveal style={{ marginBottom: section.style.titleMarginBottom ?? 0 }}>
+        <h1 {...editableTextAttributes(section, 'title', mode)} className={cn(fontClass(props.titleFont), 'leading-[1.05]')} style={{ fontSize: titleSize, ...editableTextStyle(props, 'title') }}>
           {props.title}
         </h1>
       </Reveal>
@@ -80,16 +82,16 @@ export function HeroSection({ section, props }: SectionComponentProps) {
       )}
       {props.date && (
         <Reveal>
-          <p className="sb-heading italic text-lg @3xl:text-2xl opacity-95">{props.date}</p>
+          <p {...editableTextAttributes(section, 'date', mode)} className="sb-heading italic text-lg @3xl:text-2xl opacity-95" style={editableTextStyle(props, 'date')}>{props.date}</p>
         </Reveal>
       )}
       {props.subtitle && (
         <Reveal>
-          <p className="max-w-lg text-[15px] @3xl:text-base leading-relaxed opacity-85 whitespace-pre-line">{props.subtitle}</p>
+          <p {...editableTextAttributes(section, 'subtitle', mode)} className="max-w-lg text-[15px] @3xl:text-base leading-relaxed opacity-85 whitespace-pre-line" style={editableTextStyle(props, 'subtitle')}>{props.subtitle}</p>
         </Reveal>
       )}
       {props.showCountdown && <MiniCountdown />}
-      <SiteButtons buttons={props.buttons} className="mt-3" />
+      <SiteButtons buttons={props.buttons} style={{ marginTop: section.style.buttonMarginTop ?? 12 }} />
     </div>
   )
 
@@ -97,7 +99,7 @@ export function HeroSection({ section, props }: SectionComponentProps) {
     return (
       <SectionShell section={section} noContainer>
         <div className="grid w-full @3xl:grid-cols-2" style={{ minHeight: section.style.minHeight === 'screen' ? 'var(--sb-screen)' : undefined }}>
-          <div className="relative min-h-[380px] overflow-hidden">
+          <div className="relative min-h-[380px] overflow-hidden" data-editable-image-section={section.id} data-editable-image-key="sideImage" tabIndex={mode === 'editor' ? 0 : undefined}>
             <Reveal className="absolute inset-0">
               <SbImage src={props.sideImage} className="h-full w-full" />
             </Reveal>

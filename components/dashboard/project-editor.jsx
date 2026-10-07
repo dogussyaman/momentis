@@ -28,6 +28,7 @@ import { DatePickerField } from '@/components/ui/date-picker-field'
 import { CardMessageTemplates } from './card-message-templates'
 import { CanvasEditor } from '@/components/editor/CanvasEditor'
 import { useEditorStore } from '@/store/editor-store'
+import { SiteEditor } from '@/components/site-builder/SiteEditor'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
@@ -62,6 +63,7 @@ function pick(project) {
     gift_url: project.gift_url || '',
     slug: project.slug || '',
     canvas_design: project.canvas_design || null,
+    site_data: project.site_data || null,
   }
 }
 
@@ -160,26 +162,57 @@ export function ProjectEditor() {
     } catch (e) { toast.error(e.message) } finally { setSaving(false) }
   }
 
+  const handleSiteSave = async (siteData) => {
+    if (!form.host_a || !form.date) { toast.error('Gelin adı ve tarih zorunludur'); return }
+    setSaving(true)
+    try {
+      const body = { 
+        ...form, 
+        host_a: form.host_a || 'İsimsiz', 
+        date: form.date || new Date().toISOString(),
+        palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
+        site_data: siteData
+      }
+      const res = await fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Kaydedilemedi')
+      setProject(data.project)
+      setForm(pick(data.project))
+      toast.success('Site tasarımı güncellendi')
+    } catch (e) { toast.error(e.message) } finally { setSaving(false) }
+  }
+
   if (!form) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-96 rounded-2xl" /></div>
+
+  if (designTarget === 'site') {
+    return (
+      <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full" data-testid="project-editor-site">
+        <SiteEditor onSwitchToCard={() => changeDesignTarget('card')} isUpdate={true} onSave={handleSiteSave} />
+      </div>
+    )
+  }
 
   if (designTarget === 'card') {
     return (
-      <div className="-mt-2 flex h-[calc(100dvh-5rem)] flex-col gap-3 pb-3 lg:-mt-4 lg:h-[calc(100dvh-6rem)] w-full" data-testid="project-editor-canvas">
-        <div className="flex items-center justify-between shrink-0">
-          <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-3">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
-          </Button>
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
-               <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
-            </Button>
-            <Button onClick={save} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
-              <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Güncelleniyor…' : 'Güncelle'}
-            </Button>
-          </div>
-        </div>
-        <div className="flex-1 w-full relative overflow-hidden rounded-2xl border border-border shadow-sm bg-white">
-          <CanvasEditor />
+      <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full" data-testid="project-editor-canvas">
+        <div className="flex-1 w-full relative overflow-hidden bg-ivory">
+          <CanvasEditor 
+            topbarLeft={
+              <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-2">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
+              </Button>
+            }
+            topbarRight={
+              <div className="flex gap-2">
+                <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
+                   <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
+                </Button>
+                <Button onClick={save} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
+                  <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Güncelleniyor…' : 'Güncelle'}
+                </Button>
+              </div>
+            }
+          />
         </div>
       </div>
     )

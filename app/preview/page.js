@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InvitationSite } from '@/components/invitation/invitation-site'
+import { SiteViewer } from '@/components/site-builder/SiteViewer'
 import { DavetiyeKart } from '@/components/shared/davetiye-kart'
 import { SABLONLAR } from '@/lib/davetiye-svg'
 import { getEventType } from '@/lib/data/events'
@@ -130,6 +131,10 @@ export default function LivePreviewPage() {
         </div>
       </main>
     )
+  }
+
+  if (data.project.site_data) {
+    return <SiteViewer site={data.project.site_data} />
   }
 
   return <InvitationSite project={data.project} template={data.template} />

@@ -78,9 +78,9 @@ export function runButtonAction(btn: ButtonConfig, site: WeddingSite) {
       break
     case 'calendar':
       downloadIcs({
-        title: site.title || `${s.brideName ?? ''} & ${s.groomName ?? ''} Düğünü`,
+        title: btn.eventTitle || site.title || `${s.brideName ?? ''} & ${s.groomName ?? ''} Düğünü`,
         start: target || s.eventDate || '',
-        location: [s.venueName, s.venueAddress].filter(Boolean).join(', '),
+        location: btn.eventLocation || [s.venueName, s.venueAddress].filter(Boolean).join(', '),
       })
       break
     case 'phone':

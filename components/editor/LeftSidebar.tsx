@@ -456,21 +456,26 @@ export function LeftSidebar() {
   }
 
   return (
-    <div className="w-[260px] bg-white border-r flex flex-row shrink-0 h-full">
-      <div className="w-[64px] border-r bg-ivory flex flex-col items-center py-4 gap-2 overflow-y-auto">
+    <div className="flex h-full w-[280px] shrink-0 flex-row border-r border-border bg-white shadow-[2px_0_18px_-16px_rgba(16,24,39,0.35)]">
+      <div className="flex w-[68px] flex-col items-center gap-1.5 overflow-y-auto border-r border-border bg-[#faf9f6] py-3">
         {tabs.map(tab => (
           <button 
             key={tab.id} 
             onClick={() => setActiveTab(tab.id)}
-            className={`w-full flex flex-col items-center gap-1.5 py-3 transition-colors ${activeTab === tab.id ? 'text-midnight bg-black/5' : 'text-midnight/70 hover:text-midnight hover:bg-black/5'}`}
+            title={tab.label}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+            className={`relative mx-1 flex w-[58px] flex-col items-center gap-1.5 rounded-xl py-2.5 transition-colors ${activeTab === tab.id ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/60 hover:bg-white hover:text-midnight'}`}
           >
-            <tab.icon className="w-5 h-5" />
-            <span className="text-[9px] font-medium">{tab.label}</span>
+            <tab.icon className="h-[18px] w-[18px]" />
+            <span className="text-[8px] font-medium">{tab.label}</span>
           </button>
         ))}
       </div>
-      <div className="flex-1 p-3 bg-white overflow-y-auto">
-        <h2 className="font-serif text-lg mb-4 text-midnight">{tabs.find(t => t.id === activeTab)?.label}</h2>
+      <div className="flex-1 overflow-y-auto bg-white p-4">
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-border bg-white/95 px-4 py-3 backdrop-blur">
+          <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-champagne-dark">Momentis · Kart</p>
+          <h2 className="mt-1 font-serif text-lg text-midnight">{tabs.find(t => t.id === activeTab)?.label}</h2>
+        </div>
         
         {activeTab === 'elements' && (
           <div className="flex flex-col gap-4">

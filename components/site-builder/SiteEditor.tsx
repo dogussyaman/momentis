@@ -1,28 +1,47 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useSiteEditorStore } from '@/store/site-editor-store'
+import { useEffect, useState } from 'react'
+import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle } from 'lucide-react'
+import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { v4 as uuidv4 } from 'uuid'
+import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
 
 import { SectionsPanel } from './panels/SectionsPanel'
 import { InspectorPanel } from './panels/InspectorPanel'
 import { TemplatesPanel } from './panels/TemplatesPanel'
+import { LayersPanel } from './panels/LayersPanel'
 import { SiteCanvas } from './SiteCanvas'
 
 interface SiteEditorProps {
   onSwitchToCard: () => void;
+  isUpdate?: boolean;
+  onSave?: (site: any) => Promise<void>;
 }
 
-export function SiteEditor({ onSwitchToCard }: SiteEditorProps) {
-  const { initSite, site, device, setDevice, leftTab } = useSiteEditorStore();
+export function SiteEditor({ onSwitchToCard, isUpdate, onSave }: SiteEditorProps) {
+  const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, setIsPreview, isPreview } = useSiteEditorStore();
+  const [localSaving, setLocalSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (onSave && site) {
+      setLocalSaving(true);
+      try {
+        await onSave(site);
+      } finally {
+        setLocalSaving(false);
+      }
+    } else {
+      await save();
+    }
+  }
 
   useEffect(() => {
-    // Initialize with a dummy site for Phase 1
     if (!site) {
+      const template = buildSiteFromTemplate('minimal')
       initSite({
+        ...template,
         id: uuidv4(),
         userId: 'demo',
         title: 'Bizim Düğün',
@@ -44,7 +63,7 @@ export function SiteEditor({ onSwitchToCard }: SiteEditorProps) {
           headingScale: 1,
           letterSpacing: 'normal'
         },
-        sections: [],
+        sections: template.sections,
         settings: {
           musicEnabled: false,
           showCountdown: true
@@ -56,61 +75,93 @@ export function SiteEditor({ onSwitchToCard }: SiteEditorProps) {
     }
   }, [site, initSite]);
 
+  useEffect(() => {
+    if (site) autosaveSite()
+  }, [site]);
+
   if (!site) return <div className="flex items-center justify-center h-full">Yükleniyor...</div>;
 
   return (
-    <div className="flex flex-col h-full w-full bg-ivory shadow-sm border border-border rounded-2xl overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-ivory overflow-hidden">
       {/* Top Toolbar */}
-      <div className="h-14 border-b border-border bg-white flex items-center justify-between px-4 shrink-0">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onSwitchToCard} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight -ml-2">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Kart Tasarımına Dön
+      <div className="z-20 flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-white px-3 shadow-sm sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <Button variant="ghost" onClick={onSwitchToCard} className="h-9 shrink-0 px-2 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-midnight sm:px-3 sm:text-xs">
+            <ArrowLeft className="mr-1.5 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Kart Tasarımına Dön</span>
           </Button>
           <div className="h-4 w-px bg-border" />
-          <span className="text-xs font-serif text-midnight font-medium">MOMENTIS Site Editor</span>
+          <div className="hidden min-w-0 sm:block">
+            <p className="truncate font-serif text-xs font-medium text-midnight">{site.title || 'Davet sitesi'}</p>
+            <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">Site tasarım alanı</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1 border-l border-border pl-2 sm:pl-3">
+            <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo()} title="Geri al"><Undo2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo()} title="Yinele"><Redo2 className="h-4 w-4" /></Button>
+          </div>
         </div>
         
-        <div className="flex items-center gap-1 bg-ivory-50 p-1 rounded-full border border-border">
-          <Button variant="ghost" size="sm" onClick={() => setDevice('mobile')} className={cn('h-8 w-8 rounded-full p-0', device === 'mobile' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
+        <div className="flex shrink-0 items-center gap-1">
+          {lastSavedAt && <span className="hidden items-center gap-1 text-[9px] text-muted-foreground xl:flex"><Cloud className="h-3 w-3" /> Taslak kaydedildi</span>}
+          <Button variant="outline" size="sm" onClick={handleSave} aria-label={isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet'} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? (isUpdate ? 'Güncelleniyor…' : 'Kaydediliyor…') : (isUpdate ? 'Güncelle' : 'Kaydet')}</span></Button>
+          <Button variant="outline" size="sm" onClick={() => setIsPreview(!isPreview)} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{isPreview ? 'Düzenle' : 'Önizle'}</span></Button>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-ivory-50 p-0.5 sm:gap-1 sm:p-1">
+          <Button variant="ghost" size="sm" onClick={() => setDevice('mobile')} aria-label="Mobil önizleme" title="Mobil önizleme" className={cn('h-7 w-7 rounded-full p-0 sm:h-8 sm:w-8', device === 'mobile' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
             <Smartphone className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setDevice('tablet')} className={cn('h-8 w-8 rounded-full p-0', device === 'tablet' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
+          <Button variant="ghost" size="sm" onClick={() => setDevice('tablet')} aria-label="Tablet önizleme" title="Tablet önizleme" className={cn('h-7 w-7 rounded-full p-0 sm:h-8 sm:w-8', device === 'tablet' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
             <Tablet className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setDevice('desktop')} className={cn('h-8 w-8 rounded-full p-0', device === 'desktop' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
+          <Button variant="ghost" size="sm" onClick={() => setDevice('desktop')} aria-label="Masaüstü önizleme" title="Masaüstü önizleme" className={cn('h-7 w-7 rounded-full p-0 sm:h-8 sm:w-8', device === 'desktop' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
             <Monitor className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
+        {isPreview ? <div className="flex-1 overflow-y-auto bg-ivory-50 p-8"><div className="mx-auto w-full max-w-[1200px] overflow-hidden rounded-xl bg-white shadow-sm"><SiteCanvas /></div></div> : <>
         {/* Left Sidebar */}
         <div className="w-[300px] border-r border-border bg-white flex shrink-0 overflow-hidden">
           {/* Nav Strip */}
-          <div className="w-14 bg-ivory-50 border-r border-border flex flex-col items-center py-4 gap-4 shrink-0">
-             <button onClick={() => useSiteEditorStore.getState().setLeftTab('add')} className={cn("p-2 rounded-xl transition-colors", leftTab === 'add' ? 'bg-midnight text-ivory shadow-md' : 'text-midnight/50 hover:bg-ivory hover:text-midnight')}>
+          <div className="w-[68px] shrink-0 border-r border-border bg-white py-3">
+            <div className="flex flex-col items-center gap-1.5">
+             <button title="Bölüm ekle" onClick={() => useSiteEditorStore.getState().setLeftTab('add')} className={cn("flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-colors", leftTab === 'add' ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/55 hover:bg-ivory-50 hover:text-midnight')}>
                <PlusCircle className="w-5 h-5" />
+               Ekle
              </button>
-             <button onClick={() => useSiteEditorStore.getState().setLeftTab('templates')} className={cn("p-2 rounded-xl transition-colors", leftTab === 'templates' ? 'bg-midnight text-ivory shadow-md' : 'text-midnight/50 hover:bg-ivory hover:text-midnight')}>
+             <button title="Şablonlar" onClick={() => useSiteEditorStore.getState().setLeftTab('templates')} className={cn("flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-colors", leftTab === 'templates' ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/55 hover:bg-ivory-50 hover:text-midnight')}>
                <LayoutTemplate className="w-5 h-5" />
+               Şablon
              </button>
+             <button title="Katmanlar" onClick={() => useSiteEditorStore.getState().setLeftTab('layers')} className={cn("flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-colors", leftTab === 'layers' ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/55 hover:bg-ivory-50 hover:text-midnight')}>
+               <Layers className="w-5 h-5" />
+               Katman
+             </button>
+             <button title="Site ayarları" onClick={() => { useSiteEditorStore.getState().selectSection(null); useSiteEditorStore.getState().setLeftTab('add') }} className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55 transition-colors hover:bg-ivory-50 hover:text-midnight">
+               <Settings2 className="w-5 h-5" />
+               Site ayarı
+             </button>
+            </div>
           </div>
           <div className="flex-1 overflow-hidden">
              {leftTab === 'add' && <SectionsPanel />}
              {leftTab === 'templates' && <TemplatesPanel />}
+             {leftTab === 'layers' && <LayersPanel />}
              {/* other tabs can be added here if needed */}
           </div>
         </div>
 
         {/* Canvas / Preview */}
-        <div className="flex-1 bg-ivory-50 flex flex-col items-center p-8 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-4 sm:p-8">
+          <div className="flex min-h-full flex-col items-center">
           <div className={cn(
-            'bg-white border border-border shadow-md transition-all duration-300 rounded-xl flex flex-col',
+            'my-auto flex flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_16px_50px_-20px_rgba(16,24,39,0.28)] transition-all duration-300',
             device === 'mobile' ? 'w-[390px] min-h-[844px]' :
             device === 'tablet' ? 'w-[768px] min-h-[1024px]' :
             'w-full max-w-[1200px] min-h-[600px]'
           )}>
             <SiteCanvas />
+          </div>
           </div>
         </div>
 
@@ -118,6 +169,7 @@ export function SiteEditor({ onSwitchToCard }: SiteEditorProps) {
         <div className="w-[300px] border-l border-border bg-white shrink-0 overflow-hidden">
           <InspectorPanel />
         </div>
+        </>}
       </div>
     </div>
   )
