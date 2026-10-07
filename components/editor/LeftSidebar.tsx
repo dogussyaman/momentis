@@ -343,7 +343,6 @@ export function LeftSidebar() {
                   </div>
                </div>
              ))}
-          </div>
             <div className="pt-4 border-t">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Yeni Dekorasyon Kütüphanesi</h3>
               <p className="text-[10px] text-muted-foreground mb-3">MOMENTIS için hazır SVG süslemeler. Mevcut kütüphanen korunur.</p>
