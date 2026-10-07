@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { useSiteEditorStore } from '@/store/site-editor-store'
-import { SECTION_DEFINITIONS, type FieldDef } from '@/lib/site-builder/definitions'
+import { SECTION_DEFINITIONS } from '@/lib/site-builder/definitions'
+import { type FieldDef } from '@/lib/site-builder/schema'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -46,7 +47,7 @@ function tab(active:boolean){return 'h-7 rounded-md text-[9px] uppercase trackin
 function renderField(f:any,value:any,set:(v:any)=>void){
  if(['text','url','image','datetime','date','time','color','video'].includes(f.type))return <div className="space-y-1"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><Input type={f.type==='color'?'color':'text'} value={value??''} onChange={e=>set(e.target.value)} placeholder={f.placeholder} className="h-8 text-[11px]"/></div>
  if(f.type==='textarea')return <div className="space-y-1"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><Textarea value={value??''} onChange={e=>set(e.target.value)} placeholder={f.placeholder} rows={3} className="text-[11px]"/></div>
- if(f.type==='toggle')return <div className="flex items-center justify-between"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><Switch checked={!!value} onCheckedChange={set}/></div>
+ if(f.type==='toggle')return <div className="flex items-center justify-between"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><input type="checkbox" checked={!!value} onChange={e=>set(e.target.checked)}/></div>
  if(f.type==='number'||f.type==='slider')return <div className="space-y-1"><div className="flex justify-between"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><span className="text-[9px]">{value}</span></div><input type="range" min={f.min??0} max={f.max??100} step={f.step??1} value={Number(value)||0} onChange={e=>set(Number(e.target.value))} className="w-full"/>{f.type==='number'&&<Input type="number" value={value??0} onChange={e=>set(Number(e.target.value))} className="h-8 text-[10px]"/>}</div>
  if(f.type==='select'||f.type==='segmented')return <div className="space-y-1"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><select value={value??''} onChange={e=>set(e.target.value)} className="h-8 w-full rounded-md border bg-white px-2 text-[10px]">{f.options.map((o:any)=><option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
  return null
@@ -61,4 +62,4 @@ function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){return <
 function Group({title,children}:any){return <div className="space-y-2"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{title}</h4>{children}</div>}
 function Num({label,value,set}:any){return <div className="flex items-center justify-between gap-2"><Label className="text-[9px] text-muted-foreground">{label}</Label><Input type="number" value={value} onChange={e=>set(Number(e.target.value))} className="h-8 w-20 text-[10px]"/></div>}
 function Color({label,value,set}:any){return <div className="flex items-center justify-between gap-2"><Label className="text-[9px] text-muted-foreground">{label}</Label><input type="color" value={value} onChange={e=>set(e.target.value)} className="h-7 w-10 cursor-pointer rounded border"/></div>}
-function SwitchRow({label,value,set}:any){return <div className="flex items-center justify-between"><Label className="text-[9px] text-muted-foreground">{label}</Label><Switch checked={value} onCheckedChange={set}/></div>}
+function SwitchRow({label,value,set}:any){return <div className="flex items-center justify-between"><Label className="text-[9px] text-muted-foreground">{label}</Label><input type="checkbox" checked={!!value} onChange={e=>set(e.target.checked)}/></div>}
