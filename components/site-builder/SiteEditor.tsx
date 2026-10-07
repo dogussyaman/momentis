@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSiteEditorStore } from '@/store/site-editor-store'
+import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -57,6 +57,10 @@ export function SiteEditor({ onSwitchToCard }: SiteEditorProps) {
       });
     }
   }, [site, initSite]);
+
+  useEffect(() => {
+    if (site) autosaveSite()
+  }, [site]);
 
   if (!site) return <div className="flex items-center justify-center h-full">Yükleniyor...</div>;
 
