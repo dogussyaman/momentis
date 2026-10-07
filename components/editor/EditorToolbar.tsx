@@ -1,5 +1,5 @@
 import React from 'react'
-import { ZoomIn, ZoomOut, Maximize, Undo2, Redo2, Eye, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize, Undo2, Redo2, Eye, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Copy, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -26,8 +26,8 @@ function DebouncedColorPicker({ value, onChange, className, title }: { value: st
   return <input type="color" value={color} onChange={handleChange} className={className} title={title} />;
 }
 
-export function EditorToolbar() {
-  const { zoom, setZoom, selectedIds, design, updateElement } = useEditorStore()
+export function EditorToolbar({ topbarLeft, topbarRight }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode }) {
+  const { zoom, setZoom, selectedIds, design, updateElement, duplicateElement, deleteElement } = useEditorStore()
   
   const selectedElement = selectedIds.length === 1 ? design.elements.find(el => el.id === selectedIds[0]) : null
 
@@ -43,10 +43,16 @@ export function EditorToolbar() {
   }
   
   return (
-    <div className="h-12 border-b bg-white flex items-center justify-between px-4 shrink-0">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => (useEditorStore as any).temporal.getState().undo()}><Undo2 className="w-4 h-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => (useEditorStore as any).temporal.getState().redo()}><Redo2 className="w-4 h-4" /></Button>
+    <div className="z-20 flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-white px-3 shadow-sm sm:px-4">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+        {topbarLeft && (
+          <>
+            {topbarLeft}
+            <div className="w-px h-5 bg-border mx-2" />
+          </>
+        )}
+        <Button variant="ghost" size="icon" title="Geri al (Ctrl+Z)" aria-label="Geri al" className="h-8 w-8 shrink-0 text-muted-foreground" onClick={() => (useEditorStore as any).temporal.getState().undo()}><Undo2 className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" title="Yinele (Ctrl+Y)" aria-label="Yinele" className="h-8 w-8 shrink-0 text-muted-foreground" onClick={() => (useEditorStore as any).temporal.getState().redo()}><Redo2 className="w-4 h-4" /></Button>
         <div className="w-px h-4 bg-border mx-2" />
         
         {/* Dynamic Context Toolbar */}
@@ -124,23 +130,45 @@ export function EditorToolbar() {
               />
            </div>
         )}
+        {selectedIds.length > 0 && (
+          <div className="ml-1 flex shrink-0 items-center gap-1 rounded-lg border border-border bg-white px-1">
+            <span className="hidden px-2 text-[10px] text-muted-foreground sm:inline">
+              {selectedIds.length > 1 ? `${selectedIds.length} öğe seçili` : 'Öğe seçili'}
+            </span>
+            {selectedIds.length === 1 && (
+              <Button variant="ghost" size="icon" title="Çoğalt (Ctrl+D)" aria-label="Seçili öğeyi çoğalt" className="h-8 w-8" onClick={() => duplicateElement(selectedIds[0])}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" title="Sil (Delete)" aria-label="Seçili öğeleri sil" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => selectedIds.forEach(deleteElement)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
       
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border/70 bg-ivory-50/70 px-1">
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
-        <span className="text-xs w-12 text-center font-medium">{Math.round(zoom * 100)}%</span>
+        <span className="w-12 text-center text-[11px] font-semibold tabular-nums">{Math.round(zoom * 100)}%</span>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setZoom(Math.min(3, zoom + 0.1))}><ZoomIn className="w-4 h-4" /></Button>
         <div className="w-px h-4 bg-border mx-2" />
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setZoom(1)}><Maximize className="w-4 h-4" /></Button>
+        <Button variant="ghost" size="icon" title="Tuvale sığdır" aria-label="Tuvale sığdır" className="h-8 w-8 text-muted-foreground" onClick={() => setZoom(1)}><Maximize className="w-4 h-4" /></Button>
       </div>
       
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" className="h-8 px-4 text-xs" onClick={handleDownload}>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="hidden text-[10px] text-muted-foreground xl:inline">{design.width} × {design.height} px</span>
+        <Button variant="outline" size="sm" className="h-8 px-3 text-[11px]" onClick={handleDownload}>
           İndir (PNG)
         </Button>
-        <Button variant="default" size="sm" className="h-8 px-4 bg-midnight text-ivory text-xs hover:bg-midnight/90">
+        <Button variant="default" size="sm" className="h-8 bg-midnight px-3 text-[11px] text-ivory hover:bg-midnight/90">
           <Eye className="w-3.5 h-3.5 mr-1.5" /> Önizleme
         </Button>
+        {topbarRight && (
+          <>
+            <div className="w-px h-5 bg-border mx-2" />
+            {topbarRight}
+          </>
+        )}
       </div>
     </div>
   )

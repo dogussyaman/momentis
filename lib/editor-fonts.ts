@@ -27,6 +27,7 @@ export const EDITOR_FONTS: EditorFont[] = [
   { name: 'Oswald', category: 'Display', weights: '400;500;600;700' },
   { name: 'Montserrat', category: 'Sans', weights: '400;500;600;700' },
   { name: 'Poppins', category: 'Sans', weights: '400;500;600;700' },
+  { name: 'Inter', category: 'Sans', weights: '400;500;600;700' },
   { name: 'DM Sans', category: 'Sans', weights: '300;400;500;600;700' },
   { name: 'Raleway', category: 'Sans', weights: '400;500;600;700' },
   { name: 'Josefin Sans', category: 'Sans', weights: '400;500;600;700' },

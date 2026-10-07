@@ -38,11 +38,18 @@ export function RightSidebar() {
 
   if (!selectedElement) {
     return (
-      <div className="w-[260px] bg-white border-l p-6 shrink-0 flex flex-col items-center justify-center text-center gap-4 text-sm text-muted-foreground">
-        <div className="w-16 h-16 rounded-full bg-ivory/50 flex items-center justify-center text-midnight/20 mb-2">
-          <Sparkles className="w-8 h-8" />
+      <div className="flex w-[260px] shrink-0 flex-col items-center justify-center gap-4 border-l border-border bg-white p-6 text-center text-sm text-muted-foreground">
+        <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-ivory-50 text-midnight/30 shadow-sm">
+          <Sparkles className="h-7 w-7" />
         </div>
-        <p>Düzenlemek için Canvas üzerinden<br />bir öğeye tıklayın.</p>
+        <div>
+          <p className="font-medium text-midnight">Tasarımınızı kişiselleştirin</p>
+          <p className="mt-1 text-xs leading-relaxed">Tuvalde bir metin, görsel veya şekil seçin. Konum, boyut ve katman ayarları burada açılır.</p>
+        </div>
+        <div className="w-full rounded-xl border border-dashed border-border bg-ivory-50/70 p-3 text-left">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-midnight/70">Hızlı ipucu</p>
+          <p className="mt-1 text-[10px] leading-relaxed">Bir öğeyi seçip sürükleyerek yerini değiştirin; köşelerinden tutup boyutlandırın.</p>
+        </div>
       </div>
     )
   }
@@ -52,18 +59,23 @@ export function RightSidebar() {
   }
 
   return (
-    <div className="w-[260px] bg-white border-l shrink-0 flex flex-col h-full shadow-sm relative z-10">
-      <div className="px-4 py-3 border-b bg-ivory/30 flex items-center gap-2">
-        {selectedElement.type === 'text' ? <Type className="w-4 h-4 text-midnight/60" /> :
-          selectedElement.type === 'image' ? <ImageIcon className="w-4 h-4 text-midnight/60" /> :
-            <Shapes className="w-4 h-4 text-midnight/60" />}
-        <h3 className="font-semibold text-sm text-midnight tracking-wide">
+    <div className="relative z-10 flex h-full w-[260px] shrink-0 flex-col border-l border-border bg-white shadow-[-2px_0_18px_-16px_rgba(16,24,39,0.35)]">
+      <div className="sticky top-0 flex items-center gap-3 border-b border-border bg-white px-4 py-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ivory-50 text-midnight/70">
+          {selectedElement.type === 'text' ? <Type className="h-4 w-4" /> :
+            selectedElement.type === 'image' ? <ImageIcon className="h-4 w-4" /> :
+              <Shapes className="h-4 w-4" />}
+        </div>
+        <div className="min-w-0">
+        <h3 className="truncate text-sm font-semibold tracking-wide text-midnight">
           {selectedElement.type === 'text' ? 'Metin Özellikleri' :
             selectedElement.type === 'image' ? 'Süsleme Özellikleri' : 'Şekil Özellikleri'}
         </h3>
+        <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">Seçili öğe</p>
+        </div>
       </div>
 
-      <div className="p-4 space-y-6 overflow-y-auto flex-1">
+      <div className="flex-1 space-y-6 overflow-y-auto bg-[#fdfcf9] p-3">
 
         {/* Pozisyon & Boyut */}
         <div className="space-y-3">

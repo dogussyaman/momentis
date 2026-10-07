@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Copy, ExternalLink, Users, MailCheck, UserX, Send, Trash2, Eye, EyeOff, Pencil } from 'lucide-react'
+import { ArrowLeft, Copy, ExternalLink, Users, MailCheck, UserX, Send, Trash2, Eye, EyeOff, Pencil, QrCode } from 'lucide-react'
+import QRCode from 'qrcode'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { DavetiyeCanvasPreview } from '@/components/shared/davetiye-canvas-preview'
 import { getEventType } from '@/lib/data/events'
 import { formatEventDate } from '@/lib/projects'
 import { GuestsTab } from './guests-tab'
@@ -23,6 +26,8 @@ export function ProjectDetail() {
   const router = useRouter()
   const [project, setProject] = useState(null)
   const [notFound, setNotFound] = useState(false)
+  const [qrCodeData, setQrCodeData] = useState(null)
+  const [qrCodeTitle, setQrCodeTitle] = useState('')
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/projects/${id}`, { credentials: 'include', cache: 'no-store' })
@@ -35,6 +40,16 @@ export function ProjectDetail() {
 
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(project.url); toast.success('Bağlantı kopyalandı') } catch { toast.error('Kopyalanamadı') }
+  }
+
+  const generateQr = async (url, title) => {
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { width: 300, margin: 2, color: { dark: '#1e293b', light: '#ffffff' } })
+      setQrCodeData(dataUrl)
+      setQrCodeTitle(title)
+    } catch (err) {
+      toast.error('QR Kod oluşturulamadı')
+    }
   }
 
   const togglePublish = async () => {
@@ -73,13 +88,40 @@ export function ProjectDetail() {
           <Button asChild variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]">
             <Link href={`/panel/etkinlik/${id}/duzenle`} data-testid="edit-project"><Pencil className="mr-2 h-3.5 w-3.5" /> Düzenle</Link>
           </Button>
-          <Button variant="outline" onClick={copyLink} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="copy-link"><Copy className="mr-2 h-3.5 w-3.5" /> Bağlantıyı Kopyala</Button>
+          <Button variant="outline" onClick={copyLink} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="copy-link"><Copy className="mr-2 h-3.5 w-3.5" /> Site Bağlantısını Kopyala</Button>
+          <Button variant="outline" onClick={() => generateQr(project.url, 'Davetiye Sitesi QR Kodu')} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="qr-site"><QrCode className="mr-2 h-3.5 w-3.5" /> Site QR</Button>
           <Button asChild variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]">
-            <a href={`/d/${project.slug}`} target="_blank" rel="noreferrer" data-testid="open-invitation"><ExternalLink className="mr-2 h-3.5 w-3.5" /> Davetiyeyi Aç</a>
+            <a href={`/d/${project.slug}`} target="_blank" rel="noreferrer" data-testid="open-site"><ExternalLink className="mr-2 h-3.5 w-3.5" /> Siteyi Aç</a>
           </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em] bg-champagne text-midnight hover:bg-champagne-light">
+                <Eye className="mr-2 h-3.5 w-3.5" /> Davetiye Kartını Gör
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-2xl bg-ivory rounded-2xl p-0 overflow-hidden border-0">
+               <DialogTitle className="sr-only">Davetiye Kartı</DialogTitle>
+               <DavetiyeCanvasPreview project={project} />
+            </DialogContent>
+          </Dialog>
           <Button onClick={togglePublish} className="h-11 rounded-2xl bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="toggle-publish">{project.published ? <><EyeOff className="mr-2 h-3.5 w-3.5" /> Yayından Kaldır</> : <><Eye className="mr-2 h-3.5 w-3.5" /> Yayınla</>}</Button>
         </div>
       </div>
+
+      <AlertDialog open={!!qrCodeData} onOpenChange={(open) => !open && setQrCodeData(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-sm text-center">
+          <AlertDialogHeader><AlertDialogTitle className="font-serif text-2xl text-center">{qrCodeTitle}</AlertDialogTitle></AlertDialogHeader>
+          <div className="flex justify-center p-4">
+            {qrCodeData && <img src={qrCodeData} alt="QR Code" className="w-64 h-64 rounded-xl shadow-sm border border-border" />}
+          </div>
+          <AlertDialogFooter className="sm:justify-center flex-col gap-2">
+            <Button asChild variant="default" className="w-full rounded-xl bg-midnight text-ivory">
+              <a href={qrCodeData} download={`${project.slug}-${qrCodeTitle === 'Anı Albümü QR Kodu' ? 'album' : 'site'}-qr.png`}>Görseli İndir</a>
+            </Button>
+            <AlertDialogCancel className="rounded-xl w-full mt-2">Kapat</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="mt-10 grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
         <Stat icon={Users} label="Davetli" value={s.guest_count ?? 0} testid="stat-guests" />

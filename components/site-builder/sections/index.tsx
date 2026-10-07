@@ -8,6 +8,8 @@ import { RsvpSection } from './RsvpSection'
 import { MusicSection, FaqSection } from './MusicFaqSection'
 import { GiftSection, AccommodationSection, DresscodeSection } from './InfoSections'
 import { GuestbookSection } from './GuestbookSection'
+import { AlbumUploadSection } from './AlbumUploadSection'
+import { ShareSection } from './ShareSection'
 import { TextSection, DividerSection, FooterSection } from './MiscSections'
 import type { SectionComponentProps } from '../render/primitives'
 
@@ -26,6 +28,8 @@ export const sectionComponents: Record<string, React.ComponentType<SectionCompon
   accommodation: AccommodationSection,
   dresscode: DresscodeSection,
   guestbook: GuestbookSection,
+  album: AlbumUploadSection,
+  share: ShareSection,
   text: TextSection,
   divider: DividerSection,
   footer: FooterSection,

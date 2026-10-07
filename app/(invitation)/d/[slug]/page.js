@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getDb } from '@/lib/db'
 import { InvitationSite } from '@/components/invitation/invitation-site'
+import { SiteViewer } from '@/components/site-builder/SiteViewer'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,5 +25,10 @@ export default async function InvitationPage({ params }) {
   const { slug } = await params
   const data = await loadInvitation(slug)
   if (!data) notFound()
+  
+  if (data.project.site_data) {
+    return <SiteViewer site={data.project.site_data} />
+  }
+
   return <InvitationSite project={data.project} template={data.template} />
 }

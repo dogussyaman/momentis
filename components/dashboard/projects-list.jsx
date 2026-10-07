@@ -74,13 +74,13 @@ export function ProjectsList() {
           {items.map((p) => {
             const type = getEventType(p.event_type)
             return (
-              <div key={p.id} className="group relative flex flex-col overflow-hidden rounded-[2rem] border border-border bg-ivory-50 transition-all duration-500 hover:-translate-y-1 hover:border-champagne hover:shadow-[0_30px_60px_-30px_rgba(16,24,39,0.35)]" data-testid={`project-card-${p.slug}`}>
-                <Link href={`/panel/etkinlik/${p.id}`} className="flex flex-col p-7">
+              <div key={p.id} className="group flex flex-col overflow-hidden rounded-3xl border border-midnight/10 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-champagne/70 hover:shadow-[0_24px_60px_-32px_rgba(16,24,39,0.35)]" data-testid={`project-card-${p.slug}`}>
+                <Link href={`/panel/etkinlik/${p.id}`} className="flex flex-1 flex-col p-6 sm:p-7">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{type?.label}</Badge>
                     <Badge className={p.published ? 'rounded-full border-0 bg-sage/30 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-sage/30' : 'rounded-2xl border-0 bg-muted text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:bg-muted'}>{p.published ? 'Yayında' : 'Taslak'}</Badge>
                   </div>
-                  <h3 className="mt-6 font-serif text-3xl leading-tight text-midnight">{[p.host_a, p.host_b].filter(Boolean).join(' & ')}</h3>
+                  <h3 className="mt-7 font-serif text-3xl leading-tight text-midnight">{[p.host_a, p.host_b].filter(Boolean).join(' & ')}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{p.date ? new Date(`${p.date}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tarih belirtilmedi'}{p.venue ? ` · ${p.venue}` : ''}</p>
                   <div className="mt-8 grid grid-cols-2 gap-4 border-t border-border pt-5">
                     <div><p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground"><Users className="h-3.5 w-3.5" /> Davetli</p><p className="mt-1 font-serif text-2xl text-midnight">{p.stats?.guest_count ?? 0}</p></div>
@@ -88,16 +88,14 @@ export function ProjectsList() {
                   </div>
                   <p className="mt-5 flex items-center gap-2 truncate text-xs text-champagne-dark"><ExternalLink className="h-3 w-3" /> /d/{p.slug}</p>
                 </Link>
-                
-                {/* Hover Actions */}
-                <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-full items-center justify-center gap-2 bg-gradient-to-t from-ivory via-ivory-50/95 to-transparent pb-6 pt-12 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                  <Button asChild size="sm" variant="outline" className="h-9 rounded-full border-midnight/20 bg-white/80 px-4 text-[10px] uppercase tracking-widest text-midnight backdrop-blur-md hover:bg-midnight hover:text-white">
+                <div className="flex flex-wrap gap-2 border-t border-midnight/8 bg-ivory-50/60 px-5 py-4">
+                  <Button asChild size="sm" variant="outline" className="h-9 flex-1 rounded-xl border-midnight/15 bg-white px-3 text-[10px] uppercase tracking-widest text-midnight hover:bg-midnight hover:text-white">
                     <Link href={`/panel/etkinlik/${p.id}`}><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Aç</Link>
                   </Button>
-                  <Button asChild size="sm" variant="outline" className="h-9 rounded-full border-midnight/20 bg-white/80 px-4 text-[10px] uppercase tracking-widest text-midnight backdrop-blur-md hover:bg-midnight hover:text-white">
+                  <Button asChild size="sm" variant="outline" className="h-9 flex-1 rounded-xl border-midnight/15 bg-white px-3 text-[10px] uppercase tracking-widest text-midnight hover:bg-midnight hover:text-white">
                     <Link href={`/panel/etkinlik/${p.id}/duzenle`}><Edit className="mr-1.5 h-3.5 w-3.5" /> Düzenle</Link>
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={(e) => deleteProject(p.id, e)} className="h-9 rounded-full bg-red-500/90 px-4 text-[10px] uppercase tracking-widest text-white backdrop-blur-md hover:bg-red-600">
+                  <Button size="sm" variant="ghost" onClick={(e) => deleteProject(p.id, e)} className="h-9 rounded-xl px-3 text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-50 hover:text-red-600" aria-label={`${p.host_a} etkinliğini sil`}>
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Sil
                   </Button>
                 </div>

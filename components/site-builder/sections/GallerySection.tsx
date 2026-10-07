@@ -17,15 +17,15 @@ export function GallerySection({ section, props }: SectionComponentProps) {
   const gap = props.gap ?? 12
   const cols = props.columns ?? 3
 
-  const canOpen = mode === 'live' && props.lightbox !== false
+  const canOpen = mode !== 'editor' && props.lightbox !== false
   const tile = (img: (typeof images)[number], i: number, className?: string, key?: string) => (
     <Reveal key={key} className={cn('group relative overflow-hidden sb-radius', canOpen && 'cursor-zoom-in', className)}>
-      <div onClick={() => canOpen && setOpen(i)} className="w-full h-full">
+      <button type="button" onClick={() => canOpen && setOpen(i)} aria-disabled={!canOpen} aria-label={img.caption ? `Fotoğrafı görüntüle: ${img.caption}` : `Fotoğraf ${i + 1} görüntüle`} className="block h-full w-full border-0 bg-transparent p-0 text-left">
         <SbImage src={img.src} alt={img.caption} className={cn('w-full h-full transition-transform duration-700', props.hoverZoom !== false && 'group-hover:scale-110')} />
         {props.showCaptions && img.caption && (
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 text-left text-sm text-white">{img.caption}</div>
         )}
-      </div>
+      </button>
     </Reveal>
   )
 
@@ -38,7 +38,9 @@ export function GallerySection({ section, props }: SectionComponentProps) {
           <style>{`[data-section-id="${section.id}"] .sb-gal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@container (min-width:48rem){[data-section-id="${section.id}"] .sb-gal-grid{grid-template-columns:repeat(${cols},minmax(0,1fr))}}`}</style>
           <div className="sb-gal-grid grid" style={{ gap }}>
             {images.map((img, i) => (
-              tile(img, i, ASPECT[props.aspect ?? 'square'], img.id)
+              <div key={img.id} data-editable-image-section={section.id} data-editable-image-key={`images.${i}.src`}>
+                {tile(img, i, ASPECT[props.aspect ?? 'square'], img.id)}
+              </div>
             ))}
           </div>
         </>
@@ -49,7 +51,7 @@ export function GallerySection({ section, props }: SectionComponentProps) {
           <style>{`[data-section-id="${section.id}"] .sb-gal-masonry{column-count:2}@container (min-width:48rem){[data-section-id="${section.id}"] .sb-gal-masonry{column-count:${cols}}}`}</style>
           <div className="sb-gal-masonry" style={{ columnGap: gap }}>
             {images.map((img, i) => (
-              <div key={img.id} style={{ marginBottom: gap, breakInside: 'avoid' }}>
+              <div key={img.id} data-editable-image-section={section.id} data-editable-image-key={`images.${i}.src`} style={{ marginBottom: gap, breakInside: 'avoid' }}>
                 {tile(img, i, i % 3 === 0 ? 'aspect-[3/4]' : i % 3 === 1 ? 'aspect-square' : 'aspect-[4/5]')}
               </div>
             ))}
@@ -62,7 +64,7 @@ export function GallerySection({ section, props }: SectionComponentProps) {
           {images.map((img, i) => {
             const k = i % 6
             const span = k === 0 ? 'col-span-2 row-span-2' : k === 3 ? '@3xl:row-span-2' : k === 5 ? 'col-span-2' : ''
-            return tile(img, i, span, img.id)
+            return <div key={img.id} data-editable-image-section={section.id} data-editable-image-key={`images.${i}.src`}>{tile(img, i, span, img.id)}</div>
           })}
         </div>
       )}
@@ -71,7 +73,7 @@ export function GallerySection({ section, props }: SectionComponentProps) {
         <div className="relative">
           <div ref={scroller} className="sb-no-scrollbar flex overflow-x-auto snap-x snap-mandatory scroll-smooth" style={{ gap }}>
             {images.map((img, i) => (
-              <div key={img.id} className="snap-center shrink-0 w-[78%] @2xl:w-[45%] @4xl:w-[32%]">
+              <div key={img.id} data-editable-image-section={section.id} data-editable-image-key={`images.${i}.src`} className="snap-center shrink-0 w-[78%] @2xl:w-[45%] @4xl:w-[32%]">
                 {tile(img, i, ASPECT[props.aspect ?? 'portrait'])}
               </div>
             ))}

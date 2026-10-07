@@ -33,8 +33,13 @@ export default function CanvasStage() {
       if (
         editingText || 
         document.activeElement?.tagName === 'INPUT' || 
-        document.activeElement?.tagName === 'TEXTAREA'
+        document.activeElement?.tagName === 'TEXTAREA' ||
+        (document.activeElement instanceof HTMLElement && document.activeElement.isContentEditable)
       ) return
+
+      if (e.key === 'Escape') {
+        clearSelection()
+      }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.length > 0) {
@@ -56,10 +61,15 @@ export default function CanvasStage() {
         // @ts-ignore
         useEditorStore.temporal.getState().redo()
       }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && selectedIds.length === 1) {
+        e.preventDefault()
+        duplicateElement(selectedIds[0])
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedIds, editingText, deleteElement, clearSelection])
+  }, [selectedIds, editingText, deleteElement, duplicateElement, clearSelection])
 
   // Font loading mechanism for Canvas
   useEffect(() => {
@@ -733,4 +743,3 @@ function CanvasIcon({ element, onDragMove, onDragEnd }: { element: any, onDragMo
     />
   )
 }
-
