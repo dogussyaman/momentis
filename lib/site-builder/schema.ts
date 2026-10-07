@@ -83,6 +83,21 @@ export interface SectionAnimation {
   stagger?: boolean
 }
 
+export interface SiteOverlayElement {
+  id: string
+  type: 'text' | 'button'
+  text: string
+  x: number
+  y: number
+  width: number
+  fontSize: number
+  color: string
+  backgroundColor?: string
+  borderRadius?: number
+  action?: ButtonAction
+  target?: string
+}
+
 export type SiteSection = {
   id: string
   type: string

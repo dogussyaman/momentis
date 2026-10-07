@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { temporal } from 'zundo'
 
 export type ElementType = 'text' | 'image' | 'svg' | 'rect' | 'circle' | 'line' | 'group' | 'icon'
+export type EditorTool = 'select' | 'pen' | 'line' | 'rectangle' | 'note' | 'text' | 'table'
 
 export interface CanvasElement {
   id: string
@@ -30,7 +31,11 @@ interface EditorState {
   design: CanvasDocument
   selectedIds: string[]
   zoom: number // ratio, 1 = 100%
+  activeTool: EditorTool
+  toolColor: string
   // Actions
+  setActiveTool: (tool: EditorTool) => void
+  setToolColor: (color: string) => void
   selectElement: (id: string | null) => void
   selectMultiple: (id: string) => void
   clearSelection: () => void
@@ -89,7 +94,11 @@ export const useEditorStore = create<EditorState>()(
       design: initialDesign,
       selectedIds: [],
       zoom: 1,
+      activeTool: 'select',
+      toolColor: '#1C2430',
 
+      setActiveTool: (activeTool) => set({ activeTool }),
+      setToolColor: (toolColor) => set({ toolColor }),
       selectElement: (id) => set({ selectedIds: id ? [id] : [] }),
       selectMultiple: (id) => set((state) => ({ 
         selectedIds: state.selectedIds.includes(id) 

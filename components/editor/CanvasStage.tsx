@@ -8,10 +8,12 @@ import { fontStack } from '@/lib/editor-fonts'
 import { SEMBOLLER, GRADYANLAR } from '@/lib/davetiye-svg'
 
 export default function CanvasStage() {
-  const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds } = useEditorStore()
+  const { design, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor } = useEditorStore()
   const stageRef = useRef<any>(null)
   const [stageSize, setStageSize] = useState({ width: 1000, height: 800 })
   const containerRef = useRef<HTMLDivElement>(null)
+  const drawingRef = useRef<any>(null)
+  const [draftLine, setDraftLine] = useState<any>(null)
   const [contextMenu, setContextMenu] = useState<{ visible: boolean, x: number, y: number, elementId: string | null }>({ visible: false, x: 0, y: 0, elementId: null })
   const [editingText, setEditingText] = useState<{
     id: string, text: string, x: number, y: number, width: number, height: number, fontSize: number, fontFamily: string, fontStyle: string, fontWeight: number, textDecoration: string, letterSpacing: number, lineHeight: number, fill: string, align: string, rotation: number
@@ -129,6 +131,143 @@ export default function CanvasStage() {
     if (clickedOnEmpty) {
       clearSelection()
     }
+  }
+
+  const getCanvasPoint = () => {
+    const pointer = stageRef.current?.getPointerPosition()
+    if (!pointer || !scale) return null
+    const x = (pointer.x - stageX) / scale
+    const y = (pointer.y - stageY) / scale
+    if (x < 0 || y < 0 || x > design.width || y > design.height) return null
+    return { x, y }
+  }
+
+  const addToolElement = (tool: string, x: number, y: number) => {
+    const id = `tool_${Math.random().toString(36).slice(2, 10)}`
+    let elements: any[] = []
+    let selectedId = id
+
+    if (tool === 'rectangle') {
+      elements = [{
+        id, type: 'rect', x, y, width: 220, height: 140,
+        fill: toolColor, opacity: 0.22, stroke: toolColor, strokeWidth: 2, visible: true, locked: false
+      }]
+    } else if (tool === 'text') {
+      elements = [{
+        id, type: 'text', x, y, width: 420, height: 70, text: 'Metninizi buraya yazın',
+        fontFamily: 'Playfair Display', fontSize: 42, fill: '#1C2430', align: 'left',
+        opacity: 1, visible: true, locked: false
+      }]
+    } else if (tool === 'note') {
+      const textId = `${id}_text`
+      selectedId = textId
+      elements = [
+        {
+          id, type: 'rect', x, y, width: 280, height: 190, fill: '#FEF08A',
+          opacity: 1, visible: true, locked: false
+        },
+        {
+          id: textId, type: 'text', x: x + 18, y: y + 18, width: 244, height: 154,
+          text: 'Notunuzu yazın', fontFamily: 'Georgia', fontSize: 30,
+          fill: '#3B3320', align: 'left', opacity: 1, visible: true, locked: false
+        }
+      ]
+    } else if (tool === 'table') {
+      const width = 360
+      const height = 240
+      const rows = 3
+      const columns = 3
+      elements = [{
+        id, type: 'rect', x, y, width, height, fill: '#FFFFFF',
+        opacity: 1, visible: true, locked: false
+      }]
+      for (let row = 1; row < rows; row += 1) {
+        elements.push({
+          id: `${id}_row_${row}`, type: 'line', x: 0, y: 0,
+          points: [x, y + (height * row) / rows, x + width, y + (height * row) / rows],
+          stroke: '#9CA3AF', strokeWidth: 2, opacity: 1, visible: true, locked: false
+        })
+      }
+      for (let column = 1; column < columns; column += 1) {
+        elements.push({
+          id: `${id}_column_${column}`, type: 'line', x: 0, y: 0,
+          points: [x + (width * column) / columns, y, x + (width * column) / columns, y + height],
+          stroke: '#9CA3AF', strokeWidth: 2, opacity: 1, visible: true, locked: false
+        })
+      }
+      elements.push({
+        id: `${id}_border`, type: 'line', x: 0, y: 0,
+        points: [x, y, x + width, y, x + width, y + height, x, y + height, x, y],
+        stroke: '#9CA3AF', strokeWidth: 2, opacity: 1, visible: true, locked: false
+      })
+    }
+
+    if (elements.length) {
+      useEditorStore.setState(state => ({
+        design: { ...state.design, elements: [...state.design.elements, ...elements] },
+        selectedIds: [selectedId]
+      }))
+    }
+  }
+
+  const handleStagePointerDown = (e: any) => {
+    if (activeTool === 'select') {
+      checkDeselect(e)
+      return
+    }
+
+    const point = getCanvasPoint()
+    if (!point) return
+    e.cancelBubble = true
+    e.evt.preventDefault()
+
+    if (activeTool === 'pen' || activeTool === 'line') {
+      const line = {
+        id: `draw_${Math.random().toString(36).slice(2, 10)}`,
+        type: 'line',
+        x: 0,
+        y: 0,
+        points: [point.x, point.y, point.x, point.y],
+        stroke: toolColor,
+        strokeWidth: activeTool === 'pen' ? 5 : 3,
+        lineCap: 'round',
+        lineJoin: 'round',
+        tension: activeTool === 'pen' ? 0.35 : 0,
+        opacity: 1,
+        visible: true,
+        locked: false,
+      }
+      drawingRef.current = line
+      setDraftLine(line)
+      clearSelection()
+      return
+    }
+
+    addToolElement(activeTool, point.x, point.y)
+  }
+
+  const handleStagePointerMove = (e: any) => {
+    const line = drawingRef.current
+    if (!line) return
+    const point = getCanvasPoint()
+    if (!point) return
+    line.points = activeTool === 'pen'
+      ? [...line.points, point.x, point.y]
+      : [line.points[0], line.points[1], point.x, point.y]
+    setDraftLine({ ...line, points: [...line.points] })
+    e.cancelBubble = true
+  }
+
+  const handleStagePointerUp = () => {
+    const line = drawingRef.current
+    if (!line) return
+    drawingRef.current = null
+    setDraftLine(null)
+    if (line.points.length < 4 || (line.points[0] === line.points[2] && line.points[1] === line.points[3])) return
+    useEditorStore.setState(state => ({
+      design: { ...state.design, elements: [...state.design.elements, line] },
+      selectedIds: [line.id]
+    }))
   }
 
   const handleDragMove = (e: any, element: any) => {
@@ -334,14 +473,18 @@ export default function CanvasStage() {
   }, [addSidebarElementAtPosition])
 
   return (
-    <div ref={containerRef} className="h-full w-full bg-[#f5f5f5] flex items-center justify-center overflow-hidden relative">
+    <div ref={containerRef} className="relative flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-[#f5f5f5]" style={{ cursor: activeTool === 'select' ? 'default' : 'crosshair' }}>
       <Stage
         ref={stageRef}
         width={stageSize.width}
         height={stageSize.height}
         pixelRatio={typeof window !== 'undefined' ? Math.max(window.devicePixelRatio || 1, 2) : 2}
-        onMouseDown={checkDeselect}
-        onTouchStart={checkDeselect}
+        onMouseDown={handleStagePointerDown}
+        onTouchStart={handleStagePointerDown}
+        onMouseMove={handleStagePointerMove}
+        onTouchMove={handleStagePointerMove}
+        onMouseUp={handleStagePointerUp}
+        onTouchEnd={handleStagePointerUp}
         onContextMenu={handleContextMenu}
       >
         <Layer x={stageX} y={stageY} scaleX={scale} scaleY={scale}>
@@ -379,14 +522,14 @@ export default function CanvasStage() {
                   fill={el.fill}
                   align={el.align}
                   opacity={editingText?.id === el.id ? 0 : (el.opacity || 1)}
-                  draggable={!el.locked}
+                  draggable={activeTool === 'select' && !el.locked}
                   onClick={(e) => {
                     e.cancelBubble = true
-                    selectElement(el.id)
+                    if (activeTool === 'select') selectElement(el.id)
                   }}
                   onTap={(e) => {
                     e.cancelBubble = true
-                    selectElement(el.id)
+                    if (activeTool === 'select') selectElement(el.id)
                   }}
                   onDblClick={(e) => {
                     e.cancelBubble = true
@@ -453,14 +596,16 @@ export default function CanvasStage() {
                   fill={el.fill}
                   opacity={el.opacity || 1}
                   cornerRadius={el.cornerRadius || 0}
-                  draggable={!el.locked}
+                  stroke={el.stroke}
+                  strokeWidth={el.strokeWidth || 0}
+                  draggable={activeTool === 'select' && !el.locked}
                   onClick={(e) => {
                     e.cancelBubble = true
-                    selectElement(el.id)
+                    if (activeTool === 'select') selectElement(el.id)
                   }}
                   onTap={(e) => {
                     e.cancelBubble = true
-                    selectElement(el.id)
+                    if (activeTool === 'select') selectElement(el.id)
                   }}
                   onDragEnd={(e) => handleDragEnd(e, el.id)}
                   onTransformEnd={(e) => handleTransformEnd(e, el.id)}
@@ -477,14 +622,14 @@ export default function CanvasStage() {
                   radius={el.width / 2}
                   fill={el.fill}
                   opacity={el.opacity || 1}
-                  draggable={!el.locked}
+                  draggable={activeTool === 'select' && !el.locked}
                   onClick={(e) => {
                     e.cancelBubble = true
-                    selectElement(el.id)
+                    if (activeTool === 'select') selectElement(el.id)
                   }}
                   onTap={(e) => {
                     e.cancelBubble = true
-                    selectElement(el.id)
+                    if (activeTool === 'select') selectElement(el.id)
                   }}
                   onDragEnd={(e) => handleDragEnd(e, el.id)}
                   onTransformEnd={(e) => {
@@ -506,6 +651,7 @@ export default function CanvasStage() {
               return <CanvasImage 
                 key={el.id} 
                 element={el} 
+                activeTool={activeTool}
                 onDragMove={(e: any) => handleDragMove(e, el)}
                 onDragEnd={(e: any) => handleDragEnd(e, el.id)}
               />
@@ -514,12 +660,51 @@ export default function CanvasStage() {
               return <CanvasIcon 
                 key={el.id} 
                 element={el} 
+                activeTool={activeTool}
                 onDragMove={(e: any) => handleDragMove(e, el)}
                 onDragEnd={(e: any) => handleDragEnd(e, el.id)}
               />
             }
+            if (el.type === 'line') {
+              return (
+                <Line
+                  key={el.id}
+                  id={el.id}
+                  x={el.x || 0}
+                  y={el.y || 0}
+                  points={el.points || []}
+                  stroke={el.stroke || '#1C2430'}
+                  strokeWidth={el.strokeWidth || 3}
+                  lineCap={el.lineCap || 'round'}
+                  lineJoin={el.lineJoin || 'round'}
+                  tension={el.tension || 0}
+                  opacity={el.opacity ?? 1}
+                  draggable={activeTool === 'select' && !el.locked}
+                  onClick={(e) => {
+                    e.cancelBubble = true
+                    if (activeTool === 'select') selectElement(el.id)
+                  }}
+                  onTap={(e) => {
+                    e.cancelBubble = true
+                    if (activeTool === 'select') selectElement(el.id)
+                  }}
+                  onDragEnd={(e) => handleDragEnd(e, el.id)}
+                />
+              )
+            }
             return null
           })}
+          {draftLine && (
+            <Line
+              points={draftLine.points}
+              stroke={draftLine.stroke}
+              strokeWidth={draftLine.strokeWidth}
+              lineCap="round"
+              lineJoin="round"
+              tension={draftLine.tension}
+              listening={false}
+            />
+          )}
           </Group>
           <SelectionTransformer />
           {/* Render Snapping Guides (Directly mutated via refs) */}
@@ -561,10 +746,12 @@ export default function CanvasStage() {
           }}
           style={{
             position: 'absolute',
-            top: editingText.y,
-            left: editingText.x,
-            width: Math.max(editingText.width, 100) + 20, // Some extra padding so it doesn't wrap abruptly
-            height: editingText.height + 40,
+            top: Math.max(0, Math.min(editingText.y, stageSize.height - 40)),
+            left: Math.max(0, Math.min(editingText.x, stageSize.width - 100)),
+            width: Math.max(100, Math.min(editingText.width + 20, stageSize.width - editingText.x - 8)),
+            maxWidth: '100%',
+            height: Math.max(40, Math.min(editingText.height + 40, stageSize.height - editingText.y - 8)),
+            boxSizing: 'border-box',
             fontSize: `${editingText.fontSize}px`,
             fontFamily: fontStack(editingText.fontFamily),
             fontStyle: editingText.fontStyle,
@@ -581,7 +768,8 @@ export default function CanvasStage() {
             margin: 0,
             outline: 'none',
             resize: 'none',
-            overflow: 'hidden',
+            overflow: 'auto',
+            overflowWrap: 'anywhere',
             lineHeight: editingText.lineHeight,
             zIndex: 100
           }}
@@ -616,7 +804,7 @@ export default function CanvasStage() {
   )
 }
 
-function CanvasImage({ element, onDragMove, onDragEnd }: { element: any, onDragMove: any, onDragEnd: any }) {
+function CanvasImage({ element, activeTool, onDragMove, onDragEnd }: { element: any, activeTool: string, onDragMove: any, onDragEnd: any }) {
   const { selectElement, updateElement } = useEditorStore()
   const [image] = React.useMemo(() => {
     if (typeof window === 'undefined') return [null]
@@ -654,14 +842,14 @@ function CanvasImage({ element, onDragMove, onDragEnd }: { element: any, onDragM
       height={height}
       rotation={element.rotation || 0}
       opacity={element.opacity || 1}
-      draggable={!element.locked}
+      draggable={activeTool === 'select' && !element.locked}
       onClick={(e: any) => {
         e.cancelBubble = true
-        selectElement(element.id)
+        if (activeTool === 'select') selectElement(element.id)
       }}
       onTap={(e: any) => {
         e.cancelBubble = true
-        selectElement(element.id)
+        if (activeTool === 'select') selectElement(element.id)
       }}
       onDragMove={onDragMove}
       onDragEnd={onDragEnd}
@@ -683,7 +871,7 @@ function CanvasImage({ element, onDragMove, onDragEnd }: { element: any, onDragM
   )
 }
 
-function CanvasIcon({ element, onDragMove, onDragEnd }: { element: any, onDragMove: any, onDragEnd: any }) {
+function CanvasIcon({ element, activeTool, onDragMove, onDragEnd }: { element: any, activeTool: string, onDragMove: any, onDragEnd: any }) {
   const { selectElement, updateElement } = useEditorStore()
   const [image, setImage] = useState<any>(null)
 
@@ -715,14 +903,14 @@ function CanvasIcon({ element, onDragMove, onDragEnd }: { element: any, onDragMo
       height={height}
       rotation={element.rotation || 0}
       opacity={element.opacity || 1}
-      draggable={!element.locked}
+      draggable={activeTool === 'select' && !element.locked}
       onClick={(e: any) => {
         e.cancelBubble = true
-        selectElement(element.id)
+        if (activeTool === 'select') selectElement(element.id)
       }}
       onTap={(e: any) => {
         e.cancelBubble = true
-        selectElement(element.id)
+        if (activeTool === 'select') selectElement(element.id)
       }}
       onDragMove={onDragMove}
       onDragEnd={onDragEnd}

@@ -1,22 +1,23 @@
 'use client'
 
-import { useCallback, useEffect, useState, type MouseEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
 import { useSiteEditorStore } from '@/store/site-editor-store'
-import type { SiteSection } from '@/lib/site-builder/schema'
+import type { SiteOverlayElement, SiteSection } from '@/lib/site-builder/schema'
 import { sectionRegistry } from './sections'
 import { SiteRenderProvider } from './render/primitives'
 import { cn } from '@/lib/utils'
 import { EDITOR_FONT_NAMES } from '@/lib/editor-fonts'
-import { AlignCenter, AlignLeft, AlignRight, Bold, Copy, Eye, EyeOff, GripVertical, Italic, Lock, Trash2, Underline, Unlock } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Bold, Copy, Eye, EyeOff, GripVertical, Italic, Lock, Minus, Plus, Trash2, Underline, Unlock } from 'lucide-react'
 
 type SelectedElement = {
   sectionId: string
   key: string
   element: HTMLElement
-  kind: 'text' | 'image'
+  kind: 'text' | 'image' | 'overlay'
 }
 
 type ToolbarPosition = { left: number; top: number }
+type OverlayDrag = { element: HTMLElement; pointerId: number; startX: number; startY: number; sectionWidth: number; sectionHeight: number; x: number; y: number; moved: boolean }
 
 function SortableSection({ section, onSelectElement }: { section: SiteSection; onSelectElement: (selection: SelectedElement | null) => void }) {
   const store = useSiteEditorStore()
@@ -34,6 +35,14 @@ function SortableSection({ section, onSelectElement }: { section: SiteSection; o
       return
     }
 
+    const overlay = target.closest<HTMLElement>('[data-site-overlay-id][data-site-overlay-section]')
+    if (overlay) {
+      const sectionId = overlay.dataset.siteOverlaySection
+      const key = overlay.dataset.siteOverlayId
+      if (sectionId && key) onSelectElement({ sectionId, key, element: overlay, kind: 'overlay' })
+      return
+    }
+
     const editableText = target.closest<HTMLElement>('[data-editable-section][data-editable-key]')
     if (editableText) {
       const sectionId = editableText.dataset.editableSection
@@ -48,20 +57,6 @@ function SortableSection({ section, onSelectElement }: { section: SiteSection; o
 
   return (
     <div
-      draggable={!section.locked}
-      onDragStart={(event) => {
-        if ((event.target as HTMLElement).closest('[contenteditable="true"]')) {
-          event.preventDefault()
-          return
-        }
-        if (section.locked) {
-          event.preventDefault()
-          return
-        }
-        setDragging(true)
-        event.dataTransfer.effectAllowed = 'move'
-        event.dataTransfer.setData('text/momentis-section', section.id)
-      }}
       onDragEnd={() => setDragging(false)}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
@@ -78,7 +73,25 @@ function SortableSection({ section, onSelectElement }: { section: SiteSection; o
       className={cn('relative group transition-all', selected ? 'ring-2 ring-midnight z-10' : 'hover:ring-2 hover:ring-midnight/30', dragging && 'opacity-40', hidden && 'opacity-40')}
     >
       <div className={cn('absolute right-2 top-2 z-30 flex items-center gap-1 rounded-lg border bg-white/95 p-1 shadow-lg backdrop-blur', selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}>
-        <button className="p-1.5 cursor-grab hover:bg-ivory-50 rounded" title="Taşı"><GripVertical className="w-3.5 h-3.5" /></button>
+        <button
+          type="button"
+          draggable={!section.locked}
+          onClick={(event) => event.stopPropagation()}
+          onDragStart={(event) => {
+            if (section.locked) {
+              event.preventDefault()
+              return
+            }
+            setDragging(true)
+            event.dataTransfer.effectAllowed = 'move'
+            event.dataTransfer.setData('text/momentis-section', section.id)
+          }}
+          className="cursor-grab rounded p-1.5 hover:bg-ivory-50"
+          title="Bölümü taşı"
+          aria-label="Bölümü taşımak için sürükleyin"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
         <button onClick={(event) => { event.stopPropagation(); store.toggleVisibility(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded" title="Gizle/Göster">{hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}</button>
         <button onClick={(event) => { event.stopPropagation(); store.toggleLock(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded" title="Kilitle/Kilidi aç">{section.locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}</button>
         <button onClick={(event) => { event.stopPropagation(); store.duplicateSection(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded" title="Çoğalt"><Copy className="w-3.5 h-3.5" /></button>
@@ -145,18 +158,66 @@ function InlineTextToolbar({ selection, onStyleChange, onClose }: {
   )
 }
 
+function OverlayQuickToolbar({ overlay, onChange, onDelete }: {
+  overlay: SiteOverlayElement
+  onChange: (patch: Partial<SiteOverlayElement>) => void
+  onDelete: () => void
+}) {
+  const controlClass = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-midnight/70 transition hover:bg-ivory'
+  const radius = overlay.borderRadius ?? 24
+
+  return (
+    <div
+      className="flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-xl border border-midnight/10 bg-white p-2 shadow-[0_12px_40px_-12px_rgba(16,24,39,0.35)]"
+      onMouseDown={(event) => { if ((event.target as HTMLElement).closest('button')) event.preventDefault() }}
+      data-testid="overlay-quick-toolbar"
+    >
+      <button type="button" className={controlClass} onClick={() => onChange({ fontSize: Math.max(10, overlay.fontSize - 1) })} aria-label="Yazıyı küçült"><Minus className="h-4 w-4" /></button>
+      <span className="w-7 text-center text-xs tabular-nums">{overlay.fontSize}</span>
+      <button type="button" className={controlClass} onClick={() => onChange({ fontSize: Math.min(120, overlay.fontSize + 1) })} aria-label="Yazıyı büyüt"><Plus className="h-4 w-4" /></button>
+      <label className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sm font-bold text-midnight/70 hover:bg-ivory" title="Yazı rengi">
+        A
+        <input aria-label="Yazı rengi" type="color" value={overlay.color} onChange={(event) => onChange({ color: event.target.value })} className="absolute h-px w-px opacity-0" />
+      </label>
+      {overlay.type === 'button' && <>
+        <span className="mx-1 h-5 w-px shrink-0 bg-border" />
+        <label className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-midnight/70 hover:bg-ivory" title="Buton rengi">
+          <span className="h-4 w-4 rounded border border-midnight/20" style={{ backgroundColor: overlay.backgroundColor || '#C9A96E' }} />
+          <input aria-label="Buton rengi" type="color" value={overlay.backgroundColor || '#C9A96E'} onChange={(event) => onChange({ backgroundColor: event.target.value })} className="absolute h-px w-px opacity-0" />
+        </label>
+        {[0, 12, 24, 48].map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onChange({ borderRadius: value })}
+            className={`h-7 min-w-7 rounded-md px-1 text-[10px] transition ${radius === value ? 'bg-midnight text-white' : 'text-midnight/70 hover:bg-ivory'}`}
+            aria-label={`Köşe yuvarlaklığı ${value}`}
+            title={`Köşe yuvarlaklığı ${value}px`}
+          >
+            {value}
+          </button>
+        ))}
+      </>}
+      <span className="mx-1 h-5 w-px shrink-0 bg-border" />
+      <button type="button" className={`${controlClass} text-red-500 hover:bg-red-50`} onClick={onDelete} aria-label="Katmanı sil"><Trash2 className="h-4 w-4" /></button>
+    </div>
+  )
+}
+
 export function SiteCanvas() {
-  const { site, selectSection, setInspectorTab } = useSiteEditorStore()
+  const { site, selectSection, selectOverlay, updateSectionProps, setInspectorTab } = useSiteEditorStore()
   const [selection, setSelection] = useState<SelectedElement | null>(null)
   const [toolbarPosition, setToolbarPosition] = useState<ToolbarPosition | null>(null)
+  const overlayDragRef = useRef<OverlayDrag | null>(null)
+  const ignoreCanvasClickRef = useRef(false)
 
   const updateToolbarPosition = useCallback(() => {
-    if (!selection || selection.kind !== 'text' || !selection.element.isConnected) {
+    if (!selection || selection.kind === 'image' || !selection.element.isConnected) {
       setToolbarPosition(null)
       return
     }
     const rect = selection.element.getBoundingClientRect()
-    const toolbarWidth = Math.min(640, window.innerWidth - 24)
+    const toolbarWidth = Math.min(selection.kind === 'text' ? 640 : 360, window.innerWidth - 24)
     setToolbarPosition({
       left: Math.max(toolbarWidth / 2 + 12, Math.min(window.innerWidth - toolbarWidth / 2 - 12, rect.left + rect.width / 2)),
       top: rect.top > 72 ? rect.top - 58 : rect.bottom + 8,
@@ -185,6 +246,19 @@ export function SiteCanvas() {
         useSiteEditorStore.getState().redo()
       }
       if (event.key === 'Delete' && !target.isContentEditable && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+        const state = useSiteEditorStore.getState()
+        if (state.selectedOverlayId && state.selectedSectionId) {
+          const section = state.site?.sections.find(item => item.id === state.selectedSectionId)
+          if (section && Array.isArray(section.props.overlayElements)) {
+            event.preventDefault()
+            state.updateSectionProps(section.id, {
+              overlayElements: section.props.overlayElements.filter((item: Record<string, any>) => item.id !== state.selectedOverlayId),
+            })
+            state.selectOverlay(null)
+            setSelection(null)
+            return
+          }
+        }
         const id = useSiteEditorStore.getState().selectedSectionId
         if (id) useSiteEditorStore.getState().removeSection(id)
       }
@@ -199,11 +273,14 @@ export function SiteCanvas() {
     if (!nextSelection) {
       setSelection(null)
       setToolbarPosition(null)
+      selectOverlay(null)
       return
     }
     setSelection(nextSelection)
     selectSection(nextSelection.sectionId)
+    selectOverlay(nextSelection.kind === 'overlay' ? nextSelection.key : null)
     updateToolbarPosition()
+    if (nextSelection.kind === 'overlay') setInspectorTab('content')
     if (nextSelection.kind === 'image') {
       setToolbarPosition(null)
       setInspectorTab(nextSelection.key === 'bgImage' ? 'style' : 'content')
@@ -215,6 +292,21 @@ export function SiteCanvas() {
 
   const saveText = (event: React.FocusEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement
+    const overlay = target.closest<HTMLElement>('[data-site-overlay-id][data-site-overlay-section]')
+    if (overlay && target.dataset.editableOverlay === 'true') {
+      const sectionId = overlay.dataset.siteOverlaySection
+      const overlayId = overlay.dataset.siteOverlayId
+      const section = useSiteEditorStore.getState().site?.sections.find(item => item.id === sectionId)
+      const elements = section?.props.overlayElements
+      if (sectionId && overlayId && Array.isArray(elements)) {
+        useSiteEditorStore.getState().updateSectionProps(sectionId, {
+          overlayElements: elements.map((item: Record<string, any>) =>
+            item.id === overlayId ? { ...item, text: target.innerText } : item
+          ),
+        })
+      }
+      return
+    }
     const sectionId = target.dataset.editableSection
     const key = target.dataset.editableKey
     if (!sectionId || !key) return
@@ -247,6 +339,34 @@ export function SiteCanvas() {
     useSiteEditorStore.getState().updateSectionProps(sectionId, { [rootKey]: updated })
   }
 
+  const selectedOverlay = selection?.kind === 'overlay'
+    ? site.sections.find((section) => section.id === selection.sectionId)?.props.overlayElements?.find((item: SiteOverlayElement) => item.id === selection.key)
+    : null
+
+  const updateSelectedOverlay = (patch: Partial<SiteOverlayElement>) => {
+    if (!selection || selection.kind !== 'overlay') return
+    const currentSection = useSiteEditorStore.getState().site?.sections.find((item) => item.id === selection.sectionId)
+    const overlays = currentSection?.props.overlayElements
+    if (!Array.isArray(overlays)) return
+    updateSectionProps(selection.sectionId, {
+      overlayElements: overlays.map((item: SiteOverlayElement) => item.id === selection.key ? { ...item, ...patch } : item),
+    })
+  }
+
+  const deleteSelectedOverlay = () => {
+    if (!selection || selection.kind !== 'overlay') return
+    const currentSection = useSiteEditorStore.getState().site?.sections.find((item) => item.id === selection.sectionId)
+    const overlays = currentSection?.props.overlayElements
+    if (Array.isArray(overlays)) {
+      updateSectionProps(selection.sectionId, {
+        overlayElements: overlays.filter((item: SiteOverlayElement) => item.id !== selection.key),
+      })
+    }
+    selectOverlay(null)
+    setSelection(null)
+    setToolbarPosition(null)
+  }
+
   const applyInlineStyle = (style: Record<string, string | number>) => {
     if (!selection) return
     const state = useSiteEditorStore.getState()
@@ -270,12 +390,99 @@ export function SiteCanvas() {
     updateToolbarPosition()
   }
 
+  const handleOverlayPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement
+    const handle = target.closest<HTMLElement>('[data-overlay-drag-handle]')
+    const element = handle?.closest<HTMLElement>('[data-site-overlay-id][data-site-overlay-section]')
+      ?? target.closest<HTMLElement>('[data-site-overlay-type="button"][data-site-overlay-id][data-site-overlay-section]')
+    const section = element?.closest<HTMLElement>('[data-overlay-canvas]')
+    if (!element || !section) return
+    event.preventDefault()
+    event.stopPropagation()
+    const sectionId = element.dataset.siteOverlaySection
+    const overlayId = element.dataset.siteOverlayId
+    if (!sectionId || !overlayId) return
+    const bounds = section.getBoundingClientRect()
+    if (!bounds.width || !bounds.height) return
+    setSelection({ sectionId, key: overlayId, element, kind: 'overlay' })
+    selectSection(sectionId)
+    selectOverlay(overlayId)
+    overlayDragRef.current = {
+      element,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      sectionWidth: bounds.width,
+      sectionHeight: bounds.height,
+      x: Number(element.dataset.overlayX ?? 50),
+      y: Number(element.dataset.overlayY ?? 50),
+      moved: false,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleOverlayPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = overlayDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    if (!drag.moved) {
+      const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY)
+      if (distance < 4) return
+      drag.moved = true
+    }
+    const x = Number(Math.max(0, Math.min(100, drag.x + (event.clientX - drag.startX) / drag.sectionWidth * 100)).toFixed(1))
+    const y = Number(Math.max(0, Math.min(100, drag.y + (event.clientY - drag.startY) / drag.sectionHeight * 100)).toFixed(1))
+    drag.element.style.left = `${x}%`
+    drag.element.style.top = `${y}%`
+  }
+
+  const handleOverlayPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = overlayDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    ignoreCanvasClickRef.current = true
+    window.setTimeout(() => { ignoreCanvasClickRef.current = false }, 0)
+    if (!drag.moved) {
+      overlayDragRef.current = null
+      return
+    }
+    const x = Number(Math.max(0, Math.min(100, drag.x + (event.clientX - drag.startX) / drag.sectionWidth * 100)).toFixed(1))
+    const y = Number(Math.max(0, Math.min(100, drag.y + (event.clientY - drag.startY) / drag.sectionHeight * 100)).toFixed(1))
+    drag.element.style.left = `${x}%`
+    drag.element.style.top = `${y}%`
+    const sectionId = drag.element.dataset.siteOverlaySection
+    const overlayId = drag.element.dataset.siteOverlayId
+    const section = useSiteEditorStore.getState().site?.sections.find(item => item.id === sectionId)
+    if (sectionId && overlayId && section && Array.isArray(section.props.overlayElements)) {
+      updateSectionProps(sectionId, {
+        overlayElements: section.props.overlayElements.map((item: Record<string, any>) =>
+          item.id === overlayId ? { ...item, x, y } : item
+        ),
+      })
+    }
+    overlayDragRef.current = null
+  }
+
+  const handleOverlayPointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = overlayDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    drag.element.style.left = `${drag.x}%`
+    drag.element.style.top = `${drag.y}%`
+    overlayDragRef.current = null
+  }
+
   return (
     <SiteRenderProvider value={{ site, mode: 'editor' }}>
       <div
         className="relative flex min-h-full w-full flex-col bg-white"
+        onPointerDown={handleOverlayPointerDown}
+        onPointerMove={handleOverlayPointerMove}
+        onPointerUp={handleOverlayPointerUp}
+        onPointerCancel={handleOverlayPointerCancel}
         onClick={(event) => {
           if (event.target === event.currentTarget) {
+            if (ignoreCanvasClickRef.current) {
+              ignoreCanvasClickRef.current = false
+              return
+            }
             setSelection(null)
             selectSection(null)
           }
@@ -293,6 +500,15 @@ export function SiteCanvas() {
         {selection?.kind === 'text' && toolbarPosition && (
           <div style={{ position: 'fixed', left: toolbarPosition.left, top: toolbarPosition.top, transform: 'translateX(-50%)', zIndex: 100 }}>
             <InlineTextToolbar selection={selection} onStyleChange={applyInlineStyle} onClose={() => setSelection(null)} />
+          </div>
+        )}
+        {selection?.kind === 'overlay' && selectedOverlay?.type === 'button' && toolbarPosition && (
+          <div style={{ position: 'fixed', left: toolbarPosition.left, top: toolbarPosition.top, transform: 'translateX(-50%)', zIndex: 100 }}>
+            <OverlayQuickToolbar
+              overlay={selectedOverlay}
+              onChange={updateSelectedOverlay}
+              onDelete={deleteSelectedOverlay}
+            />
           </div>
         )}
         {selection?.kind === 'image' && (

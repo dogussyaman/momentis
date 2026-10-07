@@ -96,7 +96,7 @@ export const TEMPLATES: SiteTemplate[] = [
       buttonRadius: 0,
       letterSpacing: 'wide',
     },
-    settings: { navStyle: 'bar' },
+    settings: { showNavbar: false },
     sections: [
       [
         'hero',

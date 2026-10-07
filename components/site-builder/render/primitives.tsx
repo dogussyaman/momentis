@@ -6,6 +6,8 @@ import * as Icons from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ButtonConfig, SectionAnimation, SectionStyle, SiteSection, WeddingSite } from '@/lib/site-builder/schema'
 import { runButtonAction } from '@/lib/site-builder/actions'
+import type { SiteOverlayElement } from '@/lib/site-builder/schema'
+import { useSiteEditorStore } from '@/store/site-editor-store'
 
 /* ------------------------------------------------------------------ */
 /*  Context                                                            */
@@ -154,6 +156,9 @@ export function SectionShell({
     mode !== 'editor'
       ? cn(s.hideOnMobile && '@max-3xl:hidden', s.hideOnDesktop && '@3xl:hidden')
       : undefined
+  const overlayElements = Array.isArray(section.props.overlayElements)
+    ? section.props.overlayElements as SiteOverlayElement[]
+    : []
 
   return (
     <EditableSectionCtx.Provider value={section}>
@@ -166,6 +171,9 @@ export function SectionShell({
       <div className="relative overflow-hidden flex flex-col justify-center" style={innerStyle}>
         <SectionBackground style={s} sectionId={section.id} />
         {s.corners && s.corners !== 'none' && <CornerOrnaments variant={s.corners} color={s.cornerColor} />}
+        {overlayElements.length > 0 && (
+          <FreeformOverlayLayer section={section} elements={overlayElements} mode={mode} />
+        )}
 
         <AnimCtx.Provider value={anim}>
           {mode === 'editor' ? (
@@ -206,6 +214,111 @@ export function SectionShell({
       </div>
     </section>
     </EditableSectionCtx.Provider>
+  )
+}
+
+function FreeformOverlayLayer({ section, elements, mode }: {
+  section: SiteSection
+  elements: SiteOverlayElement[]
+  mode: RenderMode
+}) {
+  const { site } = useSiteRender()
+  const selectedOverlayId = useSiteEditorStore((state) => state.selectedOverlayId)
+
+  return (
+    <div data-overlay-canvas={section.id} className="pointer-events-none absolute inset-0 z-[5]">
+      {elements.map((element) => {
+        const isSelected = mode === 'editor' && selectedOverlayId === element.id
+        const position: CSSProperties = {
+          position: 'absolute',
+          left: `${element.x}%`,
+          top: `${element.y}%`,
+          width: `${element.width}%`,
+          transform: 'translate(-50%, -50%)',
+          color: element.color || '#ffffff',
+          fontSize: `clamp(12px, ${Math.max(12, element.fontSize || 24) / 12}vw, ${element.fontSize || 24}px)`,
+        }
+        const editorAttributes = mode === 'editor' ? {
+          'data-site-overlay-id': element.id,
+          'data-site-overlay-section': section.id,
+          'data-site-overlay-type': element.type,
+          'data-overlay-x': element.x,
+          'data-overlay-y': element.y,
+        } : {}
+
+        if (element.type === 'button') {
+          const buttonStyle: CSSProperties = {
+            color: element.color || '#ffffff',
+            backgroundColor: element.backgroundColor || 'var(--sb-accent)',
+            borderColor: element.backgroundColor || 'var(--sb-accent)',
+            borderRadius: element.borderRadius === undefined ? 'var(--sb-btn-radius)' : `${element.borderRadius}px`,
+          }
+          const buttonClass = 'inline-flex min-h-10 w-full items-center justify-center rounded-full border px-5 py-2 text-center font-medium tracking-wide shadow-md transition hover:-translate-y-0.5'
+          return (
+            <div key={element.id} draggable={false} style={position} className="pointer-events-auto" {...editorAttributes}>
+              {mode === 'editor' ? (
+                <div className="pointer-events-none">
+                  <span className={buttonClass} style={buttonStyle}>{element.text}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => runButtonAction({
+                    id: element.id,
+                    label: element.text,
+                    variant: 'solid',
+                    action: element.action || 'none',
+                    target: element.target,
+                  }, site)}
+                  className={buttonClass}
+                  style={buttonStyle}
+                >
+                  {element.text}
+                </button>
+              )}
+              {mode === 'editor' && <OverlayDragHandle selected={isSelected} />}
+            </div>
+          )
+        }
+
+        return (
+          <div
+            key={element.id}
+            draggable={false}
+            style={position}
+            className={cn(
+              'pointer-events-auto whitespace-pre-wrap break-words rounded-sm text-center leading-tight',
+              isSelected && 'bg-blue-500/5 outline outline-2 outline-dashed outline-blue-500 outline-offset-2',
+            )}
+            {...editorAttributes}
+            contentEditable={mode === 'editor'}
+            suppressContentEditableWarning
+            spellCheck={false}
+            data-editable-overlay="true"
+          >
+            {element.text}
+            {mode === 'editor' && <OverlayDragHandle selected={isSelected} />}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function OverlayDragHandle({selected}: {selected: boolean}) {
+  if (!selected) return null
+  return (
+    <button
+      type="button"
+      data-overlay-drag-handle
+      aria-label="Katmanı sürükleyerek taşı"
+      title="Sürükleyerek taşı"
+      className="absolute -right-3 -top-3 z-20 flex h-6 w-6 cursor-move touch-none items-center justify-center rounded-full border border-blue-500 bg-white text-blue-600 shadow"
+      contentEditable={false}
+      onClick={(event) => event.preventDefault()}
+    >
+      <Icons.Move className="h-3.5 w-3.5" />
+    </button>
   )
 }
 

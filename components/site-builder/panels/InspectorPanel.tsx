@@ -8,13 +8,14 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import { Eye, EyeOff, Lock, Unlock, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Eye, EyeOff, Lock, Unlock, Plus, Trash2, ChevronDown, ChevronRight, Type, MousePointerClick } from 'lucide-react'
 import { ACTION_OPTIONS, ACTION_TARGET_HINT } from '@/lib/site-builder/actions'
 import { BODY_FONTS, HEADING_FONTS, SCRIPT_FONTS } from '@/lib/site-builder/fonts'
 import { SiteImageField } from './SiteImageField'
+import type { SiteOverlayElement, SiteSection } from '@/lib/site-builder/schema'
 
 export function InspectorPanel(){
- const {site,selectedSectionId,updateSectionProps,updateSectionStyle,updateSectionAnimation,updateTheme,updateSettings,inspectorTab,setInspectorTab,toggleVisibility,toggleLock}=useSiteEditorStore()
+ const {site,selectedSectionId,selectedOverlayId,selectOverlay,updateSectionProps,updateSectionStyle,updateSectionAnimation,updateTheme,updateSettings,inspectorTab,setInspectorTab,toggleVisibility,toggleLock}=useSiteEditorStore()
  const [openItems,setOpenItems]=useState<Record<string,boolean>>({})
  if(!site)return null
  const section=selectedSectionId?site.sections.find(s=>s.id===selectedSectionId):null
@@ -43,9 +44,66 @@ export function InspectorPanel(){
    <div className="border-b bg-ivory-50/60 p-3"><div className="flex items-center justify-between"><div><h3 className="text-xs font-semibold uppercase tracking-wider">{section?def?.name:'Site Ayarları'}</h3><p className="mt-1 text-[10px] text-muted-foreground">{section?def?.description:'Genel site ve yayın ayarları'}</p></div>{section&&<div className="flex gap-1"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleVisibility(section.id)}>{section.visible?<Eye className="h-3.5 w-3.5"/>:<EyeOff className="h-3.5 w-3.5"/>}</Button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleLock(section.id)}>{section.locked?<Lock className="h-3.5 w-3.5"/>:<Unlock className="h-3.5 w-3.5"/>}</Button></div>}</div>
    {section&&<div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-white p-1"><button onClick={()=>setInspectorTab('content')} className={tab(inspectorTab==='content')}>İçerik</button><button onClick={()=>setInspectorTab('style')} className={tab(inspectorTab==='style')}>Tasarım</button><button onClick={()=>setInspectorTab('animation')} className={tab(inspectorTab==='animation')}>Anim.</button></div>}</div>
    <div className="flex-1 overflow-y-auto p-3">
-   {!section?<SiteSettings site={site} updateSite={useSiteEditorStore.getState().updateSite} updateTheme={updateTheme} updateSettings={updateSettings}/>:inspectorTab==='content'?<div className="space-y-5">{Object.entries(groups).map(([g,fs]:any)=><div key={g} className="space-y-3"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{g}</h4>{fs.map((f:FieldDef)=>field(f))}</div>)}</div>:inspectorTab==='style'?<StylePanel style={style} update={p=>updateSectionStyle(section.id,p)}/>:<AnimationPanel animation={section.animation||{type:'fade',duration:.8,delay:0}} update={p=>updateSectionAnimation(section.id,p)}/>}
+   {!section?<SiteSettings site={site} updateSite={useSiteEditorStore.getState().updateSite} updateTheme={updateTheme} updateSettings={updateSettings}/>:inspectorTab==='content'?<div className="space-y-5"><FreeformOverlayControls section={section} selectedOverlayId={selectedOverlayId} selectOverlay={selectOverlay} updateSectionProps={updateSectionProps}/>{Object.entries(groups).map(([g,fs]:any)=><div key={g} className="space-y-3"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{g}</h4>{fs.map((f:FieldDef)=>field(f))}</div>)}</div>:inspectorTab==='style'?<StylePanel style={style} update={p=>updateSectionStyle(section.id,p)}/>:<AnimationPanel animation={section.animation||{type:'fade',duration:.8,delay:0}} update={p=>updateSectionAnimation(section.id,p)}/>}
    </div>
  </div>
+}
+
+function FreeformOverlayControls({section,selectedOverlayId,selectOverlay,updateSectionProps}:{
+ section:SiteSection
+ selectedOverlayId:string|null
+ selectOverlay:(id:string|null)=>void
+ updateSectionProps:(id:string,props:Record<string,any>)=>void
+}){
+ const overlays:SiteOverlayElement[]=Array.isArray(section.props.overlayElements)?section.props.overlayElements:[]
+ const selected=overlays.find(item=>item.id===selectedOverlayId)
+ const save=(next:SiteOverlayElement[])=>updateSectionProps(section.id,{overlayElements:next})
+ const add=(type:SiteOverlayElement['type'])=>{
+  const item:SiteOverlayElement={
+   id:crypto.randomUUID(),type,text:type==='text'?'Metninizi buraya yazın':'Düğün konumunu görüntüle',
+   x:50,y:type==='text'?70:82,width:type==='text'?55:40,fontSize:type==='text'?32:16,color:section.style.textColor||'#101827',
+   ...(type==='button'?{backgroundColor:'#C9A96E',borderRadius:24,action:'map' as const,target:''}:{})
+  }
+  save([...overlays,item])
+  selectOverlay(item.id)
+ }
+ const update=(patch:Partial<SiteOverlayElement>)=>{
+  if(!selected)return
+  save(overlays.map(item=>item.id===selected.id?{...item,...patch}:item))
+ }
+
+ return <section className="space-y-3 rounded-xl border border-[#E8E1D5] bg-[#FBFAF7] p-3">
+  <div>
+   <h4 className="text-[10px] font-semibold uppercase tracking-wider text-midnight">Serbest öğeler</h4>
+   <p className="mt-1 text-[9px] leading-relaxed text-muted-foreground">Butonları tuvalde kendilerinden, metinleri seçtikten sonra çıkan taşıma tutamacından sürükleyin. Hazır bölüm içeriği ayrı düzenlenir.</p>
+  </div>
+  <div className="grid grid-cols-2 gap-2">
+   <Button type="button" variant="outline" className="h-8 px-2 text-[10px]" onClick={()=>add('text')}><Type className="mr-1.5 h-3 w-3"/>Metin ekle</Button>
+   <Button type="button" variant="outline" className="h-8 px-2 text-[10px]" onClick={()=>add('button')}><MousePointerClick className="mr-1.5 h-3 w-3"/>Buton ekle</Button>
+  </div>
+  {overlays.length>0&&<div className="space-y-1.5">
+   {overlays.map((item,index)=><button type="button" key={item.id} onClick={()=>selectOverlay(item.id)} className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-left text-[10px] transition ${selectedOverlayId===item.id?'border-midnight bg-white text-midnight shadow-sm':'border-transparent bg-white/60 text-midnight/70 hover:border-border'}`}>
+    <span className="truncate">{item.type==='button'?'Buton':'Metin'} · {item.text||`Öğe ${index+1}`}</span><span className="ml-2 shrink-0 text-[9px] text-muted-foreground">{Math.round(item.x)}%, {Math.round(item.y)}%</span>
+   </button>)}
+  </div>}
+  {selected&&<div className="space-y-2.5 border-t border-[#E8E1D5] pt-3">
+   <Textarea aria-label={selected.type==='button'?'Buton metni':'Katman metni'} value={selected.text} onChange={event=>update({text:event.target.value})} rows={2} className="min-h-16 bg-white text-[10px]"/>
+   <div className="grid grid-cols-3 gap-2">
+    {(['x','y','width'] as const).map(key=><label key={key} className="space-y-1 text-[9px] text-muted-foreground">{key==='x'?'Yatay':key==='y'?'Dikey':'Genişlik'} (%)<Input type="number" min="0" max="100" value={selected[key]} onChange={event=>update({[key]:Math.max(0,Math.min(100,Number(event.target.value)||0))})} className="h-8 bg-white px-2 text-[10px]"/></label>)}
+   </div>
+   <div className="grid grid-cols-2 gap-2">
+    <label className="space-y-1 text-[9px] text-muted-foreground">Yazı boyutu<Input type="number" min="10" max="120" value={selected.fontSize} onChange={event=>update({fontSize:Math.max(10,Math.min(120,Number(event.target.value)||10))})} className="h-8 bg-white px-2 text-[10px]"/></label>
+    <label className="space-y-1 text-[9px] text-muted-foreground">Yazı rengi<Input type="color" value={selected.color} onChange={event=>update({color:event.target.value})} className="h-8 w-full bg-white p-1"/></label>
+   </div>
+   {selected.type==='button'&&<>
+    <label className="block space-y-1 text-[9px] text-muted-foreground">Buton rengi<Input type="color" value={selected.backgroundColor||'#C9A96E'} onChange={event=>update({backgroundColor:event.target.value})} className="h-8 w-full bg-white p-1"/></label>
+    <label className="block space-y-1 text-[9px] text-muted-foreground">Köşe yuvarlaklığı ({selected.borderRadius??24}px)<input aria-label="Buton köşe yuvarlaklığı" type="range" min="0" max="48" value={selected.borderRadius??24} onChange={event=>update({borderRadius:Number(event.target.value)})} className="w-full"/></label>
+    <select aria-label="Buton işlemi" value={selected.action||'none'} onChange={event=>update({action:event.target.value as SiteOverlayElement['action']})} className="h-8 w-full rounded-md border bg-white px-2 text-[10px]">{ACTION_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>
+    {ACTION_TARGET_HINT[selected.action||'none']&&<Input aria-label="Buton hedefi" value={selected.target||''} onChange={event=>update({target:event.target.value})} placeholder={ACTION_TARGET_HINT[selected.action||'none']||''} className="h-8 bg-white text-[10px]"/>}
+   </>}
+   <Button type="button" variant="ghost" className="h-8 w-full text-[10px] text-red-500 hover:bg-red-50" onClick={()=>{save(overlays.filter(item=>item.id!==selected.id));selectOverlay(null)}}><Trash2 className="mr-1.5 h-3 w-3"/>Öğeyi sil</Button>
+  </div>}
+ </section>
 }
 function tab(active:boolean){return 'h-7 rounded-md text-[9px] uppercase tracking-wider '+(active?'bg-midnight text-ivory':'text-midnight/60 hover:bg-ivory-50')}
 function renderField(f:any,value:any,set:(v:any)=>void,fieldKey=f.key){

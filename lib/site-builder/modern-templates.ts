@@ -37,7 +37,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       headingFont: 'Playfair Display', bodyFont: 'Montserrat', scriptFont: 'Great Vibes',
       borderRadius: 2, buttonRadius: 2, letterSpacing: 'wide',
     }),
-    settings: { navStyle: 'transparent' },
+    settings: { showNavbar: false },
     sections: [
       ['hero', { props: { titleFont: 'heading', titleSize: 96, eyebrow: 'Bir gala gecesi', showCountdown: true, buttons: rsvpBtns }, style: { bgImage: STOCK.hero5, overlayColor: '#000000', overlayOpacity: 62, minHeight: 'screen' } }],
       ['text', { props: { variant: 'quote', eyebrow: 'Davet', title: 'Sizi en özel gecemize bekliyoruz', text: 'Işıltılı bir akşam, sevdiklerimizle.' }, style: { paddingY: 90 } }],
@@ -94,7 +94,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       headingFont: 'Fraunces', bodyFont: 'Inter', scriptFont: 'Pinyon Script',
       borderRadius: 0, buttonRadius: 0, letterSpacing: 'tight', headingScale: 1.1,
     }),
-    settings: { navStyle: 'bar' },
+    settings: { showNavbar: false },
     sections: [
       ['hero', { props: { layout: 'split', titleFont: 'heading', titleSize: 100, sideImage: STOCK.couple1, eyebrow: 'Vol. 01 — Düğün Sayısı', buttons: rsvpBtns }, style: { bgType: 'color', bgColor: '#f4f1ea', textColor: '#1a1a1a', overlayOpacity: 0, minHeight: 'screen', paddingY: 0, paddingX: 0, width: 'full' } }],
       ['divider', { props: { variant: 'line', lineWidth: 100 } }],
@@ -209,7 +209,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       headingFont: 'Fraunces', bodyFont: 'Jost', scriptFont: 'Allura',
       borderRadius: 30, buttonRadius: 999,
     }),
-    settings: { navStyle: 'centered' },
+    settings: { showNavbar: false },
     sections: [
       ['hero', { props: { layout: 'frame', contentBox: 'glass', titleFont: 'script', titleSize: 112, eyebrow: 'Özgür ruhlu bir düğün', buttons: rsvpBtns }, style: { bgImage: STOCK.decor, overlayColor: '#4a2c17', overlayOpacity: 38, textColor: '#ffffff', corners: 'leaf', cornerColor: '#ffffff' } }],
       ['text', { props: { variant: 'script', title: 'Gün batımında…', text: 'Çiçekler, müzik ve en sevdiklerimizle.' } }],

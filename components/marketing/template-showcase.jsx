@@ -23,7 +23,7 @@ export function TemplateShowcase() {
           </Reveal>
         </div>
 
-        <div className="mt-16 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-x-6 gap-y-12 pb-12 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((t, i) => (
             <Reveal key={t.id} delay={(i % 3) * 0.1} className={i % 3 === 1 ? 'lg:translate-y-12' : ''}>
               <TemplateCard template={t} />

@@ -86,12 +86,16 @@ export function Hero() {
               initial={{ opacity: 0, y: 60, rotate: -2 }} animate={{ opacity: 1, y: 0, rotate: -3 }} transition={{ duration: 1.4, delay: 0.8, ease: EASE }}
               className="relative mx-auto w-[300px] xl:w-[340px]"
             >
-              <motion.div animate={{ y: [0, -14, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }} className="[container-type:inline-size]">
-                <InvitationPreview template={TEMPLATE_PREVIEW} />
+              <motion.div animate={{ y: [0, -14, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }} className="relative z-10 flex items-center justify-center">
+                <img 
+                  src="/home-hero/davetiye.png" 
+                  alt="Dijital Davetiye" 
+                  className="w-[550px] xl:w-[650px] max-w-none h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]" 
+                />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 1.5, ease: EASE }}
-                className="absolute -bottom-16 -right-20 w-56 rounded-2xl border border-ivory/10 bg-midnight/80 p-5 backdrop-blur-xl"
+                className="absolute -bottom-16 -right-10 xl:-right-20 w-56 rounded-2xl border border-ivory/10 bg-midnight/80 p-5 backdrop-blur-xl z-30 shadow-2xl"
               >
                 <p className="text-[10px] uppercase tracking-[0.28em] text-champagne">Canlı RSVP</p>
                 <p className="mt-2 font-serif text-3xl">184 <span className="text-base text-ivory/60">/ 210</span></p>

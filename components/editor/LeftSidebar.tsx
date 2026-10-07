@@ -100,6 +100,72 @@ const svgFiles = [
   "Siyah Beyaz Minimalist Düğün Davetiye.png"
 ]
 
+const invitationIconGroups = [
+  {
+    id: 'flowers',
+    label: 'Çiçekler ve yapraklar',
+    icons: [
+      ['Flower', 'Çiçek'], ['Flower2', 'Dolgun çiçek'], ['Leaf', 'Yaprak'], ['LeafyGreen', 'Yeşil yaprak'],
+      ['Sprout', 'Filiz'], ['Trees', 'Ağaçlar'], ['TreeDeciduous', 'Yapraklı ağaç'], ['Clover', 'Yonca'],
+      ['Wheat', 'Başak'], ['Grape', 'Üzüm'], ['Shell', 'Deniz kabuğu'], ['Feather', 'Tüy'], ['Bird', 'Kuş']
+    ]
+  },
+  {
+    id: 'wedding',
+    label: 'Düğün ve aşk',
+    icons: [
+      ['Heart', 'Kalp'], ['HeartHandshake', 'Sevgi'], ['HandHeart', 'Kalpten'], ['Gem', 'Mücevher'],
+      ['Diamond', 'Elmas'], ['Crown', 'Taç'], ['Church', 'Düğün mekânı'], ['Gift', 'Hediye'],
+      ['PartyPopper', 'Kutlama'], ['Ribbon', 'Kurdele'], ['Wine', 'Şarap kadehi'], ['GlassWater', 'Kadeh'],
+      ['CakeSlice', 'Pasta dilimi'], ['Cake', 'Pasta'], ['CalendarHeart', 'Özel gün'], ['MailOpen', 'Davetiye'],
+      ['Handshake', 'Birliktelik'], ['Infinity', 'Sonsuzluk']
+    ]
+  },
+  {
+    id: 'venues',
+    label: 'Düğün mekânları',
+    icons: [
+      ['Building2', 'Düğün salonu'], ['Building', 'Etkinlik binası'], ['Hotel', 'Otel'],
+      ['Castle', 'Saray'], ['Church', 'Kilise'], ['Tent', 'Kır düğünü çadırı'],
+      ['TentTree', 'Bahçe mekânı'], ['House', 'Villa'], ['Landmark', 'Tarihi mekân'],
+      ['Store', 'Etkinlik alanı'], ['Utensils', 'Restoran'], ['Coffee', 'Kafe'],
+      ['FerrisWheel', 'Eğlence alanı'], ['Theater', 'Etkinlik salonu'], ['BedDouble', 'Konaklama']
+    ]
+  },
+  {
+    id: 'locations',
+    label: 'Konum ve ulaşım',
+    icons: [
+      ['MapPin', 'Konum pini'], ['MapPinned', 'Haritada konum'], ['MapPinHouse', 'Mekân adresi'],
+      ['Map', 'Harita'], ['Navigation', 'Yol tarifi'], ['CarFront', 'Araba ile ulaşım'],
+      ['BusFront', 'Servis otobüsü'], ['TrainFront', 'Tren ile ulaşım'],
+      ['Plane', 'Uçak ile ulaşım'], ['ParkingMeter', 'Otopark'], ['DoorOpen', 'Giriş kapısı']
+    ]
+  },
+  {
+    id: 'ornaments',
+    label: 'Süsler ve şekiller',
+    icons: [
+      ['Sparkle', 'Işıltı'], ['Sparkles', 'Parıltılar'], ['Star', 'Yıldız'], ['WandSparkles', 'Sihir'],
+      ['Asterisk', 'Yıldız süsü'], ['Circle', 'Daire'], ['CircleDot', 'Noktalı daire'], ['CircleDashed', 'Kesik daire'],
+      ['Badge', 'Rozet'], ['BadgeCheck', 'Mühür'], ['Hexagon', 'Altıgen'], ['Octagon', 'Sekizgen'],
+      ['Triangle', 'Üçgen'], ['Heart', 'Kalp süsü']
+    ]
+  },
+  {
+    id: 'moments',
+    label: 'Anlar ve etkinlik',
+    icons: [
+      ['CalendarDays', 'Takvim'], ['Clock', 'Saat'], ['MapPin', 'Konum'], ['MapPinned', 'Harita'],
+      ['Music', 'Müzik'], ['Music2', 'Nota'], ['Camera', 'Fotoğraf makinesi'], ['Image', 'Fotoğraf'],
+      ['MessageCircleHeart', 'Sevgi mesajı'], ['Send', 'Uçan davetiye'], ['Compass', 'Pusula'],
+      ['Sunrise', 'Gün doğumu'], ['Sunset', 'Gün batımı'], ['MoonStar', 'Ay ve yıldız'],
+      ['CloudSun', 'Güneşli gökyüzü'], ['Rainbow', 'Gökkuşağı'], ['Mountain', 'Dağlar'],
+      ['Waves', 'Dalgalar'], ['FlameKindling', 'Mum ışığı'], ['Lamp', 'Fener']
+    ]
+  }
+] as const
+
 const weddingPhotos = [
   "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&q=80",
   "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&q=80",
@@ -118,6 +184,7 @@ const weddingPhotos = [
 export function LeftSidebar() {
   const [activeTab, setActiveTab] = useState('elements')
   const [iconSearch, setIconSearch] = useState('')
+  const [iconCategory, setIconCategory] = useState('Tümü')
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const { design, updateElement } = useEditorStore()
 
@@ -352,6 +419,16 @@ export function LeftSidebar() {
     }))
   }
 
+  const addLucideIconToCanvas = (iconName: string) => {
+    const Icon = icons[iconName as keyof typeof icons]
+    if (!Icon) return
+    const svgString = renderToString(<Icon size={24} strokeWidth={1.5} color="#3b2f27" />)
+    const innerSvg = svgString
+      .replace(/^<svg[^>]*>|<\/svg>$/g, '')
+      .replace(/currentColor/g, '#3b2f27')
+    addIconToCanvas(innerSvg)
+  }
+
   const changeBackground = (color: string) => {
     useEditorStore.setState((state) => ({
       design: {
@@ -479,6 +556,80 @@ export function LeftSidebar() {
         
         {activeTab === 'elements' && (
           <div className="flex flex-col gap-4">
+            <section className="border-b border-[#E9E2D6] pb-4">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-midnight">Davetiye simgeleri</h3>
+              <p className="mb-3 text-[10px] leading-relaxed text-muted-foreground">
+                60+ simgeyi arayın veya kategorilerden seçin. Dokunarak tasarıma ekleyin.
+              </p>
+              <input
+                type="search"
+                value={iconSearch}
+                onChange={event => setIconSearch(event.target.value)}
+                placeholder="Çiçek, yüzük, kalp ara..."
+                aria-label="Davetiye simgesi ara"
+                className="mb-2.5 h-9 w-full rounded-lg border border-border bg-[#FBFAF7] px-3 text-xs text-midnight outline-none transition focus:border-champagne focus:ring-2 focus:ring-champagne/20"
+              />
+              <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+                {['Tümü', ...invitationIconGroups.map(group => group.label)].map(category => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setIconCategory(category)}
+                    aria-pressed={iconCategory === category}
+                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-medium transition ${
+                      iconCategory === category
+                        ? 'border-midnight bg-midnight text-white'
+                        : 'border-border bg-white text-midnight/70 hover:border-champagne hover:bg-[#FBF8F1]'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+              <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+                {invitationIconGroups
+                  .filter(group => iconCategory === 'Tümü' || group.label === iconCategory)
+                  .map(group => {
+                    const matchingIcons = group.icons.filter(([name, label]) =>
+                      `${name} ${label}`.toLocaleLowerCase('tr').includes(iconSearch.trim().toLocaleLowerCase('tr'))
+                    )
+                    if (!matchingIcons.length) return null
+                    return (
+                      <div key={group.id}>
+                        {iconCategory === 'Tümü' && (
+                          <h4 className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-midnight/55">{group.label}</h4>
+                        )}
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {matchingIcons.map(([name, label]) => {
+                            const Icon = icons[name as keyof typeof icons]
+                            return (
+                              <button
+                                key={`${group.id}-${name}-${label}`}
+                                type="button"
+                                onClick={() => addLucideIconToCanvas(name)}
+                                title={`${label} ekle`}
+                                aria-label={`${label} ekle`}
+                                className="group flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-[#EEE9E0] bg-white px-1 py-2 text-midnight/75 transition-all hover:-translate-y-0.5 hover:border-champagne hover:bg-[#FBF8F1] hover:text-midnight hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+                              >
+                                <Icon size={19} strokeWidth={1.6} />
+                                <span className="w-full truncate text-center text-[8px] leading-tight">{label}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                {!invitationIconGroups.some(group =>
+                  (iconCategory === 'Tümü' || group.label === iconCategory) &&
+                  group.icons.some(([name, label]) => `${name} ${label}`.toLocaleLowerCase('tr').includes(iconSearch.trim().toLocaleLowerCase('tr')))
+                ) && (
+                  <p className="rounded-lg bg-[#FBF8F1] px-3 py-4 text-center text-[10px] text-muted-foreground">
+                    Bu aramayla eşleşen simge bulunamadı.
+                  </p>
+                )}
+              </div>
+            </section>
              {Object.entries(KATEGORILER).map(([category, keys]) => (
                <div key={category}>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{category}</h3>
@@ -528,24 +679,27 @@ export function LeftSidebar() {
         )}
 
         {activeTab === 'text' && (
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <button onClick={() => addTextToCanvas('Büyük Başlık', 120, 'Playfair Display')} className="w-full bg-ivory-50 border border-border p-3 rounded-xl text-xl font-serif text-midnight hover:bg-ivory hover:border-midnight/40 transition-colors">
+          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2.5">
+            <button onClick={() => addTextToCanvas('Büyük Başlık', 120, 'Playfair Display')} className="group flex min-h-12 w-full items-center justify-between rounded-xl border border-[#D9C8A7] bg-gradient-to-br from-[#FBF8F1] to-white px-3 py-2.5 text-left text-base font-serif text-midnight shadow-sm transition-all hover:-translate-y-0.5 hover:border-champagne hover:shadow-md">
                 Başlık Ekle
-              </button>
-              <button onClick={() => addTextToCanvas('Alt Başlık', 64, 'Lora')} className="w-full bg-ivory-50 border border-border p-2 rounded-xl text-base font-serif text-midnight hover:bg-ivory hover:border-midnight/40 transition-colors">
-                Alt Başlık Ekle
-              </button>
-              <button onClick={() => addTextToCanvas('Davetiye metnini buraya yazabilirsiniz...', 36, 'Montserrat')} className="w-full bg-ivory-50 border border-border p-2 rounded-xl text-xs text-midnight hover:bg-ivory hover:border-midnight/40 transition-colors">
-                Gövde Metni Ekle
-              </button>
-            </div>
+              <span aria-hidden className="text-lg text-champagne-dark transition-transform group-hover:translate-x-0.5">+</span>
+            </button>
+            <button onClick={() => addTextToCanvas('Alt Başlık', 64, 'Lora')} className="group flex min-h-11 w-full items-center justify-between rounded-xl border border-border bg-white px-3 py-2.5 text-left text-sm font-serif text-midnight shadow-sm transition-all hover:-translate-y-0.5 hover:border-champagne hover:bg-[#FBF8F1] hover:shadow-md">
+              Alt Başlık Ekle
+              <span aria-hidden className="text-lg text-champagne-dark transition-transform group-hover:translate-x-0.5">+</span>
+            </button>
+            <button onClick={() => addTextToCanvas('Davetiye metnini buraya yazabilirsiniz...', 36, 'Montserrat')} className="group flex min-h-10 w-full items-center justify-between rounded-xl border border-border bg-white px-3 py-2.5 text-left text-xs text-midnight shadow-sm transition-all hover:-translate-y-0.5 hover:border-champagne hover:bg-[#FBF8F1] hover:shadow-md">
+              Gövde Metni Ekle
+              <span aria-hidden className="text-lg text-champagne-dark transition-transform group-hover:translate-x-0.5">+</span>
+            </button>
+          </div>
 
-            <div className="flex flex-col gap-3 border-t pt-4">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Hazır Davetiye Sözleri</h3>
+          <div className="flex flex-col gap-2.5 border-t border-[#E9E2D6] pt-4">
+            <h3 className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-midnight/65">Hazır Davetiye Sözleri</h3>
               
-              {[
-                "Birlikteliğimizi sonsuzluğa taşırken sizleri de aramızda görmekten mutluluk duyarız.",
+            {[
+              "Birlikteliğimizi sonsuzluğa taşırken sizleri de aramızda görmekten mutluluk duyarız.",
                 "Hayat boyu birlikte ilerlemeye karar verdiğimiz bu yolda bizimle olmanız dileğiyle...",
                 "Sevgi, saygı ve anlayışla temelini attığımız beraberliğimizi taçlandıracağımız düğün törenimizde sizleri de bekliyoruz.",
                 "Bu mutlu günümüzde yanımızda olmanız dileğiyle...",
@@ -554,16 +708,22 @@ export function LeftSidebar() {
                 <button 
                   key={i}
                   onClick={() => addTextToCanvas(text, 32, 'Montserrat')} 
-                  className="w-full text-left bg-ivory-50 border border-border p-3 rounded-xl text-xs text-midnight hover:bg-ivory hover:border-midnight/40 transition-colors line-clamp-2"
+                  className="group relative w-full rounded-xl border border-[#E9E2D6] bg-gradient-to-br from-white to-[#FBF9F5] px-3 py-3 text-left shadow-[0_2px_8px_-5px_rgba(16,24,39,0.24)] transition-all hover:-translate-y-0.5 hover:border-champagne hover:shadow-[0_8px_18px_-10px_rgba(16,24,39,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
                   title={text}
                 >
-                  "{text}"
+                  <span className="mb-1.5 flex items-center justify-between text-[9px] font-medium uppercase tracking-[0.12em] text-champagne-dark">
+                    Davetiye sözü {String(i + 1).padStart(2, '0')}
+                    <span aria-hidden className="text-base leading-none transition-transform group-hover:translate-x-0.5">+</span>
+                  </span>
+                  <span className="block whitespace-normal break-words text-[11px] leading-[1.55] text-midnight/85">
+                    “{text}”
+                  </span>
                 </button>
               ))}
             </div>
             
-            <div className="flex flex-col gap-3 border-t pt-4">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Yazı Kombinasyonları</h3>
+            <div className="flex flex-col gap-3 border-t border-[#E9E2D6] pt-4">
+              <h3 className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-midnight/65">Yazı Kombinasyonları</h3>
               
               <button 
                 onClick={() => addComposition(
@@ -663,11 +823,7 @@ export function LeftSidebar() {
                   .map(([name, Icon]) => (
                     <button 
                       key={name}
-                      onClick={() => {
-                        const svgString = renderToString(<Icon size={24} strokeWidth={1.5} color="#3b2f27" />);
-                        const innerSvg = svgString.replace(/^<svg[^>]*>|<\/svg>$/g, '');
-                        addIconToCanvas(innerSvg);
-                      }}
+                      onClick={() => addLucideIconToCanvas(name)}
                       className="aspect-square flex items-center justify-center border border-transparent hover:border-border hover:bg-ivory-50 rounded-lg transition-colors text-midnight"
                       title={name}
                     >
