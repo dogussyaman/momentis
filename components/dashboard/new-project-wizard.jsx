@@ -41,7 +41,7 @@ export function NewProjectWizard() {
   const [menuInput, setMenuInput] = useState('')
   const [device, setDevice] = useState('mobile')
   const [previewMode, setPreviewMode] = useState('site')
-  const [designTarget, setDesignTarget] = useState('site')
+  const [designTarget, setDesignTarget] = useState('card')
   const [openSection, setOpenSection] = useState('details')
   const iframeRef = useRef(null)
   
@@ -68,7 +68,16 @@ export function NewProjectWizard() {
   const previewTemplate = { ...selectedSiteTemplate, palette: effectivePalette }
   const eventType = EVENT_TYPES.find((e) => e.id === form.event_type)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const changeDesignTarget = (target) => { setDesignTarget(target); setPreviewMode(target === 'site' ? 'site' : 'card'); setOpenSection('design') }
+  const canEditSite = Boolean(form.host_a && form.date)
+  const changeDesignTarget = (target) => {
+    if (target === 'site' && !canEditSite) {
+      toast.error('Site tasarımına geçmeden önce gelin adı ve etkinlik tarihini doldurun.')
+      return
+    }
+    setDesignTarget(target)
+    setPreviewMode(target === 'site' ? 'site' : 'card')
+    setOpenSection('design')
+  }
   const handleHeroImage = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -130,9 +139,30 @@ export function NewProjectWizard() {
   }
 
   const handleSiteSave = async (siteData) => {
+    if (!form.host_a || !form.date) {
+      toast.error('Site tasarımını kaydetmeden önce gelin adı ve etkinlik tarihini doldurun.')
+      return
+    }
     setForm((f) => ({ ...f, site_data: siteData }));
     changeDesignTarget('card');
     toast.success('Site tasarımı kaydedildi. Şimdi davetiye kartını hazırlayabilirsiniz.');
+  }
+
+  if (designTarget === 'site' && !canEditSite) {
+    return (
+      <div className="flex h-[calc(100dvh-4rem)] w-full items-center justify-center bg-ivory px-6 lg:h-[100dvh]">
+        <div className="max-w-lg rounded-3xl border border-border bg-white p-8 text-center shadow-[0_18px_60px_-30px_rgba(15,23,42,0.3)]">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Site düzenleme</p>
+          <h2 className="mt-3 font-serif text-3xl text-midnight">Davet sitesine başlamak için gerekli bilgiler eksik</h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            Gelin adı ve etkinlik tarihi doldurulmadan site tasarımına geçilemez. Önce temel etkinlik bilgilerini tamamlayın.
+          </p>
+          <Button onClick={() => changeDesignTarget('card')} className="mt-6 h-10 rounded-full bg-champagne px-6 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne-light">
+            Kart düzenleyicisine dön
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   if (designTarget === 'card') {
@@ -141,7 +171,12 @@ export function NewProjectWizard() {
         <div className="flex-1 w-full relative overflow-hidden bg-ivory">
           <CanvasEditor 
             topbarLeft={
-              <Button variant="ghost" onClick={() => changeDesignTarget('site')} className="shrink-0 whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight">
+              <Button
+                variant="ghost"
+                onClick={() => changeDesignTarget('site')}
+                className="shrink-0 whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight"
+                disabled={!canEditSite}
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
               </Button>
             }
