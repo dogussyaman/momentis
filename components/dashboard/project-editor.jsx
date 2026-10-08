@@ -29,6 +29,7 @@ import { CardMessageTemplates } from './card-message-templates'
 import { CanvasEditor } from '@/components/editor/CanvasEditor'
 import { useEditorStore } from '@/store/editor-store'
 import { SiteEditor } from '@/components/site-builder/SiteEditor'
+import { normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
@@ -187,7 +188,13 @@ export function ProjectEditor() {
   if (designTarget === 'site') {
     return (
       <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full" data-testid="project-editor-site">
-        <SiteEditor onSwitchToCard={() => changeDesignTarget('card')} isUpdate={true} onSave={handleSiteSave} />
+        <SiteEditor
+          key={project?.id || 'project-site'}
+          initialSite={form?.site_data ? normalizeSiteForEditor(form.site_data, { title: form.title || 'Bizim Düğün', slug: form.slug || project?.slug || 'bizim-dugun', templateId: form.template_slug || 'minimal', userId: project?.user_id || 'demo' }) : null}
+          onSwitchToCard={() => changeDesignTarget('card')}
+          isUpdate={true}
+          onSave={handleSiteSave}
+        />
       </div>
     )
   }

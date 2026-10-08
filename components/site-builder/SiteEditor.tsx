@@ -5,8 +5,8 @@ import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { v4 as uuidv4 } from 'uuid'
-import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
+import { createStarterSite, normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
+import type { WeddingSite } from '@/lib/site-builder/schema'
 
 import { SectionsPanel } from './panels/SectionsPanel'
 import { InspectorPanel } from './panels/InspectorPanel'
@@ -19,9 +19,10 @@ interface SiteEditorProps {
   onSwitchToCard: () => void;
   isUpdate?: boolean;
   onSave?: (site: any) => Promise<void>;
+  initialSite?: WeddingSite | null;
 }
 
-export function SiteEditor({ onSwitchToCard, isUpdate, onSave }: SiteEditorProps) {
+export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: SiteEditorProps) {
   const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
   const [previewTextScale, setPreviewTextScale] = useState(100);
@@ -40,42 +41,18 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave }: SiteEditorProps
   }
 
   useEffect(() => {
-    if (!site) {
-      const template = buildSiteFromTemplate('minimal')
-      initSite({
-        ...template,
-        id: uuidv4(),
-        userId: 'demo',
-        title: 'Bizim Düğün',
-        slug: 'bizim-dugun',
-        templateId: 'minimal',
-        theme: {
-          primaryColor: '#000000',
-          secondaryColor: '#ffffff',
-          accentColor: '#000000',
-          backgroundColor: '#f8f4ec',
-          surfaceColor: '#ffffff',
-          textColor: '#101827',
-          mutedColor: '#6b6458',
-          headingFont: 'Playfair Display',
-          bodyFont: 'Inter',
-          scriptFont: 'Great Vibes',
-          borderRadius: 8,
-          buttonRadius: 8,
-          headingScale: 1,
-          letterSpacing: 'normal'
-        },
-        sections: template.sections,
-        settings: {
-          musicEnabled: false,
-          showCountdown: true
-        },
-        status: 'draft',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
+    if (initialSite) {
+      const hydrated = normalizeSiteForEditor(initialSite, { title: 'Bizim Düğün', slug: 'bizim-dugun', templateId: 'minimal' })
+      if (!site || site.id !== hydrated.id || site.updatedAt !== hydrated.updatedAt || site.templateId !== hydrated.templateId) {
+        initSite(hydrated)
+      }
+      return
     }
-  }, [site, initSite]);
+
+    if (!site) {
+      initSite(createStarterSite())
+    }
+  }, [initialSite, site, initSite]);
 
   useEffect(() => {
     if (site) autosaveSite()
