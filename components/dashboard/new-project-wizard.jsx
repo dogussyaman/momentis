@@ -173,9 +173,8 @@ export function NewProjectWizard() {
             topbarLeft={
               <Button
                 variant="ghost"
-                onClick={() => changeDesignTarget('site')}
+                onClick={() => setDesignTarget('site')}
                 className="shrink-0 whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight"
-                disabled={!canEditSite}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
               </Button>

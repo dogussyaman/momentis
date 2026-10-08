@@ -1,5 +1,6 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,7 @@ import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Und
 import { cn } from '@/lib/utils'
 import { createStarterSite, normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
 import type { WeddingSite } from '@/lib/site-builder/schema'
+import type { LeftTab } from '@/store/site-editor-store'
 
 import { SectionsPanel } from './panels/SectionsPanel'
 import { InspectorPanel } from './panels/InspectorPanel'
@@ -133,18 +135,32 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
           {/* Nav Strip */}
           <div className="w-[68px] shrink-0 border-r border-border bg-white py-3">
             <div className="flex flex-col items-center gap-1.5">
-             <button title="Bölüm ekle" onClick={() => useSiteEditorStore.getState().setLeftTab('add')} className={cn("flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-colors", leftTab === 'add' ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/55 hover:bg-ivory-50 hover:text-midnight')}>
-               <PlusCircle className="w-5 h-5" />
-               Ekle
-             </button>
-             <button title="Şablonlar" onClick={() => useSiteEditorStore.getState().setLeftTab('templates')} className={cn("flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-colors", leftTab === 'templates' ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/55 hover:bg-ivory-50 hover:text-midnight')}>
-               <LayoutTemplate className="w-5 h-5" />
-               Şablon
-             </button>
-             <button title="Katmanlar" onClick={() => useSiteEditorStore.getState().setLeftTab('layers')} className={cn("flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-colors", leftTab === 'layers' ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/55 hover:bg-ivory-50 hover:text-midnight')}>
-               <Layers className="w-5 h-5" />
-               Katman
-             </button>
+             {([
+               { key: 'add', label: 'Ekle', icon: PlusCircle, title: 'Bölüm ekle' },
+               { key: 'templates', label: 'Şablon', icon: LayoutTemplate, title: 'Şablonlar' },
+               { key: 'layers', label: 'Katman', icon: Layers, title: 'Katmanlar' },
+             ] as Array<{ key: LeftTab; label: string; icon: typeof PlusCircle; title: string }>).map(({ key, label, icon: Icon, title }) => {
+               const active = leftTab === key
+               return (
+                 <motion.button
+                   key={key}
+                   type="button"
+                   title={title}
+                   onClick={() => useSiteEditorStore.getState().setLeftTab(key)}
+                   whileHover={{ y: -1 }}
+                   whileTap={{ scale: 0.98 }}
+                   className={cn(
+                     'relative flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-all duration-200',
+                     active
+                       ? 'bg-[#111827] text-[#f8f5f1] shadow-[0_14px_30px_-18px_rgba(17,24,39,0.85)] ring-1 ring-[#111827]/10'
+                       : 'text-midnight/55 hover:bg-[#f5f1eb] hover:text-midnight'
+                   )}
+                 >
+                   <Icon className="h-5 w-5" />
+                   <span>{label}</span>
+                 </motion.button>
+               )
+             })}
              <button title="Site ayarları" onClick={() => { useSiteEditorStore.getState().selectSection(null); useSiteEditorStore.getState().setLeftTab('add') }} className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55 transition-colors hover:bg-ivory-50 hover:text-midnight">
                <Settings2 className="w-5 h-5" />
                Site ayarı

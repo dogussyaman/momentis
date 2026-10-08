@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { motion } from 'framer-motion'
 import { renderToString } from 'react-dom/server'
 import { LayoutTemplate, Type, Image as ImageIcon, Sparkles, Shapes, ImagePlus, Copy, Layers, Clock, MapPin, Home, Users, Search, PlusCircle, X, Palette, icons } from 'lucide-react'
 import { useEditorStore } from '@/store/editor-store'
@@ -553,18 +554,25 @@ export function LeftSidebar() {
   return (
     <div className="flex h-full w-[280px] shrink-0 flex-row border-r border-border bg-white shadow-[2px_0_18px_-16px_rgba(16,24,39,0.35)]">
       <div className="flex w-[68px] flex-col items-center gap-1.5 overflow-y-auto border-r border-border bg-[#faf9f6] py-3">
-        {tabs.map(tab => (
-          <button 
-            key={tab.id} 
-            onClick={() => setActiveTab(tab.id)}
-            title={tab.label}
-            aria-current={activeTab === tab.id ? 'page' : undefined}
-            className={`relative mx-1 flex w-[58px] flex-col items-center gap-1.5 rounded-xl py-2.5 transition-colors ${activeTab === tab.id ? 'bg-midnight text-ivory shadow-sm' : 'text-midnight/60 hover:bg-white hover:text-midnight'}`}
-          >
-            <tab.icon className="h-[18px] w-[18px]" />
-            <span className="text-[8px] font-medium">{tab.label}</span>
-          </button>
-        ))}
+        {tabs.map(tab => {
+          const isActive = activeTab === tab.id
+          const Icon = tab.icon
+          return (
+            <motion.button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              title={tab.label}
+              aria-current={isActive ? 'page' : undefined}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              className={`relative mx-1 flex w-[58px] flex-col items-center gap-1.5 rounded-xl px-1 py-2.5 transition-all duration-200 ${isActive ? 'bg-[#111827] text-[#f8f5f1] shadow-[0_14px_30px_-18px_rgba(17,24,39,0.85)] ring-1 ring-[#111827]/10' : 'text-midnight/60 hover:bg-[#f5f1eb] hover:text-midnight'}`}
+            >
+              <Icon className="h-[18px] w-[18px]" />
+              <span className="text-[8px] font-medium">{tab.label}</span>
+            </motion.button>
+          )
+        })}
       </div>
       <div className="flex-1 overflow-y-auto bg-white p-4">
         <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-6 border-b border-border bg-white/95 px-4 py-4 backdrop-blur">

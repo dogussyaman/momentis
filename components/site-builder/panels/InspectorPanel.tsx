@@ -105,7 +105,7 @@ function FreeformOverlayControls({section,selectedOverlayId,selectOverlay,update
   </div>}
  </section>
 }
-function tab(active:boolean){return 'h-7 rounded-md text-[9px] uppercase tracking-wider '+(active?'bg-midnight text-ivory':'text-midnight/60 hover:bg-ivory-50')}
+function tab(active:boolean){return 'h-7 rounded-md text-[9px] uppercase tracking-wider transition-all duration-200 '+(active?'bg-[#111827] text-[#f8f5f1] shadow-[0_10px_20px_-14px_rgba(17,24,39,0.8)]':'text-midnight/60 hover:bg-[#f5f1eb]')}
 function renderField(f:any,value:any,set:(v:any)=>void,fieldKey=f.key){
  if(f.type==='image')return <SiteImageField label={f.label} fieldKey={fieldKey} value={value} onChange={set}/>
  if(['text','url','datetime','date','time','color','video'].includes(f.type))return <div className="space-y-1"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><Input type={f.type==='color'?'color':f.type==='url'?'url':'text'} value={value??''} onChange={e=>set(e.target.value)} placeholder={f.placeholder} className="h-8 text-[11px]"/></div>
