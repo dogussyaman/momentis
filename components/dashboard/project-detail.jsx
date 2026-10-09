@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Copy, ExternalLink, Users, MailCheck, UserX, Send, Trash2, Eye, EyeOff, Pencil, QrCode } from 'lucide-react'
+import { ArrowLeft, Copy, ExternalLink, Users, MailCheck, UserX, Send, Trash2, Eye, EyeOff, Pencil, QrCode, Globe, Archive, ArchiveRestore } from 'lucide-react'
 import QRCode from 'qrcode'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DavetiyeCanvasPreview } from '@/components/shared/davetiye-canvas-preview'
 import { getEventType } from '@/lib/data/events'
 import { formatEventDate } from '@/lib/projects'
+import { normalizeEventProject } from '@/lib/events/event-normalize'
+import { getStoredTokenValue } from '@/lib/events/event-tokens'
 import { GuestsTab } from './guests-tab'
 import { SendTab } from './send-tab'
 import { AlbumTab } from './album-tab'
@@ -26,15 +28,20 @@ export function ProjectDetail() {
   const { id } = useParams()
   const router = useRouter()
   const [project, setProject] = useState(null)
+  const [normProject, setNormProject] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [qrCodeData, setQrCodeData] = useState(null)
   const [qrCodeTitle, setQrCodeTitle] = useState('')
+  const [archivePending, setArchivePending] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/projects/${id}`, { credentials: 'include', cache: 'no-store' })
     if (res.status === 404) { setNotFound(true); return }
     const data = await res.json().catch(() => ({}))
-    if (data.project) setProject(data.project)
+    if (data.project) {
+      setProject(data.project)
+      setNormProject(normalizeEventProject(data.project))
+    }
   }, [id])
 
   useEffect(() => { load() }, [load])
@@ -56,7 +63,28 @@ export function ProjectDetail() {
   const togglePublish = async () => {
     const res = await fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ published: !project.published }) })
     const data = await res.json().catch(() => ({}))
-    if (res.ok) { setProject(data.project); toast.success(data.project.published ? 'Davetiye yayınlandı' : 'Davetiye yayından kaldırıldı') } else toast.error(data?.error || 'Hata')
+    if (res.ok) { setProject(data.project); setNormProject(normalizeEventProject(data.project)); toast.success(data.project.published ? 'Davetiye yayınlandı' : 'Davetiye yayından kaldırıldı') } else toast.error(data?.error || 'Hata')
+  }
+
+  const toggleArchive = async () => {
+    setArchivePending(true)
+    try {
+      const archived = !project.archived
+      const res = await fetch(`/api/projects/${id}/archive`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ archived }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Arşiv durumu güncellenemedi.')
+      toast.success(archived ? 'Etkinlik arşive taşındı.' : 'Etkinlik arşivden çıkarıldı.')
+      router.replace(archived ? '/panel/arsiv' : '/panel')
+    } catch (error) {
+      toast.error(error.message || 'Arşiv durumu güncellenemedi.')
+    } finally {
+      setArchivePending(false)
+    }
   }
 
   const remove = async () => {
@@ -67,46 +95,89 @@ export function ProjectDetail() {
   if (notFound) {
     return <div className="py-24 text-center"><p className="font-serif text-3xl text-midnight">Etkinlik bulunamadı.</p><Link href="/panel" className="mt-6 inline-block border-b border-midnight text-sm">Panele dön</Link></div>
   }
-  if (!project) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-64 rounded-2xl" /></div>
+  if (!project || !normProject) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-64 rounded-2xl" /></div>
 
-  const type = getEventType(project.event_type)
-  const s = project.stats || {}
+  const type = getEventType(normProject.event_type)
+  const s = normProject.stats || {}
+
+  const title = getStoredTokenValue('{{coupleNames}}', normProject.event_data)
+  const dateStr = formatEventDate(normProject.event_data.date, normProject.event_data.time)
+  const venue = normProject.event_data.venue
+  const city = normProject.event_data.city
+
+  const siteDeliv = normProject.deliverables?.site
+  const invDeliv = normProject.deliverables?.invitation
 
   return (
     <div data-testid="project-detail">
       <Link href="/panel" className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground hover:text-midnight"><ArrowLeft className="h-3.5 w-3.5" /> Etkinliklerim</Link>
 
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{type?.label}</Badge>
-            <Badge className={project.published ? 'rounded-full border-0 bg-sage/30 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-sage/30' : 'rounded-2xl border-0 bg-muted text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:bg-muted'} data-testid="publish-badge">{project.published ? 'Yayında' : 'Taslak'}</Badge>
-          </div>
-          <h1 className="mt-4 font-serif text-4xl leading-tight text-midnight md:text-5xl" data-testid="project-title">{[project.host_a, project.host_b].filter(Boolean).join(' & ')}</h1>
-          <p className="mt-2 text-muted-foreground">{formatEventDate(project.date, project.time)}{project.venue ? ` · ${project.venue}` : ''}{project.city ? `, ${project.city}` : ''}</p>
+      <div className="mt-6 mb-10">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{type?.label || 'Etkinlik'}</Badge>
+          {project.archived ? (
+            <Badge className="rounded-2xl border-0 bg-muted text-[10px] uppercase tracking-[0.2em] text-muted-foreground" data-testid="publish-badge">Arşivde</Badge>
+          ) : (
+            <Badge className={normProject.published ? 'rounded-full border-0 bg-sage/30 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-sage/30' : 'rounded-2xl border-0 bg-muted text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:bg-muted'} data-testid="publish-badge">{normProject.published ? 'Yayında' : 'Taslak'}</Badge>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]">
-            <Link href={`/panel/etkinlik/${id}/duzenle`} data-testid="edit-project"><Pencil className="mr-2 h-3.5 w-3.5" /> Düzenle</Link>
-          </Button>
-          <Button variant="outline" onClick={copyLink} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="copy-link"><Copy className="mr-2 h-3.5 w-3.5" /> Site Bağlantısını Kopyala</Button>
-          <Button variant="outline" onClick={() => generateQr(project.url, 'Davetiye Sitesi QR Kodu')} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="qr-site"><QrCode className="mr-2 h-3.5 w-3.5" /> Site QR</Button>
-          <Button asChild variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]">
-            <a href={`/d/${project.slug}`} target="_blank" rel="noreferrer" data-testid="open-site"><ExternalLink className="mr-2 h-3.5 w-3.5" /> Siteyi Aç</a>
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em] bg-champagne text-midnight hover:bg-champagne-light">
-                <Eye className="mr-2 h-3.5 w-3.5" /> Davetiye Kartını Gör
+        <h1 className="mt-4 font-serif text-4xl leading-tight text-midnight md:text-5xl" data-testid="project-title">{title || 'İsimsiz Etkinlik'}</h1>
+        <p className="mt-2 text-muted-foreground">{dateStr}{venue ? ` · ${venue}` : ''}{city ? `, ${city}` : ''}</p>
+        <Button onClick={toggleArchive} disabled={archivePending} variant="outline" className="mt-5 h-9 rounded-xl text-xs">
+          {project.archived ? <ArchiveRestore className="mr-2 h-3.5 w-3.5" /> : <Archive className="mr-2 h-3.5 w-3.5" />}
+          {archivePending ? 'Kaydediliyor…' : project.archived ? 'Arşivden Çıkar' : 'Arşive Taşı'}
+        </Button>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:gap-8 mb-12">
+        {/* Site Deliverable Card */}
+        {siteDeliv?.enabled && (
+        <div className="rounded-3xl border border-border bg-white p-6 shadow-sm">
+           <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-serif text-2xl text-midnight flex items-center gap-2"><Globe className="h-5 w-5 text-champagne-dark" /> Davet Sitesi</h3>
+              {siteDeliv.status === 'published' ? <Badge className="bg-sage/30 border-0 text-midnight hover:bg-sage/30 text-[10px] uppercase tracking-wider">Yayında</Badge> : <Badge className="bg-muted border-0 text-muted-foreground text-[10px] uppercase tracking-wider">Taslak</Badge>}
+           </div>
+           <p className="text-sm text-muted-foreground mb-6 h-10">Etkileşimli web siteniz üzerinden LCV yanıtları toplayın ve konum paylaşın.</p>
+           <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" className="h-9 rounded-xl text-xs">
+                <Link href={`/panel/etkinlik/${id}/duzenle?mode=site`} data-testid="edit-project"><Pencil className="mr-2 h-3.5 w-3.5" /> Düzenle</Link>
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-2xl bg-ivory rounded-2xl p-0 overflow-hidden border-0">
-               <DialogTitle className="sr-only">Davetiye Kartı</DialogTitle>
-               <DavetiyeCanvasPreview project={project} />
-            </DialogContent>
-          </Dialog>
-          <Button onClick={togglePublish} className="h-11 rounded-2xl bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="toggle-publish">{project.published ? <><EyeOff className="mr-2 h-3.5 w-3.5" /> Yayından Kaldır</> : <><Eye className="mr-2 h-3.5 w-3.5" /> Yayınla</>}</Button>
+              <Button variant="outline" onClick={copyLink} className="h-9 rounded-xl text-xs" data-testid="copy-link"><Copy className="mr-2 h-3.5 w-3.5" /> Link</Button>
+              <Button variant="outline" onClick={() => generateQr(normProject.url, 'Davetiye Sitesi QR Kodu')} className="h-9 rounded-xl text-xs"><QrCode className="mr-2 h-3.5 w-3.5" /> QR</Button>
+              <Button asChild variant="outline" className="h-9 rounded-xl text-xs">
+                <a href={`/d/${normProject.slug}`} target="_blank" rel="noreferrer" data-testid="open-site"><ExternalLink className="mr-2 h-3.5 w-3.5" /> Aç</a>
+              </Button>
+              <Button onClick={togglePublish} className="h-9 rounded-xl text-xs bg-midnight text-ivory hover:bg-midnight-700" data-testid="toggle-publish">{normProject.published ? <EyeOff className="mr-2 h-3.5 w-3.5" /> : <Eye className="mr-2 h-3.5 w-3.5" />} {normProject.published ? 'Yayından Kaldır' : 'Yayınla'}</Button>
+           </div>
         </div>
+        )}
+
+        {/* Invitation Card */}
+        {invDeliv?.enabled && (
+        <div className="rounded-3xl border border-border bg-white p-6 shadow-sm">
+           <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-serif text-2xl text-midnight flex items-center gap-2"><Eye className="h-5 w-5 text-champagne-dark" /> Dijital Davetiye</h3>
+              {invDeliv.status === 'published' ? <Badge className="bg-sage/30 border-0 text-midnight hover:bg-sage/30 text-[10px] uppercase tracking-wider">Hazır</Badge> : <Badge className="bg-muted border-0 text-muted-foreground text-[10px] uppercase tracking-wider">Taslak</Badge>}
+           </div>
+           <p className="text-sm text-muted-foreground mb-6 h-10">WhatsApp veya sosyal medya üzerinden paylaşabileceğiniz resimli kartınız.</p>
+           <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" className="h-9 rounded-xl text-xs">
+                <Link href={`/panel/etkinlik/${id}/duzenle?mode=card`}><Pencil className="mr-2 h-3.5 w-3.5" /> Düzenle</Link>
+              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="h-9 rounded-xl text-xs bg-champagne text-midnight hover:bg-champagne-light">
+                    <Eye className="mr-2 h-3.5 w-3.5" /> Önizle & İndir
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-2xl bg-ivory rounded-2xl p-0 overflow-hidden border-0">
+                  <DialogTitle className="sr-only">Davetiye Kartı</DialogTitle>
+                  <DavetiyeCanvasPreview project={normProject} />
+                </DialogContent>
+              </Dialog>
+           </div>
+        </div>
+        )}
       </div>
 
       <AlertDialog open={!!qrCodeData} onOpenChange={(open) => !open && setQrCodeData(null)}>
@@ -142,8 +213,8 @@ export function ProjectDetail() {
         </TabsList>
         <TabsContent value="guests" className="mt-8"><GuestsTab projectId={id} onChanged={load} /></TabsContent>
         <TabsContent value="rsvps" className="mt-8"><RsvpsTab projectId={id} /></TabsContent>
-        <TabsContent value="send" className="mt-8"><SendTab projectId={id} project={project} onSent={load} /></TabsContent>
-        <TabsContent value="album" className="mt-8"><AlbumTab projectId={id} project={project} onChanged={load} /></TabsContent>
+        <TabsContent value="send" className="mt-8"><SendTab projectId={id} project={normProject} onSent={load} /></TabsContent>
+        <TabsContent value="album" className="mt-8"><AlbumTab projectId={id} project={normProject} onChanged={load} /></TabsContent>
         <TabsContent value="guestbook" className="mt-8"><GuestbookTab projectId={id} /></TabsContent>
         <TabsContent value="settings" className="mt-8">
           <div className="border border-destructive/30 bg-ivory-50 p-8">

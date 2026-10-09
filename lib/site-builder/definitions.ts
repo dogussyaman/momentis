@@ -3,7 +3,7 @@ import {
   Gift, Hotel, Shirt, BookHeart, Type, Minus, PanelBottom, ListOrdered, Images, Share2, type LucideIcon,
 } from 'lucide-react'
 import type { ButtonConfig, FieldDef, SectionAnimation, SectionStyle } from './schema'
-import { GALLERY_DEFAULT, STOCK } from './media'
+import { GALLERY_DEFAULT, SITE_AUDIO_LIBRARY, STOCK } from './media'
 
 export const uid = (p = 'id') => `${p}_${Math.random().toString(36).slice(2, 9)}`
 
@@ -485,7 +485,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         title: 'Bizim Şarkımız',
         songTitle: 'Perfect',
         artist: 'Ed Sheeran',
-        src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        src: SITE_AUDIO_LIBRARY[0].src,
         cover: STOCK.couple3,
         variant: 'card',
         loop: true,
@@ -497,7 +497,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       { key: 'title', label: 'Başlık', type: 'text', group: 'İçerik' },
       { key: 'songTitle', label: 'Şarkı adı', type: 'text', group: 'İçerik' },
       { key: 'artist', label: 'Sanatçı', type: 'text', group: 'İçerik' },
-      { key: 'src', label: 'MP3 URL', type: 'url', group: 'İçerik' },
+      { key: 'src', label: 'Müzik seç', type: 'audio', group: 'İçerik' },
       { key: 'cover', label: 'Kapak', type: 'image', group: 'İçerik' },
       {
         key: 'variant', label: 'Stil', type: 'segmented', group: 'Düzen',

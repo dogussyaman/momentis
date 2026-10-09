@@ -147,6 +147,19 @@ body {
   container-type: inline-size;
 }
 .sb-root * { border-color: var(--sb-line); }
+.sb-editor-canvas,
+.sb-editor-canvas *,
+.sb-editor-canvas *::before,
+.sb-editor-canvas *::after {
+  animation: none !important;
+  scroll-behavior: auto !important;
+  transition: none !important;
+}
+.sb-editor-canvas button:hover,
+.sb-editor-canvas a:hover,
+.sb-editor-canvas .group:hover img {
+  transform: none !important;
+}
 .sb-heading { font-family: var(--sb-heading-font); letter-spacing: var(--sb-heading-tracking); line-height: 1.1; }
 .sb-script { font-family: var(--sb-script-font); line-height: 1.15; letter-spacing: 0; }
 .sb-body { font-family: var(--sb-body-font); }

@@ -38,7 +38,7 @@ export function RightSidebar() {
 
   if (!selectedElement) {
     return (
-      <div className="flex w-[260px] shrink-0 flex-col items-center justify-center gap-4 border-l border-border bg-white p-6 text-center text-sm text-muted-foreground">
+      <div className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-4 bg-white p-6 text-center text-sm text-muted-foreground">
         <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-ivory-50 text-midnight/30 shadow-sm">
           <Sparkles className="h-7 w-7" />
         </div>
@@ -59,7 +59,7 @@ export function RightSidebar() {
   }
 
   return (
-    <div className="relative z-10 flex h-full w-[260px] shrink-0 flex-col border-l border-border bg-white shadow-[-2px_0_18px_-16px_rgba(16,24,39,0.35)]">
+    <div className="relative z-10 flex h-full w-full min-w-0 flex-col bg-white">
       <div className="sticky top-0 flex items-center gap-3 border-b border-border bg-white px-4 py-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ivory-50 text-midnight/70">
           {selectedElement.type === 'text' ? <Type className="h-4 w-4" /> :

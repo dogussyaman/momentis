@@ -21,7 +21,20 @@ export default function RootLayout({ children }) {
       </head>
       <body className="font-sans bg-ivory text-midnight">
         <Providers>{children}</Providers>
-        <Toaster position="top-center" richColors />
+        <Toaster 
+          position="bottom-right" 
+          toastOptions={{
+            style: {
+              background: '#f8f5f1',
+              color: '#111827',
+              border: '1px solid #e2dcd0',
+              borderRadius: '1rem',
+              boxShadow: '0 10px 40px -10px rgba(17,24,39,0.15)',
+              padding: '16px 20px',
+            },
+            className: 'font-sans text-sm font-medium tracking-wide',
+          }}
+        />
       </body>
     </html>
   )

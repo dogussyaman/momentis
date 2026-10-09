@@ -4,9 +4,10 @@ import { motion } from 'framer-motion'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type } from 'lucide-react'
+import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type, AudioLines } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createStarterSite, normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
+import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
 import type { WeddingSite } from '@/lib/site-builder/schema'
 import type { LeftTab } from '@/store/site-editor-store'
 
@@ -16,15 +17,22 @@ import { TemplatesPanel } from './panels/TemplatesPanel'
 import { LayersPanel } from './panels/LayersPanel'
 import { SiteCanvas } from './SiteCanvas'
 import { SiteViewer } from './SiteViewer'
+import { SiteAudioField } from './panels/SiteAudioField'
+import { ResizableSidebar } from '@/components/shared/ResizableSidebar'
 
 interface SiteEditorProps {
   onSwitchToCard: () => void;
   isUpdate?: boolean;
   onSave?: (site: any) => Promise<void>;
+  onSaveDraft?: (site: any) => Promise<void>;
   initialSite?: WeddingSite | null;
+  eventData?: any;
+  saveButtonLabel?: string;
+  showSwitchToCard?: boolean;
+  autoSaveEnabled?: boolean;
 }
 
-export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: SiteEditorProps) {
+export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, initialSite, eventData, saveButtonLabel, showSwitchToCard = true, autoSaveEnabled = true }: SiteEditorProps) {
   const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
   const [previewTextScale, setPreviewTextScale] = useState(100);
@@ -42,23 +50,41 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
     }
   }
 
+  const handleSaveDraft = async () => {
+    if (!onSaveDraft || !site) return
+    setLocalSaving(true)
+    try {
+      await onSaveDraft(site)
+    } finally {
+      setLocalSaving(false)
+    }
+  }
+
   useEffect(() => {
     if (initialSite) {
       const hydrated = normalizeSiteForEditor(initialSite, { title: 'Bizim Düğün', slug: 'bizim-dugun', templateId: 'minimal' })
-      if (!site || site.id !== hydrated.id || site.updatedAt !== hydrated.updatedAt || site.templateId !== hydrated.templateId) {
+      if (!site || site.id !== hydrated.id || site.templateId !== hydrated.templateId) {
         initSite(hydrated)
       }
       return
     }
 
     if (!site) {
-      initSite(createStarterSite())
+      let starter = createStarterSite()
+      if (eventData) {
+        starter = syncSiteEventData(
+          JSON.parse(resolveTokens(JSON.stringify(starter), eventData)),
+          null,
+          eventData,
+        )
+      }
+      initSite(starter)
     }
-  }, [initialSite, site, initSite]);
+  }, [initialSite, site, initSite, eventData]);
 
   useEffect(() => {
-    if (site) autosaveSite()
-  }, [site]);
+    if (autoSaveEnabled && site) autosaveSite()
+  }, [site, autoSaveEnabled]);
 
   if (!site) return <div className="flex items-center justify-center h-full">Yükleniyor...</div>;
 
@@ -67,9 +93,11 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
       {/* Top Toolbar */}
       <div className="z-20 flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-white px-3 shadow-sm sm:px-4">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Button variant="ghost" onClick={onSwitchToCard} className="h-9 shrink-0 px-2 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-midnight sm:px-3 sm:text-xs">
-            <ArrowLeft className="mr-1.5 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Kart Tasarımına Dön</span>
-          </Button>
+          {showSwitchToCard && (
+            <Button variant="ghost" onClick={onSwitchToCard} className="h-9 shrink-0 px-2 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-midnight sm:px-3 sm:text-xs">
+              <ArrowLeft className="mr-1.5 h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Kart Tasarımına Dön</span>
+            </Button>
+          )}
           <div className="h-4 w-px bg-border" />
           <div className="hidden min-w-0 sm:block">
             <p className="truncate font-serif text-xs font-medium text-midnight">{site.title || 'Davet sitesi'}</p>
@@ -83,7 +111,8 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
         
         <div className="flex shrink-0 items-center gap-1">
           {lastSavedAt && <span className="hidden items-center gap-1 text-[9px] text-muted-foreground xl:flex"><Cloud className="h-3 w-3" /> Taslak kaydedildi</span>}
-          <Button variant="outline" size="sm" onClick={handleSave} aria-label={isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet'} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? (isUpdate ? 'Güncelleniyor…' : 'Kaydediliyor…') : (isUpdate ? 'Güncelle' : 'Kaydet')}</span></Button>
+          {onSaveDraft && <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={isSaving || localSaving} aria-label="Taslak olarak kaydet" className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{localSaving ? 'Kaydediliyor…' : 'Taslak'}</span></Button>}
+          <Button variant="outline" size="sm" onClick={handleSave} aria-label={saveButtonLabel || (isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet')} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? 'Kaydediliyor…' : (saveButtonLabel || (isUpdate ? 'Güncelle' : 'Kaydet'))}</span></Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreview(!isPreview)} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{isPreview ? 'Düzenle' : 'Önizle'}</span></Button>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-ivory-50 p-0.5 sm:gap-1 sm:p-1">
@@ -107,7 +136,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
         )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {isPreview ? (
           <div className="flex-1 overflow-auto bg-ivory-50 p-4 sm:p-8" data-testid="site-responsive-preview">
             <div className="flex min-h-full min-w-max justify-center">
@@ -131,13 +160,14 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
           </div>
         ) : <>
         {/* Left Sidebar */}
-        <div className="w-[300px] border-r border-border bg-white flex shrink-0 overflow-hidden">
+        <ResizableSidebar id="site-left" label="Site araç paneli" side="left" initialWidth={360} minWidth={280} maxWidth={560} className="border-r border-border bg-white">
           {/* Nav Strip */}
           <div className="w-[68px] shrink-0 border-r border-border bg-white py-3">
             <div className="flex flex-col items-center gap-1.5">
              {([
                { key: 'add', label: 'Ekle', icon: PlusCircle, title: 'Bölüm ekle' },
                { key: 'templates', label: 'Şablon', icon: LayoutTemplate, title: 'Şablonlar' },
+               { key: 'music', label: 'Ses', icon: AudioLines, title: 'Site müziği' },
                { key: 'layers', label: 'Katman', icon: Layers, title: 'Katmanlar' },
              ] as Array<{ key: LeftTab; label: string; icon: typeof PlusCircle; title: string }>).map(({ key, label, icon: Icon, title }) => {
                const active = leftTab === key
@@ -167,16 +197,40 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
              </button>
             </div>
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="min-w-0 flex-1 overflow-hidden">
              {leftTab === 'add' && <SectionsPanel />}
              {leftTab === 'templates' && <TemplatesPanel />}
+             {leftTab === 'music' && site && (
+               <div className="h-full space-y-4 overflow-y-auto p-4">
+                 <div>
+                   <h2 className="font-serif text-lg text-midnight">Site müziği</h2>
+                   <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                     Davet siteniz için bir parça seçin. Ziyaretçiler müziği oynat düğmesiyle başlatabilir.
+                   </p>
+                 </div>
+                 <SiteAudioField
+                   label="Müzik seç"
+                   value={site.settings.musicUrl}
+                   onChange={(musicUrl) => useSiteEditorStore.getState().updateSettings({ musicUrl, musicEnabled: true })}
+                 />
+                 <label className="flex items-center justify-between rounded-lg border bg-ivory-50/60 px-3 py-2.5">
+                   <span className="text-[10px] text-midnight">Sitede müziği göster</span>
+                   <input
+                     type="checkbox"
+                     checked={site.settings.musicEnabled}
+                     onChange={(event) => useSiteEditorStore.getState().updateSettings({ musicEnabled: event.target.checked })}
+                     aria-label="Sitede müziği etkinleştir"
+                   />
+                 </label>
+               </div>
+             )}
              {leftTab === 'layers' && <LayersPanel />}
              {/* other tabs can be added here if needed */}
           </div>
-        </div>
+        </ResizableSidebar>
 
         {/* Canvas / Preview */}
-        <div className="flex-1 overflow-y-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-4 sm:p-8">
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-4 sm:p-8">
           <div className="flex min-h-full flex-col items-center">
           <div className={cn(
             'my-auto flex flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_16px_50px_-20px_rgba(16,24,39,0.28)] transition-all duration-300',
@@ -190,9 +244,9 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, initialSite }: Si
         </div>
 
         {/* Right Inspector */}
-        <div className="w-[300px] border-l border-border bg-white shrink-0 overflow-hidden">
+        <ResizableSidebar id="site-right" label="Site özellik paneli" side="right" initialWidth={340} minWidth={260} maxWidth={520} className="overflow-hidden border-l border-border bg-white">
           <InspectorPanel />
-        </div>
+        </ResizableSidebar>
         </>}
       </div>
     </div>

@@ -5,6 +5,9 @@ import { useSiteEditorStore } from '@/store/site-editor-store'
 import type { SiteOverlayElement, SiteSection } from '@/lib/site-builder/schema'
 import { sectionRegistry } from './sections'
 import { SiteRenderProvider } from './render/primitives'
+import { SiteNavigation } from './SiteViewer'
+import { getSiteRootStyle } from '@/lib/site-builder/render-style'
+import { loadGoogleFonts } from '@/lib/site-builder/fonts'
 import { cn } from '@/lib/utils'
 import { EDITOR_FONT_NAMES } from '@/lib/editor-fonts'
 import { AlignCenter, AlignLeft, AlignRight, Bold, Copy, Eye, EyeOff, GripVertical, Italic, Lock, Minus, Plus, Trash2, Underline, Unlock } from 'lucide-react'
@@ -210,6 +213,10 @@ export function SiteCanvas() {
   const [toolbarPosition, setToolbarPosition] = useState<ToolbarPosition | null>(null)
   const overlayDragRef = useRef<OverlayDrag | null>(null)
   const ignoreCanvasClickRef = useRef(false)
+
+  useEffect(() => {
+    loadGoogleFonts([site?.theme.headingFont, site?.theme.bodyFont, site?.theme.scriptFont])
+  }, [site?.theme.headingFont, site?.theme.bodyFont, site?.theme.scriptFont])
 
   const updateToolbarPosition = useCallback(() => {
     if (!selection || selection.kind === 'image' || !selection.element.isConnected) {
@@ -472,7 +479,9 @@ export function SiteCanvas() {
   return (
     <SiteRenderProvider value={{ site, mode: 'editor' }}>
       <div
-        className="relative flex min-h-full w-full flex-col bg-white"
+        id="site-start"
+        data-site-root
+        className="sb-root sb-editor-canvas relative flex min-h-full w-full flex-col bg-white"
         onPointerDown={handleOverlayPointerDown}
         onPointerMove={handleOverlayPointerMove}
         onPointerUp={handleOverlayPointerUp}
@@ -488,8 +497,9 @@ export function SiteCanvas() {
           }
         }}
         onBlurCapture={saveText}
-        style={{ backgroundColor: site.theme.backgroundColor, color: site.theme.textColor }}
+        style={getSiteRootStyle(site)}
       >
+        {site.settings.showNavbar !== false && <SiteNavigation site={site} />}
         {site.sections.length ? site.sections.map((section) => (
           <SortableSection key={section.id} section={section} onSelectElement={handleSelectElement} />
         )) : (

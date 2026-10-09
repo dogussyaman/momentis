@@ -56,3 +56,116 @@ export const GALLERY_DEFAULT = [
   STOCK.couple3,
   STOCK.flowers,
 ]
+
+export type SiteMediaAsset = { src: string; label: string }
+
+const publicAsset = (path: string) =>
+  `/${path.split('/').map((part) => encodeURIComponent(part)).join('/')}`
+
+const numberedAssets = (directory: string, extension: string, count: number, prefix: string): SiteMediaAsset[] =>
+  Array.from({ length: count }, (_, index) => {
+    const file = `${index + 1}.${extension}`
+    return { src: publicAsset(`${directory}/${file}`), label: `${prefix} ${String(index + 1).padStart(2, '0')}` }
+  })
+
+const namedAssets = (directory: string, files: string[]): SiteMediaAsset[] =>
+  files.map((file) => ({
+    src: publicAsset(`${directory}/${file}`),
+    label: file.replace(/\.(svg|png|jpg)$/i, '').trim(),
+  }))
+
+export const SITE_SVG_LIBRARY: { id: string; label: string; items: SiteMediaAsset[] }[] = [
+  {
+    id: 'genel',
+    label: 'Genel SVG',
+    items: namedAssets('svg/genel', [
+      'Adsız tasarım (1).svg',
+      'Adsız tasarım (2).svg',
+      'Adsız tasarım (3).svg',
+      'Adsız tasarım (4).svg',
+      'Adsız tasarım (5).svg',
+      'Adsız tasarım2.svg',
+      'Yeşil ve Antrasit Sade Monogram Yapraklı Düğün Davetiyesi.svg',
+    ]),
+  },
+  {
+    id: 'flower',
+    label: 'Çiçek SVG',
+    items: [
+      ...numberedAssets('svg/flower', 'svg', 25, 'Çiçek'),
+      ...namedAssets('svg/flower', ['k.svg', 'm.svg', 'p.svg', 'q.svg', 'w.svg', 'ı.svg']),
+    ],
+  },
+]
+
+const WEDDING_NAMED_ASSETS = [
+  'Beyaz ve Altın Klasik Düğün Davetiye.png',
+  'Beyaz ve Mavi Geleneksel Düğün Davetiye.png',
+  'Beyaz ve Yeşil Zarif Düğün Davetiyesi.png',
+  'Grey And Brown Elegant Wedding Invitation.png',
+  'Gri Beyaz Minimalist Suluboya Düğün Davetiyesi .png',
+  'Kahverengi ve Beyaz Fotoğraflı Düğün Davetiyesi.png',
+  'Mor Bej Zarif Düğün Davetiyesi.png',
+  'Pink and White Floral Illustration Save The Date Mobile Video.png',
+  'Tek Renkli Minimalist Çiçek Düğün Davetiyesi (A6).png',
+  'Altın Sarısı Modern Düğün Davetiyesi.svg',
+  'Beyaz ve Altın Klasik Düğün Davetiye.svg',
+  'Beyaz ve Mavi Geleneksel Düğün Davetiye.svg',
+  'Kahverengi ve Beyaz Fotoğraflı Düğün Davetiyesi.svg',
+  'Siyah Beyaz Minimalist Eğlenceli Düğün Davetiyesi.svg',
+  'Tek Renkli Minimalist Çiçek Düğün Davetiyesi (A6).svg',
+  'a (1).svg',
+  'a (2).svg',
+  'dqwd (1).svg',
+  'dqwd (2).svg',
+  'ggr (1).svg',
+  'ggr (2).svg',
+  'juju.svg',
+  'qwdqw.svg',
+  'qwdqwd.svg',
+  'rs (1).svg',
+  'rs (2).svg',
+  'ü.svg',
+  'üğğ.svg',
+  'üğğü.svg',
+  'ğ.svg',
+  'ğü.svg',
+]
+
+export const WEDDING_MEDIA_LIBRARY: SiteMediaAsset[] = [
+  ...numberedAssets('dugun', 'png', 23, 'Düğün görseli'),
+  ...namedAssets('dugun', WEDDING_NAMED_ASSETS),
+]
+
+export const SITE_MEDIA_LIBRARY: { id: string; label: string; items: SiteMediaAsset[] }[] = [
+  {
+    id: 'photos',
+    label: 'Fotoğraflar',
+    items: STOCK_LIBRARY.map(({ src, label }) => ({ src, label })),
+  },
+  ...SITE_SVG_LIBRARY,
+  {
+    id: 'wedding',
+    label: 'Düğün',
+    items: WEDDING_MEDIA_LIBRARY,
+  },
+]
+
+export const SITE_AUDIO_LIBRARY: SiteMediaAsset[] = [
+  {
+    src: publicAsset('sound/ElevenLabs_audio_elevenlabs-music-v2_Romantic acoust_2026-10-08T13_25_01.mp3'),
+    label: 'Romantik akustik',
+  },
+  {
+    src: publicAsset('sound/ElevenLabs_audio_elevenlabs-music-v2_Romantic solo p_2026-10-08T14_01_53.mp3'),
+    label: 'Romantik solo piyano',
+  },
+  {
+    src: publicAsset('sound/ElevenLabs_audio_elevenlabs-music-v2_Romantic solo p_2026-10-08T14_06_56.mp3'),
+    label: 'Romantik solo piyano 2',
+  },
+  {
+    src: publicAsset('sound/ElevenLabs_audio_elevenlabs-music-v2_Joyful upbeat p_2026-10-08T13_27_35.mp3'),
+    label: 'Neşeli ve hareketli',
+  },
+]

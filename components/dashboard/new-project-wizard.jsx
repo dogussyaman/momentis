@@ -1,215 +1,278 @@
 'use client'
 
-import { useEffect, useMemo, useState, useRef } from 'react'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, RotateCcw, Save, Smartphone, Tablet, Monitor } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { ArrowLeft, Loader2, Sparkles, Image as ImageIcon, LayoutTemplate, Globe, Heart, Moon, Gem, HeartHandshake, Gift, Smile, Briefcase, Clock3 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { InvitationPreview } from '@/components/shared/invitation-preview'
-import { EVENT_TYPES } from '@/lib/data/events'
-import { TEMPLATES } from '@/lib/data/templates'
-import { formatEventDate } from '@/lib/projects'
-import { cn } from '@/lib/utils'
-import { StoryTemplatesModal } from './story-templates-modal'
-import { CARD_LAYOUTS, SABLONLAR, TEMALAR } from '@/lib/davetiye-svg'
-import { DavetiyeKart } from '@/components/shared/davetiye-kart'
-import { QrCode, Download, Copy } from 'lucide-react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
-import { compressImageFile } from '@/lib/compress-image'
 import { DatePickerField } from '@/components/ui/date-picker-field'
-import { CardMessageTemplates } from './card-message-templates'
-import { CanvasEditor } from '@/components/editor/CanvasEditor'
-import { SiteEditor } from '@/components/site-builder/SiteEditor'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { EVENT_TYPES_LIST, EVENT_CONFIG } from '@/lib/events/event-config'
+import { NEW_PROJECT_DRAFT_KEY } from '@/lib/events/event-draft'
 import { useEditorStore } from '@/store/editor-store'
-import { normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
+import { useSiteEditorStore } from '@/store/site-editor-store'
 
-const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
-const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
+const ICONS = {
+  Rings: Heart,
+  Moon: Moon,
+  Ring: Gem,
+  HeartHandshake: HeartHandshake,
+  Cake: Gift,
+  Baby: Smile,
+  Briefcase: Briefcase
+}
+
+const TIME_OPTIONS = Array.from(
+  { length: 48 },
+  (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`,
+)
+const UNSPECIFIED_TIME = 'unspecified'
 
 export function NewProjectWizard() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [saving, setSaving] = useState(false)
-  const [menuInput, setMenuInput] = useState('')
-  const [device, setDevice] = useState('mobile')
-  const [previewMode, setPreviewMode] = useState('site')
-  const [designTarget, setDesignTarget] = useState('card')
-  const [openSection, setOpenSection] = useState('details')
-  const iframeRef = useRef(null)
-  
-  const { design: canvasDesign } = useEditorStore()
+  const pathname = usePathname()
+  const [step, setStep] = useState(1)
+  const [openingEditor, setOpeningEditor] = useState(null)
 
-  const [form, setForm] = useState({
-    event_type: 'dugun', host_a: '', host_b: '',
-    bride_mother: '', bride_father: '', groom_mother: '', groom_father: '', title: '',
-    date: '', time: '19:00', venue: '', address: '', city: '',
-    story: '', dress_code: '', rsvp_deadline: '',
-    program: [], menu_options: [],
-    template_slug: searchParams.get('tasarim') || 'aurelia',
-    card_template: 'Klasik Altın', card_theme: 0, card_layout: 'classic', card_message: '',
-    palette: null, website_font: 'playfair', hero_image: '', qr_enabled: true,
-    hero_image_opacity: 52,
-    qr_message: 'Bu QR kodunu paylaşarak davet sayfasına hızlıca ulaşabilirsiniz.', spotify_url: '',
-    gift_enabled: false, gift_message: '', gift_iban: '', gift_account_name: '', gift_url: '',
-  })
+  const [eventType, setEventType] = useState(null)
+  const [eventData, setEventData] = useState({})
 
-  // Davetiye-svg temalarını Next.js'in beklediği palet yapısına uyarlama
-  const activeTemaIndex = form?.card_theme ?? (SABLONLAR[form?.card_template || 'Klasik Altın']?.tema || 0)
-  const effectivePalette = form?.palette || { bg: '#F8F4EC', accent: '#C9A96E', text: '#101827', muted: '#8B8577' }
-  const selectedSiteTemplate = TEMPLATES.find((item) => item.slug === form?.template_slug) || TEMPLATES[0]
-  const previewTemplate = { ...selectedSiteTemplate, palette: effectivePalette }
-  const eventType = EVENT_TYPES.find((e) => e.id === form.event_type)
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const canEditSite = Boolean(form.host_a && form.date)
-  const changeDesignTarget = (target) => {
-    if (target === 'site' && !canEditSite) {
-      toast.error('Site tasarımına geçmeden önce gelin adı ve etkinlik tarihini doldurun.')
-      return
-    }
-    setDesignTarget(target)
-    setPreviewMode(target === 'site' ? 'site' : 'card')
-    setOpenSection('design')
-  }
-  const handleHeroImage = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const image = await compressImageFile(file)
-      setForm((f) => ({ ...f, hero_image: image }))
-      toast.success('Hero görseli eklendi')
-    } catch (error) { toast.error(error.message) }
-    e.target.value = ''
-  }
+  const config = eventType ? EVENT_CONFIG[eventType] : null
 
   useEffect(() => {
-    const handler = (e) => {
-      if (e.data && e.data.type === 'PREVIEW_READY') {
-        iframeRef.current?.contentWindow?.postMessage({ type: 'UPDATE_PREVIEW', payload: { project: form, template: previewTemplate, mode: previewMode } }, '*')
-      }
-    }
-    window.addEventListener('message', handler)
-    return () => window.removeEventListener('message', handler)
-  }, [form, previewTemplate, previewMode])
+    setOpeningEditor(null)
+  }, [pathname])
 
-  useEffect(() => {
-    iframeRef.current?.contentWindow?.postMessage({ type: 'UPDATE_PREVIEW', payload: { project: form, template: previewTemplate, mode: previewMode } }, '*')
-  }, [form, previewTemplate, previewMode])
-
-  const setPaletteColor = (k, v) => setForm((f) => ({ ...f, palette: { ...(f.palette || effectivePalette), [k]: v.toUpperCase() } }))
-  const resetPalette = () => setForm((f) => ({ ...f, palette: null }))
-  const updateProgram = (i, k, v) => setForm((f) => ({ ...f, program: f.program.map((p, idx) => (idx === i ? { ...p, [k]: v } : p)) }))
-  const addProgram = () => setForm((f) => ({ ...f, program: [...f.program, { time: '', title: '' }] }))
-  const removeProgram = (i) => setForm((f) => ({ ...f, program: f.program.filter((_, idx) => idx !== i) }))
-
-  const addMenu = () => {
-    const v = menuInput.trim()
-    if (!v || form.menu_options.includes(v)) return
-    setForm((f) => ({ ...f, menu_options: [...f.menu_options, v] }))
-    setMenuInput('')
-  }
-  const removeMenu = (m) => setForm((f) => ({ ...f, menu_options: f.menu_options.filter((x) => x !== m) }))
-
-  const submit = async () => {
-    const isManual = designTarget === 'card'
-    if (!isManual && (!form.host_a || !form.date)) { toast.error('Gelin adı ve tarih zorunludur'); return }
-    setSaving(true)
-    try {
-      const body = { 
-        ...form, 
-        host_a: form.host_a || 'İsimsiz', 
-        date: form.date || new Date().toISOString(),
-        palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
-        canvas_design: isManual ? canvasDesign : form.canvas_design,
-        site_data: form.site_data
-      }
-      const res = await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Etkinlik oluşturulamadı')
-      toast.success('Etkinliğiniz oluşturuldu ve yayında!')
-      router.replace(`/panel/etkinlik/${data.project.id}`)
-    } catch (e) { toast.error(e.message) } finally { setSaving(false) }
+  const handleTypeSelect = (id) => {
+    setEventType(id)
+    setEventData({})
+    setStep(2)
   }
 
-  const handleSiteSave = async (siteData) => {
-    if (!form.host_a || !form.date) {
-      toast.error('Site tasarımını kaydetmeden önce gelin adı ve etkinlik tarihini doldurun.')
+  const handleFieldChange = (field, value) => {
+    setEventData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const canProceedToDeliverables = () => {
+    if (!config) return false
+    return config.required.every(field => !!eventData[field]?.trim())
+  }
+
+  const startEditing = (deliverables) => {
+    if (!canProceedToDeliverables()) {
+      toast.error('Lütfen zorunlu alanları doldurun.')
       return
     }
-    setForm((f) => ({ ...f, site_data: siteData }));
-    changeDesignTarget('card');
-    toast.success('Site tasarımı kaydedildi. Şimdi davetiye kartını hazırlayabilirsiniz.');
+
+    try {
+      window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify({ eventType, eventData, deliverables }))
+      useEditorStore.getState().resetDesign()
+      useEditorStore.temporal.getState().clear()
+      useSiteEditorStore.getState().reset()
+      const mode = deliverables.site ? 'site' : 'card'
+      setOpeningEditor(deliverables.site && deliverables.invitation ? 'both' : deliverables.site ? 'site' : 'invitation')
+      router.push(`/panel/etkinlik/new/duzenle?mode=${mode}&new=1`)
+    } catch {
+      toast.error('Editör açılamadı. Lütfen tekrar deneyin.')
+      setOpeningEditor(null)
+    }
   }
 
-  if (designTarget === 'site' && !canEditSite) {
-    return (
-      <div className="flex h-[calc(100dvh-4rem)] w-full items-center justify-center bg-ivory px-6 lg:h-[100dvh]">
-        <div className="max-w-lg rounded-3xl border border-border bg-white p-8 text-center shadow-[0_18px_60px_-30px_rgba(15,23,42,0.3)]">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Site düzenleme</p>
-          <h2 className="mt-3 font-serif text-3xl text-midnight">Davet sitesine başlamak için gerekli bilgiler eksik</h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Gelin adı ve etkinlik tarihi doldurulmadan site tasarımına geçilemez. Önce temel etkinlik bilgilerini tamamlayın.
-          </p>
-          <Button onClick={() => changeDesignTarget('card')} className="mt-6 h-10 rounded-full bg-champagne px-6 text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne-light">
-            Kart düzenleyicisine dön
-          </Button>
+  return (
+    <div className="flex min-h-[calc(100dvh-4rem)] w-full items-center justify-center bg-ivory px-6 py-12 lg:min-h-[100dvh]">
+      <div className="w-full max-w-4xl">
+
+        {/* Step Indicator */}
+        <div className="mb-12 flex items-center justify-center gap-4 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+          <span className={step >= 1 ? 'text-midnight' : ''}>1. Etkinlik</span>
+          <span className="h-px w-8 bg-border"></span>
+          <span className={step >= 2 ? 'text-midnight' : ''}>2. Bilgiler</span>
+          <span className="h-px w-8 bg-border"></span>
+          <span className={step >= 3 ? 'text-midnight' : ''}>3. Ne Hazırlıyoruz?</span>
         </div>
-      </div>
-    )
-  }
 
-  if (designTarget === 'card') {
-    return (
-      <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full" data-testid="new-project-wizard-canvas">
-        <div className="flex-1 w-full relative overflow-hidden bg-ivory">
-          <CanvasEditor 
-            topbarLeft={
-              <Button
-                variant="ghost"
-                onClick={() => setDesignTarget('site')}
-                className="shrink-0 whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground hover:text-midnight"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Site Formuna Dön
-              </Button>
-            }
-            topbarRight={
-              <Button onClick={submit} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
-                <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Kaydediliyor…' : 'Kaydet'}
-              </Button>
-            }
-          />
-        </div>
-      </div>
-    )
-  }
+        {/* STEP 1: EVENT TYPE */}
+        {step === 1 && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center mb-10">
+              <h1 className="font-serif text-4xl text-midnight md:text-5xl">Ne kutluyorsunuz?</h1>
+              <p className="mt-4 text-muted-foreground">Etkinliğinizin türünü seçerek başlayalım.</p>
+            </div>
 
-  if (designTarget === 'site') {
-    return (
-      <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full">
-        <SiteEditor
-          initialSite={form.site_data ? normalizeSiteForEditor(form.site_data, { title: form.title || 'Bizim Düğün', slug: 'bizim-dugun', templateId: form.template_slug || 'minimal', userId: 'demo' }) : null}
-          onSwitchToCard={() => changeDesignTarget('card')}
-          onSave={handleSiteSave}
-        />
-      </div>
-    )
-  }
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {EVENT_TYPES_LIST.map((type) => {
+                const Icon = ICONS[type.icon] || Sparkles
+                return (
+                  <button
+                    key={type.id}
+                    onClick={() => handleTypeSelect(type.id)}
+                    className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-white p-6 text-center transition-all hover:border-champagne hover:shadow-lg"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ivory-50 text-champagne-dark group-hover:bg-champagne/10">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-midnight">{type.label}</h3>
+                      <p className="mt-1 text-[10px] text-muted-foreground">{type.description}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
-  return null;
+        {/* STEP 2: EVENT INFO */}
+        {step === 2 && config && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-8 flex items-center justify-between">
+               <div>
+                  <h2 className="font-serif text-3xl text-midnight">Etkinlik Bilgileri</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">İhtiyacımız olan temel detayları girin.</p>
+               </div>
+               <Button variant="ghost" onClick={() => setStep(1)} className="text-muted-foreground">
+                 <ArrowLeft className="mr-2 h-4 w-4" /> Geri
+               </Button>
+            </div>
+
+            <div className="rounded-3xl border border-border bg-white p-8 shadow-sm">
+               <div className="space-y-10">
+                  {config.groups.map(group => {
+                     const fields = group.fields.filter(f => config.required.includes(f) || config.optional.includes(f))
+                     if (!fields.length) return null
+
+                     return (
+                        <div key={group.id}>
+                           <h3 className="mb-4 text-sm font-medium uppercase tracking-[0.15em] text-midnight">{group.label}</h3>
+                           <div className="grid gap-6 md:grid-cols-2">
+                              {fields.map(field => (
+                                 <div key={field} className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">
+                                       {config.fieldLabels[field] || field}
+                                       {config.required.includes(field) && <span className="ml-1 text-destructive">*</span>}
+                                    </Label>
+                                    {field === 'date' ? (
+                                      <DatePickerField
+                                        value={eventData.date || ''}
+                                        onChange={(date) => handleFieldChange('date', date)}
+                                        placeholder="Gün, ay ve yıl seçin"
+                                        className="h-11 rounded-xl bg-ivory-50"
+                                        testid="new-event-date"
+                                      />
+                                    ) : field === 'time' ? (
+                                      <Select
+                                        value={eventData.time || UNSPECIFIED_TIME}
+                                        onValueChange={(time) => handleFieldChange('time', time === UNSPECIFIED_TIME ? '' : time)}
+                                      >
+                                        <SelectTrigger className="h-11 w-full rounded-xl border-border bg-ivory-50" aria-label="Etkinlik saati" data-testid="new-event-time">
+                                          <span className="flex min-w-0 items-center gap-2">
+                                            <Clock3 className="h-4 w-4 shrink-0 text-champagne-dark" />
+                                            <SelectValue />
+                                          </span>
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-64">
+                                          <SelectItem value={UNSPECIFIED_TIME}>Saat seçin</SelectItem>
+                                          {TIME_OPTIONS.map((time) => <SelectItem key={time} value={time}>{time}</SelectItem>)}
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <Input
+                                        value={eventData[field] || ''}
+                                        onChange={(e) => handleFieldChange(field, e.target.value)}
+                                        className="h-11 rounded-xl border-border bg-ivory-50"
+                                      />
+                                    )}
+                                 </div>
+                              ))}
+                           </div>
+                        </div>
+                     )
+                  })}
+               </div>
+
+               <div className="mt-10 flex justify-end">
+                  <Button
+                    onClick={() => setStep(3)}
+                    disabled={!canProceedToDeliverables()}
+                    className="h-12 rounded-full bg-midnight px-8 text-sm uppercase tracking-[0.15em] text-ivory hover:bg-midnight-700"
+                  >
+                    Devam Et
+                  </Button>
+               </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: DELIVERABLES */}
+        {step === 3 && config && (
+           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="mb-8 flex items-center justify-between">
+               <div>
+                  <h2 className="font-serif text-3xl text-midnight">Ne hazırlamak istiyorsunuz?</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">Etkinliğiniz için hangi formatı kullanacaksınız?</p>
+               </div>
+               <Button variant="ghost" onClick={() => setStep(2)} className="text-muted-foreground">
+                 <ArrowLeft className="mr-2 h-4 w-4" /> Geri
+               </Button>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+               <DeliverableCard
+                 icon={Globe}
+                 title="Davet Sitesi"
+                 desc="Modern, interaktif, mobil uyumlu davet sitesi."
+                 availability="1 / 1 kullanılabilir"
+                 onClick={() => startEditing({ site: true, invitation: false })}
+                 loading={openingEditor === 'site'}
+                 busy={Boolean(openingEditor)}
+               />
+               <DeliverableCard
+                 icon={ImageIcon}
+                 title="Dijital Davetiye"
+                 desc="Paylaşılabilir ve indirilebilir dijital davetiye."
+                 availability="1 / 1 kullanılabilir"
+                 onClick={() => startEditing({ site: false, invitation: true })}
+                 loading={openingEditor === 'invitation'}
+                 busy={Boolean(openingEditor)}
+               />
+               <DeliverableCard
+                 icon={LayoutTemplate}
+                 title="Site + Davetiye"
+                 desc="İkisini birlikte hazırlayın."
+                 availability="Uygun"
+                 highlight
+                 onClick={() => startEditing({ site: true, invitation: true })}
+                 loading={openingEditor === 'both'}
+                 busy={Boolean(openingEditor)}
+               />
+            </div>
+           </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
-function Field({ label, value, onChange, className }) {
+function DeliverableCard({ icon: Icon, title, desc, availability, onClick, loading, busy, highlight }) {
   return (
-    <div className={cn('space-y-1.5', className)}>
-      <Label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</Label>
-      <Input value={value} onChange={onChange} className={cn(inputCls, 'h-9 text-xs')} />
-    </div>
+    <button
+      onClick={onClick}
+      disabled={busy}
+      aria-busy={Boolean(loading)}
+      className={`group relative flex flex-col items-start rounded-3xl border p-6 text-left transition-all hover:shadow-lg ${highlight ? 'border-champagne bg-champagne/5' : 'border-border bg-white hover:border-midnight/30'}`}
+    >
+      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${highlight ? 'bg-champagne text-midnight' : 'bg-ivory-50 text-midnight'}`}>
+        {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Icon className="h-6 w-6" />}
+      </div>
+      <h3 className="font-serif text-xl text-midnight">{title}</h3>
+      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{desc}</p>
+
+      <div className="mt-6 flex w-full items-center justify-between border-t border-border/50 pt-4">
+         <span className="text-xs font-medium text-sage">{availability}</span>
+         <ArrowLeft className="h-4 w-4 rotate-135 text-muted-foreground group-hover:text-midnight transition-colors" />
+      </div>
+    </button>
   )
 }

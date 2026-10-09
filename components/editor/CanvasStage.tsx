@@ -9,7 +9,7 @@ import { SEMBOLLER, GRADYANLAR } from '@/lib/davetiye-svg'
 import { applyPaletteToDesign } from '@/lib/themes/color-palettes'
 
 export default function CanvasStage() {
-  const { design, palettePreview, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor } = useEditorStore()
+  const { design, palettePreview, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor, toolStrokeWidth } = useEditorStore()
   const displayDesign = palettePreview ? applyPaletteToDesign(design, palettePreview) : design
   const stageRef = useRef<any>(null)
   const [stageSize, setStageSize] = useState({ width: 1000, height: 800 })
@@ -231,7 +231,7 @@ export default function CanvasStage() {
         y: 0,
         points: [point.x, point.y, point.x, point.y],
         stroke: toolColor,
-        strokeWidth: activeTool === 'pen' ? 5 : 3,
+        strokeWidth: activeTool === 'pen' ? toolStrokeWidth : 3,
         lineCap: 'round',
         lineJoin: 'round',
         tension: activeTool === 'pen' ? 0.35 : 0,

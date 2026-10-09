@@ -8,6 +8,7 @@ import { SABLONLAR, SEMBOLLER, TEMALAR, KAGITLAR, GRADYANLAR, KATEGORILER } from
 import { DavetiyeKart } from '@/components/shared/davetiye-kart'
 import { EDITOR_ASSETS, EDITOR_ASSET_CATEGORIES, EditorAsset } from '@/lib/editor-assets'
 import { ThemePalettePanel } from './ThemePalettePanel'
+import { SITE_SVG_LIBRARY, WEDDING_MEDIA_LIBRARY } from '@/lib/site-builder/media'
 
 const EDITOR_DRAG_EVENT = 'momentis-editor-sidebar-drop'
 
@@ -91,24 +92,6 @@ const tabs = [
   { id: 'theme', icon: Palette, label: 'Renkler' },
   { id: 'background', icon: Copy, label: 'Arka Plan' },
   { id: 'layers', icon: Layers, label: 'Katmanlar' }
-]
-
-const svgFiles = [
-  "Adsız tasarım (1).svg",
-  "Adsız tasarım (2).svg",
-  "Adsız tasarım (3).svg",
-  "Adsız tasarım (4).svg",
-  "Adsız tasarım (5).svg",
-  "Adsız tasarım2.svg",
-  "Beyaz ve Altın Minimalist Düğün Dikey Davetiye (1).png",
-  "Beyaz ve Altın Minimalist Düğün Dikey Davetiye (2).png",
-  "Beyaz ve Altın Minimalist Düğün Dikey Davetiye.png",
-  "beautiful-archway-decorated-with-floral-composition-outdoors.jpg",
-  "Gri Beyaz Minimalist Suluboya Düğün Davetiyesi .png",
-  "Mavi Geleneksel Düğün Davetiye (1).png",
-  "Mavi Geleneksel Düğün Davetiye.png",
-  "wedding-couple-hold-hands.jpg",
-  "Yeşil ve Antrasit Sade Monogram Yapraklı Düğün Davetiyesi.svg",
 ]
 
 const invitationIconGroups = [
@@ -196,17 +179,20 @@ export function LeftSidebar() {
   const [activeTab, setActiveTab] = useState('elements')
   const [iconSearch, setIconSearch] = useState('')
   const [uploadSearch, setUploadSearch] = useState('')
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [graphicCategory, setGraphicCategory] = useState(SITE_SVG_LIBRARY[0].id)
+  const [templateFormat, setTemplateFormat] = useState('all')
   const [iconCategory, setIconCategory] = useState('Tümü')
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const { design, updateElement } = useEditorStore()
-  const filteredSvgFiles = svgFiles.filter((filename) =>
-    filename.replace(/\.(svg|png|jpe?g)$/i, '').toLocaleLowerCase('tr').includes(uploadSearch.trim().toLocaleLowerCase('tr'))
+  const svgAssets = SITE_SVG_LIBRARY.find((category) => category.id === graphicCategory)?.items ?? []
+  const filteredSvgAssets = svgAssets.filter((asset) =>
+    asset.label.toLocaleLowerCase('tr').includes(uploadSearch.trim().toLocaleLowerCase('tr'))
   )
-  const assetLabel = (filename: string) => filename
-    .replace(/\.(svg|png|jpe?g)$/i, '')
-    .replace(/\s*\((\d+)\)/, ' · $1')
-    .replace(/^Adsız tasarım/i, 'Düğün grafiği')
-
+  const filteredTemplates = WEDDING_MEDIA_LIBRARY.filter((asset) => {
+    const matchesFormat = templateFormat === 'all' || asset.src.toLowerCase().endsWith(`.${templateFormat}`)
+    return matchesFormat && asset.label.toLocaleLowerCase('tr').includes(templateSearch.trim().toLocaleLowerCase('tr'))
+  })
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -244,28 +230,57 @@ export function LeftSidebar() {
     }))
   }
 
-  const addImageToCanvas = (filename: string) => {
+  const addImageToCanvas = (src: string, useAsTemplate = false) => {
+    const id = `img_${uuidv4().split('-')[0]}`
     useEditorStore.setState((state) => ({
       design: {
         ...state.design,
+        ...(useAsTemplate ? { background: '#FFFFFF', elements: [] } : {}),
         elements: [
-          ...state.design.elements,
+          ...(useAsTemplate ? [] : state.design.elements),
           {
-            id: `img_${uuidv4().split('-')[0]}`,
+            id,
             type: 'image',
-            src: `/svg/${encodeURIComponent(filename)}`,
-            x: 200,
-            y: 200,
-            width: 300,
-            height: 420,
+            src,
+            x: useAsTemplate ? state.design.width / 2 : 200,
+            y: useAsTemplate ? state.design.height / 2 : 200,
+            width: useAsTemplate ? state.design.width : 300,
+            height: useAsTemplate ? state.design.height : 300,
             rotation: 0,
             opacity: 1,
             visible: true,
-            locked: false
+            locked: false,
+            centered: true,
           }
         ]
       }
     }))
+
+    const image = new window.Image()
+    image.onload = () => {
+      useEditorStore.setState((state) => {
+        const element = state.design.elements.find((item) => item.id === id)
+        if (!element || !image.naturalWidth || !image.naturalHeight) return state
+        const maxWidth = useAsTemplate ? state.design.width : 360
+        const maxHeight = useAsTemplate ? state.design.height : 360
+        const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight)
+        return {
+          design: {
+            ...state.design,
+            elements: state.design.elements.map((item) => item.id === id
+              ? {
+                  ...item,
+                  width: Math.round(image.naturalWidth * scale),
+                  height: Math.round(image.naturalHeight * scale),
+                  x: useAsTemplate ? state.design.width / 2 : item.x,
+                  y: useAsTemplate ? state.design.height / 2 : item.y,
+                }
+              : item),
+          },
+        }
+      })
+    }
+    image.src = src
   }
 
   const addTextToCanvas = (text: string, fontSize: number, fontFamily = 'Playfair Display') => {
@@ -552,7 +567,7 @@ export function LeftSidebar() {
   }
 
   return (
-    <div className="flex h-full w-[280px] shrink-0 flex-row border-r border-border bg-white shadow-[2px_0_18px_-16px_rgba(16,24,39,0.35)]">
+    <div className="flex h-full w-full min-w-0 flex-row bg-white">
       <div className="flex w-[68px] flex-col items-center gap-1.5 overflow-y-auto border-r border-border bg-[#faf9f6] py-3">
         {tabs.map(tab => {
           const isActive = activeTab === tab.id
@@ -574,7 +589,7 @@ export function LeftSidebar() {
           )
         })}
       </div>
-      <div className="flex-1 overflow-y-auto bg-white p-4">
+      <div className="min-w-0 flex-1 overflow-y-auto bg-white p-4">
         <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-6 border-b border-border bg-white/95 px-4 py-4 backdrop-blur">
           <p className="text-[8px] font-semibold uppercase tracking-[0.2em] text-champagne-dark">Momentis · Kart</p>
           <h2 className="mt-1 font-serif text-xl text-midnight">{tabs.find(t => t.id === activeTab)?.label}</h2>
@@ -920,51 +935,58 @@ export function LeftSidebar() {
         )}
 
         {activeTab === 'templates' && (
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              "Altın Sarısı Modern Düğün Davetiyesi.svg",
-              "Beyaz ve Altın Klasik Düğün Davetiye.svg",
-              "Beyaz ve Mavi Geleneksel Düğün Davetiye.svg",
-              "Kahverengi ve Beyaz Fotoğraflı Düğün Davetiyesi.svg",
-              "Siyah Beyaz Minimalist Eğlenceli Düğün Davetiyesi.svg",
-              "Tek Renkli Minimalist Çiçek Düğün Davetiyesi (A6).png",
-              "Tek Renkli Minimalist Çiçek Düğün Davetiyesi (A6).svg"
-            ].map((filename) => {
-              const displayName = filename.replace(/\.(svg|png)$/, '');
-              return (
-                <button 
-                  key={filename} 
-                  className="group border border-border hover:border-midnight/40 p-1 rounded-lg text-left transition-all"
-                  onClick={() => {
-                    useEditorStore.setState(state => ({
-                      design: {
-                        ...state.design,
-                        background: '#FFFFFF',
-                        elements: [
-                          {
-                            id: `img_${uuidv4().split('-')[0]}`,
-                            type: 'image',
-                            src: `/tamplate/${filename}`,
-                            x: 540,
-                            y: 840,
-                            width: 1080,
-                            height: 1680,
-                            rotation: 0,
-                            opacity: 1,
-                            centered: true
-                          }
-                        ]
-                      }
-                    }))
-                  }}
+          <div className="space-y-3">
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              Davetiye şablonu seçmek mevcut tasarım katmanlarını değiştirir. Tasarımınızın bir kopyasını saklamak için önce çoğaltın.
+            </p>
+            <input
+              type="search"
+              value={templateSearch}
+              onChange={(event) => setTemplateSearch(event.target.value)}
+              placeholder="Düğün şablonlarında ara..."
+              aria-label="Düğün şablonlarında ara"
+              className="h-9 w-full rounded-xl border border-border bg-white px-3 text-[10px] text-midnight outline-none focus:border-champagne focus:ring-2 focus:ring-champagne/15"
+            />
+            <div className="flex gap-1.5">
+              {[
+                { id: 'all', label: 'Tümü' },
+                { id: 'png', label: 'PNG' },
+                { id: 'svg', label: 'SVG' },
+              ].map((format) => (
+                <button
+                  key={format.id}
+                  type="button"
+                  onClick={() => setTemplateFormat(format.id)}
+                  aria-pressed={templateFormat === format.id}
+                  className={`rounded-full px-2.5 py-1 text-[9px] transition ${templateFormat === format.id ? 'bg-midnight text-white' : 'bg-ivory-50 text-midnight/70 hover:bg-ivory'}`}
                 >
-                  <div className="aspect-[3/4] overflow-hidden rounded bg-ivory flex items-center justify-center pointer-events-none w-full">
-                     <img src={`/tamplate/${filename}`} alt={displayName} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="mt-1 truncate text-center font-serif text-[9px] text-midnight" title={displayName}>{displayName}</p>
+                  {format.label}
                 </button>
-              )
-            })}
+              ))}
+              <span className="ml-auto self-center text-[9px] tabular-nums text-muted-foreground">
+                {filteredTemplates.length} / {WEDDING_MEDIA_LIBRARY.length}
+              </span>
+            </div>
+            {filteredTemplates.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {filteredTemplates.map((asset) => (
+                  <button
+                    key={asset.src}
+                    type="button"
+                    className="group min-w-0 rounded-lg border border-border p-1 text-left transition-all hover:border-midnight/40"
+                    aria-label={`${asset.label} davetiye şablonunu kullan`}
+                    onClick={() => addImageToCanvas(asset.src, true)}
+                  >
+                    <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded bg-ivory p-1">
+                      <img src={asset.src} alt="" loading="lazy" className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]" />
+                    </div>
+                    <p className="mt-1 truncate text-center font-serif text-[9px] text-midnight" title={asset.label}>{asset.label}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed p-4 text-center text-[10px] text-muted-foreground">Bu aramayla eşleşen şablon yok.</p>
+            )}
           </div>
         )}
 
@@ -1011,11 +1033,24 @@ export function LeftSidebar() {
               <div className="flex items-end justify-between gap-2">
                 <div>
                   <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-midnight">Hazır grafikler</h3>
-                  <p className="mt-1 text-[9px] text-muted-foreground">Seçtiğin görsele dokunarak tasarıma ekle.</p>
+                <p className="mt-1 text-[9px] text-muted-foreground">Genel ve çiçek SVG koleksiyonundan seç.</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-[#F5F1E8] px-2 py-1 text-[9px] font-medium tabular-nums text-midnight/70">
-                  {filteredSvgFiles.length} / {svgFiles.length}
+                  {filteredSvgAssets.length} / {SITE_SVG_LIBRARY.find((category) => category.id === graphicCategory)?.items.length}
                 </span>
+              </div>
+              <div className="flex gap-1.5">
+                {SITE_SVG_LIBRARY.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setGraphicCategory(category.id)}
+                    aria-pressed={graphicCategory === category.id}
+                    className={`rounded-full px-2.5 py-1 text-[9px] transition ${graphicCategory === category.id ? 'bg-midnight text-white' : 'bg-ivory-50 text-midnight/70 hover:bg-ivory'}`}
+                  >
+                    {category.label}
+                  </button>
+                ))}
               </div>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-midnight/35" />
@@ -1034,32 +1069,30 @@ export function LeftSidebar() {
                 )}
               </div>
 
-              {filteredSvgFiles.length > 0 ? (
+              {filteredSvgAssets.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2.5">
-                  {filteredSvgFiles.map((filename) => {
-                    const label = assetLabel(filename)
-                    const isPhoto = /\.(jpe?g)$/i.test(filename)
+                  {filteredSvgAssets.map((asset) => {
                     return (
                       <button
-                        key={filename}
+                        key={asset.src}
                         type="button"
-                        onClick={() => addImageToCanvas(filename)}
-                        aria-label={`${label} görselini tuvale ekle`}
-                        title={`${label} · Tuvale eklemek için tıkla`}
+                        onClick={() => addImageToCanvas(asset.src)}
+                        aria-label={`${asset.label} görselini tuvale ekle`}
+                        title={`${asset.label} · Tuvale eklemek için tıkla`}
                         className="group relative min-w-0 overflow-hidden rounded-xl border border-[#EAE5DC] bg-white p-1.5 text-left shadow-[0_2px_8px_rgba(16,24,39,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-champagne hover:shadow-[0_8px_18px_rgba(16,24,39,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
                       >
                         <span className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-[linear-gradient(145deg,#F8F6F1,#F0ECE3)] p-2">
                           <img
-                            src={`/svg/${encodeURIComponent(filename)}`}
+                            src={asset.src}
                             alt=""
                             loading="lazy"
-                            className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${isPhoto ? 'rounded-md object-cover' : 'object-contain'}`}
+                            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                           />
                           <span className="absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-midnight opacity-0 shadow-md transition-all duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
                             <PlusCircle className="h-4 w-4" />
                           </span>
                         </span>
-                        <span className="block truncate px-1 pb-0.5 pt-2 text-[9px] font-medium text-midnight/75">{label}</span>
+                        <span className="block truncate px-1 pb-0.5 pt-2 text-[9px] font-medium text-midnight/75">{asset.label}</span>
                       </button>
                     )
                   })}

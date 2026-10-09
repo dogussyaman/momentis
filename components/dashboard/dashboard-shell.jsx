@@ -224,13 +224,13 @@ export function DashboardShell({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-ivory overflow-x-hidden">
+    <div className="flex h-screen bg-ivory overflow-hidden">
       {/* Desktop Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ width: isCollapsed ? 80 : 280 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="hidden lg:block lg:min-h-screen shrink-0 relative z-10"
+        className="hidden lg:block h-full shrink-0 relative z-10"
       >
         {/* Toggle Button placed outside overflow-hidden */}
         <button 
@@ -251,9 +251,9 @@ export function DashboardShell({ children }) {
       </motion.aside>
 
       {/* Main Content Area */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col h-full overflow-hidden">
         {/* Mobile Header */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-ivory/80 px-5 backdrop-blur lg:hidden z-10">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-ivory/80 px-5 backdrop-blur lg:hidden z-10">
           <Logo />
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild><Button variant="ghost" size="icon" aria-label="Menü"><Menu className="h-5 w-5" /></Button></SheetTrigger>
@@ -265,7 +265,7 @@ export function DashboardShell({ children }) {
         </header>
 
         {/* Main Content Container */}
-        <main className={cn('min-w-0 flex-1 relative z-0', !pathname.includes('/duzenle') && !pathname.endsWith('/yeni') && 'px-5 py-8 sm:px-8 lg:px-12 lg:py-12')}>
+        <main className={cn('min-w-0 flex-1 relative z-0 overflow-y-auto overflow-x-hidden', !pathname.includes('/duzenle') && !pathname.endsWith('/yeni') && 'px-5 py-8 sm:px-8 lg:px-12 lg:py-12')}>
           {children}
         </main>
       </div>

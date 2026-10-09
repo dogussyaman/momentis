@@ -6,11 +6,13 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
 export function GuestbookTab({ projectId }) {
   const [items, setItems] = useState(null)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState('')
+  const [messageToDelete, setMessageToDelete] = useState(null)
 
   const load = useCallback(async () => {
     setItems(null)
@@ -48,8 +50,10 @@ export function GuestbookTab({ projectId }) {
     }
   }
 
-  const remove = async (item) => {
-    if (!window.confirm('Bu mesajı kalıcı olarak silmek istiyor musunuz?')) return
+  const confirmRemove = async () => {
+    if (!messageToDelete) return
+    const item = messageToDelete
+    setMessageToDelete(null)
     setBusyId(item.id)
     try {
       const response = await fetch(`/api/projects/${projectId}/guestbook/${item.id}`, { method: 'DELETE', credentials: 'include' })
@@ -88,10 +92,25 @@ export function GuestbookTab({ projectId }) {
             ) : (
               <Button type="button" size="sm" variant="outline" disabled={busyId === item.id} onClick={() => updateStatus(item, 'rejected')} className="rounded-xl"><X className="mr-1.5 h-4 w-4" /> Yayından kaldır</Button>
             )}
-            <Button type="button" size="icon" variant="ghost" aria-label="Mesajı sil" disabled={busyId === item.id} onClick={() => remove(item)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+            <Button type="button" size="icon" variant="ghost" aria-label="Mesajı sil" disabled={busyId === item.id} onClick={() => setMessageToDelete(item)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
           </div>
         </article>
       ))}
+
+      <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
+        <AlertDialogContent className="bg-ivory border-0 rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl text-midnight">Mesajı Sil</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground mt-2">
+              Bu mesajı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6">
+            <AlertDialogCancel className="rounded-xl border-midnight/20 text-midnight">İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove} className="rounded-xl bg-red-600 text-white hover:bg-red-700">Sil</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

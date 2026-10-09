@@ -1,20 +1,67 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal, SectionHeading, SectionShell, SbImage, type SectionComponentProps } from '../render/primitives'
 
 export function MusicSection({ section, props }: SectionComponentProps) {
   const [playing, setPlaying] = useState(false)
-  
+  const [playbackError, setPlaybackError] = useState('')
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    audioRef.current?.pause()
+    setPlaying(false)
+    setPlaybackError('')
+  }, [props.src])
+
+  const togglePlayback = async () => {
+    const audio = audioRef.current
+    if (!audio) return
+    setPlaybackError('')
+    if (!audio.paused) {
+      audio.pause()
+      return
+    }
+    try {
+      await audio.play()
+    } catch {
+      setPlaybackError('Ses oynatılamadı. Ses dosyasını veya bağlantısını kontrol edin.')
+    }
+  }
+
   return (
     <SectionShell section={section}>
+      {props.src && (
+        <audio
+          ref={audioRef}
+          src={props.src}
+          loop={props.loop !== false}
+          preload="none"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          className="hidden"
+        />
+      )}
       {props.title && <h2 className="sb-eyebrow mb-8 text-center">{props.title}</h2>}
       
       {props.variant === 'vinyl' ? (
         <Reveal className="flex flex-col items-center gap-6">
-          <div className="relative w-48 h-48 @2xl:w-64 @2xl:h-64 cursor-pointer" onClick={() => setPlaying(!playing)}>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={playing ? 'Müziği duraklat' : 'Müziği oynat'}
+            onClick={togglePlayback}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                void togglePlayback()
+              }
+            }}
+            className="relative h-48 w-48 cursor-pointer @2xl:h-64 @2xl:w-64"
+          >
             <div className={cn("absolute inset-0 rounded-full bg-black shadow-2xl transition-transform duration-1000", playing && "sb-spin-slow")}>
                <div className="absolute inset-2 rounded-full border border-[#222] shadow-[inset_0_0_20px_rgba(255,255,255,0.1)]" />
                <div className="absolute inset-6 rounded-full border border-[#333]" />
@@ -29,7 +76,7 @@ export function MusicSection({ section, props }: SectionComponentProps) {
             <h3 className="sb-heading text-2xl">{props.songTitle}</h3>
             <p className="sb-muted text-sm mt-1">{props.artist}</p>
           </div>
-          <button onClick={() => setPlaying(!playing)} className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition">
+          <button type="button" onClick={togglePlayback} aria-label={playing ? 'Müziği duraklat' : 'Müziği oynat'} className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition">
             {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
           </button>
         </Reveal>
@@ -37,7 +84,7 @@ export function MusicSection({ section, props }: SectionComponentProps) {
         <Reveal className="flex flex-col items-center text-center gap-4">
            <h3 className="sb-heading text-4xl">{props.songTitle}</h3>
            <p className="sb-muted italic">{props.artist}</p>
-           <button onClick={() => setPlaying(!playing)} className="mt-4 flex items-center gap-3 px-6 py-2.5 rounded-full border hover:bg-black/5 transition">
+           <button type="button" onClick={togglePlayback} aria-label={playing ? 'Müziği duraklat' : 'Müziği oynat'} className="mt-4 flex items-center gap-3 px-6 py-2.5 rounded-full border hover:bg-black/5 transition">
              {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
              <span className="text-xs uppercase tracking-widest font-medium">{playing ? 'Durdur' : 'Dinle'}</span>
            </button>
@@ -51,11 +98,12 @@ export function MusicSection({ section, props }: SectionComponentProps) {
              <h3 className="sb-heading text-xl">{props.songTitle}</h3>
              <p className="sb-muted text-sm">{props.artist}</p>
            </div>
-           <button onClick={() => setPlaying(!playing)} className="w-12 h-12 shrink-0 rounded-full sb-bg-accent text-white flex items-center justify-center hover:scale-105 transition">
+           <button type="button" onClick={togglePlayback} aria-label={playing ? 'Müziği duraklat' : 'Müziği oynat'} className="w-12 h-12 shrink-0 rounded-full sb-bg-accent text-white flex items-center justify-center hover:scale-105 transition">
               {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
            </button>
         </Reveal>
       )}
+      {playbackError && <p role="status" className="mt-3 text-center text-xs text-red-600">{playbackError}</p>}
     </SectionShell>
   )
 }

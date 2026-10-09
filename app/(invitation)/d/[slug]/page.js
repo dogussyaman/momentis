@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 async function loadInvitation(slug) {
   const db = await getDb()
-  const project = await db.collection('event_projects').findOne({ slug, published: true }, { projection: { _id: 0, user_id: 0 } })
+  const project = await db.collection('event_projects').findOne({ slug, published: true, archived: { $ne: true } }, { projection: { _id: 0, user_id: 0 } })
   if (!project) return null
   const template = await db.collection('templates').findOne({ slug: project.template_slug }, { projection: { _id: 0 } })
   return { project: JSON.parse(JSON.stringify(project)), template: template ? JSON.parse(JSON.stringify(template)) : null }

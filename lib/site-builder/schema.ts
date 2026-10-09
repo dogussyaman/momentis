@@ -178,7 +178,7 @@ type BaseField = {
 }
 
 export type FieldDef =
-  | (BaseField & { type: 'text' | 'textarea' | 'url' | 'date' | 'datetime' | 'time' | 'color' | 'toggle' | 'image' | 'video' | 'buttons' | 'section-ref' | 'icon' })
+  | (BaseField & { type: 'text' | 'textarea' | 'url' | 'date' | 'datetime' | 'time' | 'color' | 'toggle' | 'image' | 'audio' | 'video' | 'buttons' | 'section-ref' | 'icon' })
   | (BaseField & { type: 'number' | 'slider'; min?: number; max?: number; step?: number; unit?: string })
   | (BaseField & { type: 'select' | 'segmented'; options: FieldOption[] })
   | (BaseField & {

@@ -44,9 +44,11 @@ interface EditorState {
   zoom: number // ratio, 1 = 100%
   activeTool: EditorTool
   toolColor: string
+  toolStrokeWidth: number
   // Actions
   setActiveTool: (tool: EditorTool) => void
   setToolColor: (color: string) => void
+  setToolStrokeWidth: (width: number) => void
   selectElement: (id: string | null) => void
   selectMultiple: (id: string) => void
   clearSelection: () => void
@@ -56,6 +58,7 @@ interface EditorState {
   arrangeElement: (id: string, action: 'up' | 'down' | 'front' | 'back') => void
   setZoom: (zoom: number) => void
   setDesign: (design: CanvasDocument) => void
+  resetDesign: () => void
   setPalettePreview: (palette: PalettePreview | null) => void
 }
 
@@ -73,7 +76,7 @@ const initialDesign: CanvasDocument = {
       width: 700,
       height: 100,
       rotation: 0,
-      text: 'Doğuş & Elif',
+      text: '{{coupleNames}}',
       fontFamily: 'Georgia, serif',
       fontSize: 72,
       fontWeight: 500,
@@ -109,9 +112,11 @@ export const useEditorStore = create<EditorState>()(
       zoom: 1,
       activeTool: 'select',
       toolColor: '#1C2430',
+      toolStrokeWidth: 5,
 
       setActiveTool: (activeTool) => set({ activeTool }),
       setToolColor: (toolColor) => set({ toolColor }),
+      setToolStrokeWidth: (toolStrokeWidth) => set({ toolStrokeWidth: Math.min(24, Math.max(1, toolStrokeWidth)) }),
       selectElement: (id) => set({ selectedIds: id ? [id] : [] }),
       selectMultiple: (id) => set((state) => ({ 
         selectedIds: state.selectedIds.includes(id) 
@@ -162,6 +167,14 @@ export const useEditorStore = create<EditorState>()(
 
       setZoom: (zoom) => set({ zoom }),
       setDesign: (design) => set({ design }),
+      resetDesign: () => set({
+        design: {
+          ...initialDesign,
+          elements: initialDesign.elements.map(element => ({ ...element })),
+        },
+        selectedIds: [],
+        palettePreview: null,
+      }),
       setPalettePreview: (palettePreview) => set({ palettePreview }),
     }),
     {

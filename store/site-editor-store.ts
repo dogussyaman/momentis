@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import type { WeddingSite, SiteSection, SectionStyle, SectionAnimation } from '@/lib/site-builder/schema'
 import { createSectionFromDefinition, refreshIds, uid } from '@/lib/site-builder/definitions'
-import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
+import { buildSiteFromTemplate, TEMPLATE_MAP } from '@/lib/site-builder/templates'
 import debounce from 'lodash/debounce'
-export type LeftTab='add'|'layers'|'theme'|'templates'|'settings'
+export type LeftTab='add'|'layers'|'theme'|'templates'|'settings'|'music'
 export type InspectorTab='content'|'style'|'animation'
 export type Device='desktop'|'tablet'|'mobile'
 export const DRAFT_KEY='momentis-site-draft-v3'
@@ -14,7 +14,7 @@ function mutate(set:any,get:()=>State,fn:(s:WeddingSite)=>WeddingSite|null){cons
 export const useSiteEditorStore=create<State>((set,get)=>({
  site:null,selectedSectionId:null,selectedOverlayId:null,hoveredSectionId:null,leftTab:'add',inspectorTab:'content',device:'desktop',isPreview:false,isSaving:false,lastSavedAt:null,past:[],future:[],
  initSite:s=>set({site:normalize(s),selectedSectionId:null,selectedOverlayId:null,past:[],future:[]}),
- loadTemplate:(id,keep=false)=>{const cur=get().site,next=buildSiteFromTemplate(id,cur??undefined);if(!cur){set({site:next,past:[],future:[]});return}mutate(set,get,s=>keep?{...s,theme:next.theme,templateId:id}:next);set({selectedSectionId:null,selectedOverlayId:null})},
+ loadTemplate:(id,keep=false)=>{const cur=get().site,next=buildSiteFromTemplate(id,cur??undefined);if(!cur){set({site:next,past:[],future:[]});return}const template=TEMPLATE_MAP[next.templateId];if(!keep){next.settings={...next.settings,showNavbar:template.settings?.showNavbar??true,navStyle:template.settings?.navStyle}}mutate(set,get,s=>keep?{...s,theme:next.theme,templateId:id}:next);set({selectedSectionId:null,selectedOverlayId:null})},
  setDevice:device=>set({device}),setLeftTab:leftTab=>set({leftTab}),setInspectorTab:inspectorTab=>set({inspectorTab}),setIsPreview:isPreview=>set({isPreview,selectedSectionId:isPreview?null:get().selectedSectionId,selectedOverlayId:isPreview?null:get().selectedOverlayId}),selectSection:selectedSectionId=>set({selectedSectionId,selectedOverlayId:null}),selectOverlay:selectedOverlayId=>set({selectedOverlayId}),hoverSection:hoveredSectionId=>set({hoveredSectionId}),
  addSection:(type,index)=>{const section=createSectionFromDefinition(type) as SiteSection;mutate(set,get,s=>{const a=[...s.sections],i=index===undefined?a.length:Math.max(0,Math.min(index,a.length));a.splice(i,0,section);return {...s,sections:a}});set({selectedSectionId:section.id,selectedOverlayId:null,inspectorTab:'content'})},
  removeSection:id=>{mutate(set,get,s=>({...s,sections:s.sections.filter(x=>x.id!==id)}));if(get().selectedSectionId===id)set({selectedSectionId:null,selectedOverlayId:null})},
@@ -35,6 +35,6 @@ export const useSiteEditorStore=create<State>((set,get)=>({
  redo:()=>{const {site,past,future}=get();if(!site||!future.length)return;set({site:clone(future[0]),past:[...past,clone(site)].slice(-80),future:future.slice(1),selectedSectionId:null,selectedOverlayId:null})},
  canUndo:()=>get().past.length>0,canRedo:()=>get().future.length>0,
  save:async()=>{const s=get().site;if(!s||typeof window==='undefined')return;set({isSaving:true});try{localStorage.setItem(DRAFT_KEY,JSON.stringify(s));await new Promise(r=>setTimeout(r,150))}finally{set({isSaving:false,lastSavedAt:Date.now()})}},
- reset:()=>set({site:null,selectedSectionId:null,selectedOverlayId:null,past:[],future:[]})
+ reset:()=>set({site:null,selectedSectionId:null,selectedOverlayId:null,hoveredSectionId:null,isPreview:false,isSaving:false,lastSavedAt:null,past:[],future:[]})
 }))
 export const autosaveSite=debounce(()=>void useSiteEditorStore.getState().save(),900)

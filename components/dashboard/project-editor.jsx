@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, RotateCcw, Save, ExternalLink, Smartphone, Tablet, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { InvitationPreview } from '@/components/shared/invitation-preview'
 import { EVENT_TYPES } from '@/lib/data/events'
 import { TEMPLATES } from '@/lib/data/templates'
@@ -28,8 +29,14 @@ import { DatePickerField } from '@/components/ui/date-picker-field'
 import { CardMessageTemplates } from './card-message-templates'
 import { CanvasEditor } from '@/components/editor/CanvasEditor'
 import { useEditorStore } from '@/store/editor-store'
+import { useSiteEditorStore } from '@/store/site-editor-store'
 import { SiteEditor } from '@/components/site-builder/SiteEditor'
+import { SiteStartFlow } from '@/components/site-builder/SiteStartFlow'
+import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
 import { normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
+import { resolveTokens, syncEventTokens, syncSiteEventData } from '@/lib/events/event-tokens'
+import { createProjectDraft, NEW_PROJECT_DRAFT_KEY } from '@/lib/events/event-draft'
+import { syncEventDataFromForm } from '@/lib/events/event-normalize'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
@@ -70,30 +77,70 @@ function pick(project) {
 
 export function ProjectEditor() {
   const { id } = useParams()
+  const isUnsavedProject = id === 'new'
   const router = useRouter()
   const [project, setProject] = useState(null)
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const [menuInput, setMenuInput] = useState('')
   const [device, setDevice] = useState('mobile') // mobile, tablet, desktop
-  const [previewMode, setPreviewMode] = useState('site')
-  const [designTarget, setDesignTarget] = useState('site')
+  const searchParams = useSearchParams()
+  const initialMode = searchParams.get('mode') === 'card' ? 'card' : 'site'
+  const isNewFlow = searchParams.get('new') === '1' || isUnsavedProject
+  const [showOnboarding, setShowOnboarding] = useState(isNewFlow)
+  const [siteStartStage, setSiteStartStage] = useState(
+    isNewFlow && initialMode === 'site' ? 'intro' : 'editor',
+  )
+  const [previewMode, setPreviewMode] = useState(initialMode)
+  const [designTarget, setDesignTarget] = useState(initialMode)
   const [openSection, setOpenSection] = useState('details')
   const iframeRef = useRef(null)
 
   const { design: canvasDesign, setDesign } = useEditorStore()
+  const initSite = useSiteEditorStore((state) => state.initSite)
+  const eventData = useMemo(
+    () => form ? syncEventDataFromForm(form, project?.event_data) : project?.event_data,
+    [form, project?.event_data],
+  )
 
   useEffect(() => {
+    if (isUnsavedProject) {
+      try {
+        const rawDraft = window.sessionStorage.getItem(NEW_PROJECT_DRAFT_KEY)
+        if (!rawDraft) throw new Error('Etkinlik taslağı bulunamadı. Lütfen yeniden başlayın.')
+        const draftInput = JSON.parse(rawDraft)
+        const draft = createProjectDraft(draftInput.eventType, draftInput.eventData || {}, draftInput.deliverables || {})
+        const localProject = { ...draft, id: 'new', slug: '' }
+        setProject(localProject)
+        setForm(pick(localProject))
+
+        if (draft.event_data) {
+          const currentDesign = useEditorStore.getState().design
+          const hydrated = JSON.parse(resolveTokens(JSON.stringify(currentDesign), draft.event_data))
+          setDesign(hydrated)
+        }
+      } catch (error) {
+        toast.error(error.message || 'Etkinlik taslağı açılamadı.')
+        router.replace('/panel/yeni')
+      }
+      return
+    }
+
     fetch(`/api/projects/${id}`, { credentials: 'include', cache: 'no-store' }).then((r) => r.json()).then((d) => { 
       if (d.project) { 
         setProject(d.project); 
         setForm(pick(d.project));
         if (d.project.canvas_design) {
           setDesign(d.project.canvas_design);
+        } else if (d.project.event_data) {
+          // Hydrate the default design with event data
+          const currentDesign = useEditorStore.getState().design;
+          const hydrated = JSON.parse(resolveTokens(JSON.stringify(currentDesign), d.project.event_data));
+          setDesign(hydrated);
         }
       } 
     }).catch(() => {})
-  }, [id])
+  }, [id, isUnsavedProject, router, setDesign])
 
   // Davetiye-svg temalarını Next.js'in beklediği palet yapısına uyarlama
   const activeTemaIndex = form?.card_theme ?? (SABLONLAR[form?.card_template || 'Klasik Altın']?.tema || 0)
@@ -103,6 +150,19 @@ export function ProjectEditor() {
   const eventType = EVENT_TYPES.find((e) => e.id === form?.event_type)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const changeDesignTarget = (target) => { setDesignTarget(target); setPreviewMode(target === 'site' ? 'site' : 'card'); setOpenSection('design') }
+  const chooseSiteTemplate = (template) => {
+    const starter = buildSiteFromTemplate(template.id)
+    const hydrated = eventData
+      ? syncSiteEventData(
+          JSON.parse(resolveTokens(JSON.stringify(starter), eventData)),
+          null,
+          eventData,
+        )
+      : starter
+    initSite(hydrated)
+    setShowOnboarding(false)
+    setSiteStartStage('editor')
+  }
   const handleHeroImage = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -142,59 +202,179 @@ export function ProjectEditor() {
   }
   const removeMenu = (m) => setForm((f) => ({ ...f, menu_options: f.menu_options.filter((x) => x !== m) }))
 
-  const save = async () => {
+  const siteDataMemo = useMemo(() => {
+    if (!form?.site_data) return null;
+    const synchronized = syncSiteEventData(form.site_data, project?.event_data, eventData)
+    return normalizeSiteForEditor(synchronized, {
+      title: form.title || 'Bizim Düğün',
+      slug: form.slug || project?.slug || 'bizim-dugun',
+      templateId: form.template_slug || 'minimal',
+      userId: project?.user_id || 'demo'
+    });
+  }, [form?.site_data, form?.title, form?.slug, form?.template_slug, project?.event_data, eventData, project?.slug, project?.user_id]);
+
+  useEffect(() => {
+    if (designTarget !== 'site' || !eventData || !siteDataMemo) return
+    const state = useSiteEditorStore.getState()
+    if (!state.site || state.site.id !== siteDataMemo.id) return
+    const synchronized = syncSiteEventData(state.site, project?.event_data, eventData)
+    if (JSON.stringify(synchronized) !== JSON.stringify(state.site)) state.initSite(synchronized)
+  }, [designTarget, eventData, project?.event_data, siteDataMemo])
+
+  const hasNextStep = isNewFlow && designTarget === 'site' && project?.deliverables?.invitation?.enabled
+  const saveLabel = hasNextStep ? 'Kaydet & Devam Et' : (isNewFlow ? 'Tamamla' : (saving ? 'Güncelleniyor…' : 'Güncelle'))
+
+  const save = async (asDraft = false) => {
     const isManual = designTarget === 'card'
     if (!isManual && (!form.host_a || !form.date)) { toast.error('Gelin adı ve tarih zorunludur'); return }
     setSaving(true)
     try {
+      const selectedDeliverables = project?.deliverables
       const body = { 
         ...form, 
+        event_type: project?.event_type || form.event_type,
+        event_data: eventData || null,
+        published: asDraft ? false : project?.published ?? true,
+        ...(selectedDeliverables ? { deliverables: {
+          site: {
+            ...selectedDeliverables.site,
+            status: asDraft || !isManual ? 'draft' : selectedDeliverables.site.status,
+          },
+          invitation: {
+            ...selectedDeliverables.invitation,
+            status: asDraft || isManual ? 'draft' : selectedDeliverables.invitation.status,
+          },
+        } } : {}),
         host_a: form.host_a || 'İsimsiz', 
         date: form.date || new Date().toISOString(),
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
-        canvas_design: isManual ? canvasDesign : form.canvas_design
+        canvas_design: isManual ? canvasDesign : form.canvas_design,
+        site_data: form.site_data ? syncSiteEventData(form.site_data, project?.event_data, eventData) : form.site_data
       }
-      const res = await fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
+      const isCreating = isUnsavedProject || project?.id === 'new'
+      const res = await fetch(isCreating ? '/api/projects' : `/api/projects/${project?.id || id}`, {
+        method: isCreating ? 'POST' : 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Kaydedilemedi')
       setProject(data.project)
       setForm(pick(data.project))
-      toast.success('Değişiklikler kaydedildi')
+      if (isCreating) window.sessionStorage.removeItem(NEW_PROJECT_DRAFT_KEY)
+      toast.success(asDraft ? 'Etkinlik taslaklara kaydedildi.' : isCreating ? 'Etkinliğiniz kaydedildi.' : 'Değişiklikler kaydedildi')
+      if (isCreating && isNewFlow && !isManual && data.project.deliverables?.invitation?.enabled) {
+        changeDesignTarget('card')
+        router.replace(`/panel/etkinlik/${data.project.id}/duzenle?mode=card&new=1`)
+        return
+      }
+      if (isNewFlow && !hasNextStep) {
+         router.replace(asDraft || !data.project.published ? '/panel/taslaklar' : '/panel')
+      }
     } catch (e) { toast.error(e.message) } finally { setSaving(false) }
   }
 
-  const handleSiteSave = async (siteData) => {
+  const handleSiteSave = async (siteData, asDraft = false) => {
     if (!form.host_a || !form.date) { toast.error('Gelin adı ve tarih zorunludur'); return }
     setSaving(true)
     try {
+      const selectedDeliverables = project?.deliverables
       const body = { 
         ...form, 
+        event_type: project?.event_type || form.event_type,
+        event_data: eventData || null,
+        published: asDraft ? false : project?.published ?? true,
+        ...(selectedDeliverables ? { deliverables: {
+          site: { ...selectedDeliverables.site, status: 'draft' },
+          invitation: { ...selectedDeliverables.invitation, ...(asDraft ? { status: 'draft' } : {}) },
+        } } : {}),
         host_a: form.host_a || 'İsimsiz', 
         date: form.date || new Date().toISOString(),
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
         site_data: siteData
       }
-      const res = await fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
+      const isCreating = isUnsavedProject || project?.id === 'new'
+      const res = await fetch(isCreating ? '/api/projects' : `/api/projects/${project?.id || id}`, {
+        method: isCreating ? 'POST' : 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Kaydedilemedi')
       setProject(data.project)
       setForm(pick(data.project))
-      toast.success('Site tasarımı güncellendi')
+      if (isCreating) window.sessionStorage.removeItem(NEW_PROJECT_DRAFT_KEY)
+      toast.success(asDraft ? 'Site taslağınız kaydedildi.' : isCreating ? 'Etkinliğiniz ve site tasarımınız kaydedildi.' : 'Site tasarımı güncellendi')
+
+      if (isNewFlow && data.project.deliverables?.invitation?.enabled) {
+         changeDesignTarget('card')
+         router.replace(`/panel/etkinlik/${data.project.id}/duzenle?mode=card&new=1`)
+      } else if (isNewFlow) {
+         router.replace(asDraft || !data.project.published ? '/panel/taslaklar' : '/panel')
+      }
     } catch (e) { toast.error(e.message) } finally { setSaving(false) }
+  }
+
+  const applyEventDataToInvitation = () => {
+    if (!eventData) {
+      toast.error('Etkinlik bilgileri bulunamadı.')
+      return
+    }
+    setDesign(syncEventTokens(canvasDesign, project?.event_data, eventData))
+    toast.success('Etkinlik bilgileri davetiyeye aktarıldı.')
   }
 
   if (!form) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-96 rounded-2xl" /></div>
 
+  const onboardingDialog = (
+    <Dialog open={showOnboarding} onOpenChange={setShowOnboarding}>
+      <DialogContent className="sm:max-w-md bg-ivory rounded-2xl border-0">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-2xl text-midnight">Stüdyoya Hoş Geldiniz!</DialogTitle>
+          <DialogDescription className="text-muted-foreground mt-2">
+            Bilgileriniz tasarıma eklendi. İçeriği düzenleyin; etkinliğiniz ancak ilk kez Kaydet'e bastığınızda oluşturulup kaydedilir.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="mt-6">
+          <Button onClick={() => setShowOnboarding(false)} className="w-full rounded-xl bg-midnight text-ivory">Harika, Başlayalım</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+
   if (designTarget === 'site') {
+    if (isNewFlow && siteStartStage !== 'editor') {
+      return (
+        <SiteStartFlow
+          eventTitle={form.title || [form.host_a, form.host_b].filter(Boolean).join(' & ')}
+          stage={siteStartStage}
+          onBack={() => {
+            if (siteStartStage === 'templates') setSiteStartStage('intro')
+            else router.back()
+          }}
+          onContinue={() => setSiteStartStage('templates')}
+          onChooseTemplate={chooseSiteTemplate}
+        />
+      )
+    }
+
     return (
       <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full" data-testid="project-editor-site">
         <SiteEditor
           key={project?.id || 'project-site'}
-          initialSite={form?.site_data ? normalizeSiteForEditor(form.site_data, { title: form.title || 'Bizim Düğün', slug: form.slug || project?.slug || 'bizim-dugun', templateId: form.template_slug || 'minimal', userId: project?.user_id || 'demo' }) : null}
+          initialSite={siteDataMemo}
+          eventData={eventData}
           onSwitchToCard={() => changeDesignTarget('card')}
+          showSwitchToCard={project?.deliverables?.invitation?.enabled ?? true}
           isUpdate={true}
           onSave={handleSiteSave}
+          onSaveDraft={(siteData) => handleSiteSave(siteData, true)}
+          saveButtonLabel={saveLabel}
+          autoSaveEnabled={project?.id !== 'new'}
         />
+        {onboardingDialog}
       </div>
     )
   }
@@ -206,22 +386,32 @@ export function ProjectEditor() {
           <CanvasEditor 
             topbarLeft={
               <div className="pl-6 lg:pl-10">
-                <Button variant="default" onClick={() => changeDesignTarget('site')} className="h-8 rounded-full bg-champagne text-midnight hover:bg-champagne-light px-4 text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                  <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Site Formuna Dön
+                <Button variant="default" onClick={() => {
+                  if (project?.deliverables?.site?.enabled) changeDesignTarget('site')
+                  else router.back()
+                }} className="h-8 rounded-full bg-champagne text-midnight hover:bg-champagne-light px-4 text-[10px] font-bold uppercase tracking-widest shadow-sm">
+                  <ArrowLeft className="w-3.5 h-3.5 mr-2" /> {project?.deliverables?.site?.enabled ? 'Site Tasarımına Dön' : 'Ürün Seçimine Dön'}
                 </Button>
               </div>
             }
             topbarRight={
               <div className="flex gap-2">
+                <Button onClick={applyEventDataToInvitation} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.12em]">
+                  Bilgileri davetiyeye uygula
+                </Button>
                 <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
                    <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
                 </Button>
-                <Button onClick={save} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
-                  <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Güncelleniyor…' : 'Güncelle'}
+                <Button onClick={() => save(true)} disabled={saving} size="sm" variant="outline" className="h-8 rounded-full border-midnight/20 px-4 text-[10px] uppercase tracking-[0.18em] text-midnight">
+                  <Save className="mr-1.5 h-3 w-3" /> Taslak
+                </Button>
+                <Button onClick={() => save(false)} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
+                  <Save className="mr-1.5 h-3 w-3" /> {saveLabel}
                 </Button>
               </div>
             }
           />
+          {onboardingDialog}
         </div>
       </div>
     )
@@ -240,8 +430,11 @@ export function ProjectEditor() {
               <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
                 <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
               </Button>
-              <Button onClick={save} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light" data-testid="editor-save">
-                <Save className="mr-1.5 h-3 w-3" /> {saving ? 'Kaydediliyor…' : 'Kaydet'}
+              <Button onClick={() => save(true)} disabled={saving} size="sm" variant="outline" className="h-8 rounded-full border-midnight/20 px-4 text-[10px] uppercase tracking-[0.18em] text-midnight" data-testid="editor-save-draft">
+                <Save className="mr-1.5 h-3 w-3" /> Taslak
+              </Button>
+              <Button onClick={() => save(false)} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light" data-testid="editor-save">
+                <Save className="mr-1.5 h-3 w-3" /> {saveLabel}
               </Button>
             </div>
           </div>
@@ -261,8 +454,8 @@ export function ProjectEditor() {
               <AccordionTrigger className="rounded-xl px-4 py-4 text-[11px] uppercase tracking-[0.2em] hover:bg-ivory-50 hover:no-underline">Temel Bilgiler</AccordionTrigger>
               <AccordionContent className="px-4 pb-6 pt-2">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Gelin *" value={form.host_a} onChange={set('host_a')} testid="edit-host-a" />
-                  <Field label="Damat" value={form.host_b} onChange={set('host_b')} testid="edit-host-b" />
+                  <Field label="Gelin adı soyadı *" value={form.host_a} onChange={set('host_a')} testid="edit-host-a" />
+                  <Field label="Damat adı soyadı" value={form.host_b} onChange={set('host_b')} testid="edit-host-b" />
                   <Field label="Gelin annesi" value={form.bride_mother} onChange={set('bride_mother')} />
                   <Field label="Gelin babası" value={form.bride_father} onChange={set('bride_father')} />
                   <Field label="Damat annesi" value={form.groom_mother} onChange={set('groom_mother')} />
@@ -556,6 +749,7 @@ export function ProjectEditor() {
         </div>
 
       </div>
+      {onboardingDialog}
     </div>
   )
 }
