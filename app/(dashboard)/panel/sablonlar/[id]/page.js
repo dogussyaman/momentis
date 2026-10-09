@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Eye } from 'lucide-react'
 import { SiteViewer } from '@/components/site-builder/SiteViewer'
 import { buildSiteFromTemplate, TEMPLATES } from '@/lib/site-builder/templates'
+import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
 
 export function generateStaticParams() {
   return TEMPLATES.map((template) => ({ id: template.id }))
@@ -22,19 +23,26 @@ export default async function SiteTemplatePreviewPage({ params }) {
   const template = TEMPLATES.find((item) => item.id === id)
   if (!template) notFound()
 
-  const site = buildSiteFromTemplate(template.id, {
+  const previewEventData = {
+    couple: { bride: 'Elif', groom: 'Kaan' },
+    date: '2026-09-14',
+    time: '19:00',
+    venue: 'Feriye Sarayı',
+    address: 'İstanbul',
+    city: 'İstanbul',
+    eventTypeLabel: 'Düğün',
+  }
+  const templateSite = buildSiteFromTemplate(template.id, {
     id: `preview-${template.id}`,
     userId: 'preview',
     title: 'Elif & Kaan',
     slug: `ornek-${template.id}`,
-    settings: {
-      brideName: 'Elif',
-      groomName: 'Kaan',
-      eventDate: '2026-09-14T19:00',
-      venueName: 'Feriye Sarayı',
-      venueAddress: 'İstanbul',
-    },
   })
+  const site = syncSiteEventData(
+    JSON.parse(resolveTokens(JSON.stringify(templateSite), previewEventData)),
+    null,
+    previewEventData,
+  )
 
   return (
     <div className="mx-auto max-w-7xl" data-testid="site-template-preview">

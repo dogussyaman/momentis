@@ -39,7 +39,12 @@ export function SiteNavigation({ site }: { site: WeddingSite }) {
   )
   const rsvp = navigationSections.find((section) => section.type === 'rsvp')
   const links = navigationSections.filter((section) => section.id !== rsvp?.id)
-  const coupleNames = [site.settings.brideName, site.settings.groomName].filter(Boolean)
+  const coupleSection = site.sections.find((section) => section.type === 'couple')
+  const sectionNames = [coupleSection?.props.brideName, coupleSection?.props.groomName]
+    .filter((value) => typeof value === 'string' && value && !value.includes('{{'))
+  const coupleNames = sectionNames.length
+    ? sectionNames
+    : [site.settings.brideName, site.settings.groomName].filter(Boolean)
   const name = coupleNames.join(' & ') || site.title
   const initials = coupleNames.map((n) => String(n)[0]).join(' & ')
   const labelOf = (section: WeddingSite['sections'][number]) => {

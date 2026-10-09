@@ -15,6 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { InvitationPreview } from '@/components/shared/invitation-preview'
 import { EVENT_TYPES } from '@/lib/data/events'
+import { EVENT_CONFIG } from '@/lib/events/event-config'
 import { TEMPLATES } from '@/lib/data/templates'
 import { formatEventDate } from '@/lib/projects'
 import { cn } from '@/lib/utils'
@@ -37,6 +38,7 @@ import { normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
 import { resolveTokens, syncEventTokens, syncSiteEventData } from '@/lib/events/event-tokens'
 import { createProjectDraft, NEW_PROJECT_DRAFT_KEY } from '@/lib/events/event-draft'
 import { syncEventDataFromForm } from '@/lib/events/event-normalize'
+import { BILLING_PLANS } from '@/lib/billing/plans'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
@@ -75,6 +77,22 @@ function pick(project) {
   }
 }
 
+function missingRequiredProjectField(form, eventData) {
+  const config = EVENT_CONFIG[form?.event_type]
+  if (!config) return null
+  const values = {
+    brideName: eventData?.couple?.bride,
+    groomName: eventData?.couple?.groom,
+    celebrantName: eventData?.celebrant?.name,
+    parentNames: eventData?.baby?.parents,
+    companyName: eventData?.company?.name,
+    eventTitle: eventData?.eventTitle || form?.title,
+    date: eventData?.date || form?.date,
+  }
+  const field = config.required.find((key) => !String(values[key] || '').trim())
+  return field ? config.fieldLabels[field] || field : null
+}
+
 export function ProjectEditor() {
   const { id } = useParams()
   const isUnsavedProject = id === 'new'
@@ -84,6 +102,7 @@ export function ProjectEditor() {
   const [saving, setSaving] = useState(false)
   const [menuInput, setMenuInput] = useState('')
   const [device, setDevice] = useState('mobile') // mobile, tablet, desktop
+  const pendingMutationKey = useRef(null)
   const searchParams = useSearchParams()
   const initialMode = searchParams.get('mode') === 'card' ? 'card' : 'site'
   const isNewFlow = searchParams.get('new') === '1' || isUnsavedProject
@@ -110,7 +129,17 @@ export function ProjectEditor() {
         if (!rawDraft) throw new Error('Etkinlik taslağı bulunamadı. Lütfen yeniden başlayın.')
         const draftInput = JSON.parse(rawDraft)
         const draft = createProjectDraft(draftInput.eventType, draftInput.eventData || {}, draftInput.deliverables || {})
-        const localProject = { ...draft, id: 'new', slug: '' }
+        const idempotencyKey = draftInput.idempotencyKey || window.crypto.randomUUID()
+        const localProject = {
+          ...draft,
+          id: 'new',
+          slug: '',
+          billing_package_id: draftInput.packageId || 'baslangic',
+          creation_request_id: idempotencyKey,
+        }
+        if (!draftInput.idempotencyKey) {
+          window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify({ ...draftInput, idempotencyKey }))
+        }
         setProject(localProject)
         setForm(pick(localProject))
 
@@ -224,9 +253,48 @@ export function ProjectEditor() {
   const hasNextStep = isNewFlow && designTarget === 'site' && project?.deliverables?.invitation?.enabled
   const saveLabel = hasNextStep ? 'Kaydet & Devam Et' : (isNewFlow ? 'Tamamla' : (saving ? 'Güncelleniyor…' : 'Güncelle'))
 
+  const submitProjectSave = async (body, isCreating, requestKey) => {
+    const url = isCreating ? '/api/projects' : `/api/projects/${project?.id || id}`
+    const send = () => fetch(url, {
+      method: isCreating ? 'POST' : 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestKey },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    })
+
+    let response = await send()
+    let data = await response.json().catch(() => ({}))
+    if (!response.ok && data.code === 'FEATURE_REQUIRED' && data.packageId === 'premium') {
+      const billingResponse = await fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' })
+      const billingData = await billingResponse.json().catch(() => ({}))
+      if (!billingResponse.ok) throw new Error(billingData.error || data.error || 'Premium paket hakları doğrulanamadı')
+      const grant = billingData.grants?.find((item) =>
+        item.remaining_event_credits > 0 &&
+        BILLING_PLANS[item.package_id]?.entitlements.premiumTemplates,
+      )
+      const plan = grant && BILLING_PLANS[grant.package_id]
+      if (grant && plan && window.confirm(
+        `Bu özellik Premium paket gerektiriyor. ${plan.name} paketinizden 1 etkinlik kredisi kullanarak bu projeyi Premium olarak kaydetmek ister misiniz?`,
+      )) {
+        body.billing_package_id = plan.id
+        setProject((current) => current ? { ...current, billing_package_id: plan.id } : current)
+        try {
+          const savedDraft = JSON.parse(window.sessionStorage.getItem(NEW_PROJECT_DRAFT_KEY) || 'null')
+          if (savedDraft) window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify({ ...savedDraft, packageId: plan.id }))
+        } catch {}
+        response = await send()
+        data = await response.json().catch(() => ({}))
+      }
+    }
+
+    if (!response.ok) throw new Error(data?.error || 'Kaydedilemedi')
+    return data
+  }
+
   const save = async (asDraft = false) => {
     const isManual = designTarget === 'card'
-    if (!isManual && (!form.host_a || !form.date)) { toast.error('Gelin adı ve tarih zorunludur'); return }
+    const missingField = missingRequiredProjectField(form, eventData)
+    if (missingField) { toast.error(`${missingField} zorunludur`); return }
     setSaving(true)
     try {
       const selectedDeliverables = project?.deliverables
@@ -245,23 +313,21 @@ export function ProjectEditor() {
             status: asDraft || isManual ? 'draft' : selectedDeliverables.invitation.status,
           },
         } } : {}),
-        host_a: form.host_a || 'İsimsiz', 
-        date: form.date || new Date().toISOString(),
+        host_a: form.host_a,
+        date: form.date,
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
         canvas_design: isManual ? canvasDesign : form.canvas_design,
-        site_data: form.site_data ? syncSiteEventData(form.site_data, project?.event_data, eventData) : form.site_data
+        site_data: form.site_data ? syncSiteEventData(form.site_data, project?.event_data, eventData) : form.site_data,
+        ...(isUnsavedProject || project?.id === 'new' ? { billing_package_id: project?.billing_package_id || 'baslangic' } : {}),
       }
       const isCreating = isUnsavedProject || project?.id === 'new'
-      const res = await fetch(isCreating ? '/api/projects' : `/api/projects/${project?.id || id}`, {
-        method: isCreating ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Kaydedilemedi')
+      const requestKey = isCreating ? project?.creation_request_id : (pendingMutationKey.current || window.crypto.randomUUID())
+      if (!requestKey) throw new Error('Etkinlik kaydı için istek anahtarı oluşturulamadı')
+      if (!isCreating) pendingMutationKey.current = requestKey
+      const data = await submitProjectSave(body, isCreating, requestKey)
       setProject(data.project)
       setForm(pick(data.project))
+      pendingMutationKey.current = null
       if (isCreating) window.sessionStorage.removeItem(NEW_PROJECT_DRAFT_KEY)
       toast.success(asDraft ? 'Etkinlik taslaklara kaydedildi.' : isCreating ? 'Etkinliğiniz kaydedildi.' : 'Değişiklikler kaydedildi')
       if (isCreating && isNewFlow && !isManual && data.project.deliverables?.invitation?.enabled) {
@@ -276,7 +342,8 @@ export function ProjectEditor() {
   }
 
   const handleSiteSave = async (siteData, asDraft = false) => {
-    if (!form.host_a || !form.date) { toast.error('Gelin adı ve tarih zorunludur'); return }
+    const missingField = missingRequiredProjectField(form, eventData)
+    if (missingField) { toast.error(`${missingField} zorunludur`); return }
     setSaving(true)
     try {
       const selectedDeliverables = project?.deliverables
@@ -289,22 +356,20 @@ export function ProjectEditor() {
           site: { ...selectedDeliverables.site, status: 'draft' },
           invitation: { ...selectedDeliverables.invitation, ...(asDraft ? { status: 'draft' } : {}) },
         } } : {}),
-        host_a: form.host_a || 'İsimsiz', 
-        date: form.date || new Date().toISOString(),
+        host_a: form.host_a,
+        date: form.date,
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
-        site_data: siteData
+        site_data: siteData,
+        ...(isUnsavedProject || project?.id === 'new' ? { billing_package_id: project?.billing_package_id || 'baslangic' } : {}),
       }
       const isCreating = isUnsavedProject || project?.id === 'new'
-      const res = await fetch(isCreating ? '/api/projects' : `/api/projects/${project?.id || id}`, {
-        method: isCreating ? 'POST' : 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Kaydedilemedi')
+      const requestKey = isCreating ? project?.creation_request_id : (pendingMutationKey.current || window.crypto.randomUUID())
+      if (!requestKey) throw new Error('Etkinlik kaydı için istek anahtarı oluşturulamadı')
+      if (!isCreating) pendingMutationKey.current = requestKey
+      const data = await submitProjectSave(body, isCreating, requestKey)
       setProject(data.project)
       setForm(pick(data.project))
+      pendingMutationKey.current = null
       if (isCreating) window.sessionStorage.removeItem(NEW_PROJECT_DRAFT_KEY)
       toast.success(asDraft ? 'Site taslağınız kaydedildi.' : isCreating ? 'Etkinliğiniz ve site tasarımınız kaydedildi.' : 'Site tasarımı güncellendi')
 
@@ -384,6 +449,7 @@ export function ProjectEditor() {
       <div className="flex flex-col h-[calc(100dvh-4rem)] lg:h-[100dvh] w-full" data-testid="project-editor-canvas">
         <div className="flex-1 w-full relative overflow-hidden bg-ivory">
           <CanvasEditor 
+            projectId={project?.id !== 'new' ? project?.id : null}
             topbarLeft={
               <div className="pl-6 lg:pl-10">
                 <Button variant="default" onClick={() => {

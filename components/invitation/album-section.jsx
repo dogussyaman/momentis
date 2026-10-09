@@ -91,7 +91,7 @@ export function AlbumSection({ project, p, isDark }) {
       }
       if (!compressed.length) { toast.error('Fotoğraflar işlenemedi'); return }
       const res = await fetch(`/api/public/album/${project.slug}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() },
         body: JSON.stringify({ uploader: uploader.trim() || 'Misafir', photos: compressed }),
       })
       const data = await res.json().catch(() => ({}))

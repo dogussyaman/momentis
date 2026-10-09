@@ -78,7 +78,7 @@ export function FooterSection({ section, props }: SectionComponentProps) {
   const credit = props.showCredit && (
     <p className="text-[11px] tracking-wide opacity-50">Momentis ile hazırlandı</p>
   )
-  const linkRow = (cls = '') => (
+  const linkRow = (cls = '') => props.showLinks !== false && (
     <nav aria-label="Alt gezinme" className={cn('flex flex-wrap gap-x-6 gap-y-2 text-xs uppercase tracking-[0.18em]', cls)}>
       {links.map((l) => (
         <a key={l.id} href={`#section-${l.id}`} className="opacity-70 transition hover:opacity-100 hover:text-[var(--sb-accent)]">{l.label}</a>
@@ -97,14 +97,16 @@ export function FooterSection({ section, props }: SectionComponentProps) {
               {props.text && <p className="max-w-sm whitespace-pre-line text-sm sb-muted">{props.text}</p>}
               {social}
             </div>
-            <div className="flex flex-col gap-4">
-              <p className="sb-eyebrow">Keşfet</p>
-              <div className="flex flex-col gap-2.5 text-sm">
-                {links.map((l) => (
-                  <a key={l.id} href={`#section-${l.id}`} className="w-fit opacity-75 transition hover:translate-x-1 hover:opacity-100 hover:text-[var(--sb-accent)]">{l.label}</a>
-                ))}
+            {props.showLinks !== false && (
+              <div className="flex flex-col gap-4">
+                <p className="sb-eyebrow">Keşfet</p>
+                <div className="flex flex-col gap-2.5 text-sm">
+                  {links.map((l) => (
+                    <a key={l.id} href={`#section-${l.id}`} className="w-fit opacity-75 transition hover:translate-x-1 hover:opacity-100 hover:text-[var(--sb-accent)]">{l.label}</a>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <div className="flex flex-col gap-4">
               <p className="sb-eyebrow">Detaylar</p>
               <div className="flex flex-col gap-2 text-sm">
@@ -179,7 +181,7 @@ export function FooterSection({ section, props }: SectionComponentProps) {
         {props.date && <p className="sb-eyebrow">{props.date}</p>}
         {props.hashtag && <p className="text-sm sb-accent">{props.hashtag}</p>}
         {social}
-        {props.showLinks && links.length > 0 && linkRow('mt-2 justify-center')}
+        {props.showLinks !== false && links.length > 0 && linkRow('mt-2 justify-center')}
         <SiteButtons buttons={props.buttons} />
         {props.showCredit && (
           <div className="mt-6 flex flex-col gap-1 border-t border-current/10 pt-6 text-xs opacity-50">

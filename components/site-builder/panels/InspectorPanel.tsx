@@ -142,12 +142,50 @@ function renderField(f:any,value:any,set:(v:any)=>void,fieldKey=f.key){
  }
  return null
 }
-function StylePanel({style:s,update}:any){return <div className="space-y-5">
- <Group title="Arka plan"><select value={s.bgType||'theme'} onChange={e=>update({bgType:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="theme">Tema</option><option value="color">Renk</option><option value="gradient">Gradient</option><option value="image">Görsel</option><option value="video">Video</option></select>{['color','gradient'].includes(s.bgType)&&<Color label="Arka plan" value={s.bgColor||s.gradientFrom||'#ffffff'} set={v=>update({bgColor:v,gradientFrom:v})}/>} {s.bgType==='image'&&<SiteImageField label="Arka plan görseli" fieldKey="bgImage" value={s.bgImage} onChange={bgImage=>update({bgImage})}/>} {s.bgType==='video'&&<Input value={s.bgVideo||''} onChange={e=>update({bgVideo:e.target.value})} placeholder="Video URL" className="h-8 text-[10px]"/>}<Color label="Metin" value={s.textColor||'#101827'} set={v=>update({textColor:v})}/></Group>
- <Group title="İç Boşluklar (Öğeler Arası)"><Num label="Öğe Aralığı" value={s.elementGap??20} set={v=>update({elementGap:v})}/><Num label="Başlık Alt Boşluğu" value={s.titleMarginBottom??0} set={v=>update({titleMarginBottom:v})}/><Num label="Buton Üst Boşluğu" value={s.buttonMarginTop??12} set={v=>update({buttonMarginTop:v})}/></Group>
- <Group title="Boyut & Dış Boşluk"><Num label="Dikey boşluk" value={s.paddingY??96} set={v=>update({paddingY:v})}/><Num label="Yatay boşluk" value={s.paddingX??24} set={v=>update({paddingX:v})}/><Num label="Dış boşluk" value={s.marginY??0} set={v=>update({marginY:v})}/><select value={s.width||'normal'} onChange={e=>update({width:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="narrow">Dar</option><option value="normal">Normal</option><option value="wide">Geniş</option><option value="full">Tam</option></select></Group>
- <Group title="Görünüm"><Num label="Köşe yuvarlaklığı" value={s.radius??0} set={v=>update({radius:v})}/><Num label="Border" value={s.borderWidth??0} set={v=>update({borderWidth:v})}/><Color label="Border rengi" value={s.borderColor||'#000000'} set={v=>update({borderColor:v})}/><select value={s.shadow||'none'} onChange={e=>update({shadow:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option>none</option><option>sm</option><option>md</option><option>lg</option><option>xl</option></select></Group>
- </div>}
+function StylePanel({style:s,update}:any){
+ return <div className="space-y-5">
+  <Group title="Arka plan">
+   <select aria-label="Arka plan türü" value={s.bgType||'theme'} onChange={e=>update({bgType:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="theme">Tema</option><option value="color">Renk</option><option value="gradient">Gradient</option><option value="image">Görsel</option><option value="video">Video</option></select>
+   {s.bgType==='color'&&<Color label="Arka plan rengi" value={s.bgColor||'#ffffff'} set={v=>update({bgColor:v})}/>}
+   {s.bgType==='gradient'&&<><Color label="Başlangıç rengi" value={s.gradientFrom||s.bgColor||'#ffffff'} set={v=>update({gradientFrom:v})}/><Color label="Bitiş rengi" value={s.gradientTo||'#e8e0d5'} set={v=>update({gradientTo:v})}/><Num label="Gradient açısı" value={s.gradientAngle??180} set={v=>update({gradientAngle:v})}/></>}
+   {s.bgType==='image'&&<>
+    <SiteImageField label="Arka plan görseli" fieldKey="bgImage" value={s.bgImage} onChange={bgImage=>update({bgImage})}/>
+    <select aria-label="Görsel konumu" value={s.bgPosition||'center'} onChange={e=>update({bgPosition:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="center">Ortala</option><option value="top">Üst</option><option value="bottom">Alt</option></select>
+    <SwitchRow label="Hafif yakınlaştırma" value={!!s.bgZoom} set={v=>update({bgZoom:v})}/>
+    <SwitchRow label="Paralaks" value={!!s.bgParallax} set={v=>update({bgParallax:v})}/>
+   </>}
+   {s.bgType==='video'&&<Input aria-label="Arka plan video URL" value={s.bgVideo||''} onChange={e=>update({bgVideo:e.target.value})} placeholder="Video URL" className="h-8 text-[10px]"/>}
+   {['image','video'].includes(s.bgType)&&<><Color label="Kaplama rengi" value={s.overlayColor||'#000000'} set={v=>update({overlayColor:v})}/><Num label="Kaplama opaklığı (%)" value={s.overlayOpacity??0} set={v=>update({overlayOpacity:v})}/><Num label="Arka plan bulanıklığı (px)" value={s.bgBlur??0} set={v=>update({bgBlur:v})}/></>}
+   <Color label="Metin rengi" value={s.textColor||'#101827'} set={v=>update({textColor:v})}/>
+   <Color label="Vurgu rengi" value={s.accentColor||'#c9a96e'} set={v=>update({accentColor:v})}/>
+  </Group>
+  <Group title="İç boşluklar">
+   <Num label="Öğe aralığı" value={s.elementGap??20} set={v=>update({elementGap:v})}/>
+   <Num label="Başlık alt boşluğu" value={s.titleMarginBottom??0} set={v=>update({titleMarginBottom:v})}/>
+   <Num label="Buton üst boşluğu" value={s.buttonMarginTop??12} set={v=>update({buttonMarginTop:v})}/>
+  </Group>
+  <Group title="Boyut ve hizalama">
+   <Num label="Dikey boşluk" value={s.paddingY??96} set={v=>update({paddingY:v})}/>
+   <Num label="Yatay boşluk" value={s.paddingX??24} set={v=>update({paddingX:v})}/>
+   <Num label="Dış yatay boşluk" value={s.marginX??0} set={v=>update({marginX:v})}/>
+   <Num label="Dış dikey boşluk" value={s.marginY??0} set={v=>update({marginY:v})}/>
+   <select aria-label="İçerik genişliği" value={s.width||'normal'} onChange={e=>update({width:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="narrow">Dar</option><option value="normal">Normal</option><option value="wide">Geniş</option><option value="full">Tam</option></select>
+   <select aria-label="İçerik hizalama" value={s.align||'center'} onChange={e=>update({align:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="left">Sola hizala</option><option value="center">Ortala</option><option value="right">Sağa hizala</option></select>
+   <select aria-label="Minimum yükseklik" value={s.minHeight||'auto'} onChange={e=>update({minHeight:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="auto">Otomatik</option><option value="half">Ekranın yarısı</option><option value="large">Ekranın dörtte üçü</option><option value="screen">Tam ekran</option></select>
+  </Group>
+  <Group title="Görünüm">
+   <Num label="Köşe yuvarlaklığı (px)" value={s.radius??0} set={v=>update({radius:v})}/>
+   <Num label="Kenarlık (px)" value={s.borderWidth??0} set={v=>update({borderWidth:v})}/>
+   <Color label="Kenarlık rengi" value={s.borderColor||'#000000'} set={v=>update({borderColor:v})}/>
+   <Color label="Süs rengi" value={s.cornerColor||'#c9a96e'} set={v=>update({cornerColor:v})}/>
+   <select aria-label="Köşe süsü" value={s.corners||'none'} onChange={e=>update({corners:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="none">Süs yok</option><option value="floral">Çiçek</option><option value="classic">Klasik</option><option value="minimal">Minimal</option><option value="leaf">Yaprak</option></select>
+   <select aria-label="Alt şekil" value={s.divider||'none'} onChange={e=>update({divider:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="none">Alt şekil yok</option><option value="wave">Dalga</option><option value="curve">Kavis</option><option value="slant">Eğim</option></select>
+   <select aria-label="Gölge" value={s.shadow||'none'} onChange={e=>update({shadow:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]"><option value="none">Gölge yok</option><option value="sm">Küçük</option><option value="md">Orta</option><option value="lg">Büyük</option><option value="xl">Çok büyük</option></select>
+   <SwitchRow label="Mobilde gizle" value={!!s.hideOnMobile} set={v=>update({hideOnMobile:v})}/>
+   <SwitchRow label="Masaüstünde gizle" value={!!s.hideOnDesktop} set={v=>update({hideOnDesktop:v})}/>
+  </Group>
+ </div>
+}
 function AnimationPanel({animation:a,update}:any){return <div className="space-y-4"><Group title="Giriş animasyonu"><select value={a.type||'none'} onChange={e=>update({type:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]">{['none','fade','slide-up','slide-left','slide-right','zoom','blur'].map(x=><option key={x} value={x}>{x}</option>)}</select><Num label="Süre (sn)" value={a.duration??.8} set={v=>update({duration:v})}/><Num label="Gecikme (sn)" value={a.delay??0} set={v=>update({delay:v})}/><SwitchRow label="Kademeli giriş" value={!!a.stagger} set={v=>update({stagger:v})}/></Group></div>}
 function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){
  return <div className="space-y-5">
@@ -158,9 +196,23 @@ function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){
    <Input value={site.slug} onChange={e=>updateSite({slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')})} className="h-8 text-[11px]"/>
   </Group>
   <Group title="Renkler">
+   <Color label="Ana renk" value={site.theme.primaryColor} set={v=>updateTheme({primaryColor:v})}/>
+   <Color label="İkincil renk" value={site.theme.secondaryColor} set={v=>updateTheme({secondaryColor:v})}/>
    <Color label="Vurgu" value={site.theme.accentColor} set={v=>updateTheme({accentColor:v})}/>
    <Color label="Arka plan" value={site.theme.backgroundColor} set={v=>updateTheme({backgroundColor:v})}/>
+   <Color label="Kart yüzeyi" value={site.theme.surfaceColor} set={v=>updateTheme({surfaceColor:v})}/>
    <Color label="Metin" value={site.theme.textColor} set={v=>updateTheme({textColor:v})}/>
+   <Color label="İkincil metin" value={site.theme.mutedColor} set={v=>updateTheme({mutedColor:v})}/>
+  </Group>
+  <Group title="Üst gezinme">
+   <SwitchRow label="Üst gezinmeyi göster" value={site.settings.showNavbar!==false} set={v=>updateSettings({showNavbar:v})}/>
+   <Label className="text-[9px] text-muted-foreground">Gezinme görünümü</Label>
+   <select aria-label="Gezinme görünümü" value={site.settings.navStyle||'bar'} onChange={e=>updateSettings({navStyle:e.target.value})} className="h-8 w-full rounded-md border bg-white px-2 text-[10px]">
+    <option value="bar">Üst çubuk</option>
+    <option value="floating">Yüzen</option>
+    <option value="centered">Ortalanmış</option>
+    <option value="transparent">Şeffaf</option>
+   </select>
   </Group>
   <Group title="Yazı tipleri">
    <FontSelect label="Başlık fontu" value={site.theme.headingFont} options={HEADING_FONTS} set={v=>updateTheme({headingFont:v})}/>
@@ -169,6 +221,9 @@ function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){
    <select aria-label="Buton köşeleri" value={site.theme.buttonRadius} onChange={e=>updateTheme({buttonRadius:Number(e.target.value)})} className="h-8 w-full rounded-md border bg-white px-2 text-[10px]">
     {[{value:0,label:'Köşeli butonlar'},{value:8,label:'Hafif yuvarlak'},{value:20,label:'Yuvarlak'},{value:999,label:'Tam oval'}].map(x=><option key={x.value} value={x.value}>{x.label}</option>)}
    </select>
+   <Num label="Kart köşeleri (px)" value={site.theme.borderRadius} set={v=>updateTheme({borderRadius:v})}/>
+   <Num label="Başlık ölçeği" value={site.theme.headingScale} set={v=>updateTheme({headingScale:v})}/>
+   <label className="block space-y-1"><span className="text-[9px] text-muted-foreground">Harf aralığı</span><select aria-label="Harf aralığı" value={site.theme.letterSpacing} onChange={e=>updateTheme({letterSpacing:e.target.value})} className="h-8 w-full rounded-md border bg-white px-2 text-[10px]"><option value="tight">Dar</option><option value="normal">Normal</option><option value="wide">Geniş</option></select></label>
   </Group>
   <Group title="Yayın">
    <SwitchRow label="Site müziği" value={site.settings.musicEnabled} set={v=>updateSettings({musicEnabled:v})}/>

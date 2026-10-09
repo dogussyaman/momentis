@@ -10,6 +10,8 @@ import { isSmsConfigured, getSmsSender, sendSms, buildSms } from '@/lib/messagin
 import { getCurrentUser } from '@/lib/auth'
 import { handleAuthRoutes } from '@/lib/api/auth-routes'
 import { handleProjectRoutes, handlePublicRoutes } from '@/lib/api/project-routes'
+import { handleBillingRoutes } from '@/lib/api/billing-routes'
+import { consumeQuota, getProjectPlan, getRequestKey, releaseQuota } from '@/lib/billing/usage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,7 +45,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*')
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key')
   response.headers.set('Access-Control-Allow-Credentials', 'true')
   return response
 }
@@ -63,10 +65,10 @@ async function handleRoute(request, { params }) {
     const db = await connectToMongo()
 
     // Auth / projects / public modules
-    const user = await getCurrentUser(request, db).catch(() => null)
+    const user = await getCurrentUser(request, db)
     const ctx = { db, route, path, method, request, user }
     if (path[0] === 'projects' || path[0] === 'public') await ensureTemplatesSeeded(db)
-    const modular = (await handleAuthRoutes(ctx)) || (await handleProjectRoutes(ctx)) || (await handlePublicRoutes(ctx))
+    const modular = (await handleAuthRoutes(ctx)) || (await handleBillingRoutes(ctx)) || (await handleProjectRoutes(ctx)) || (await handlePublicRoutes(ctx))
     if (modular) return handleCORS(modular)
 
     // Health / root
@@ -164,10 +166,11 @@ async function handleRoute(request, { params }) {
 
     // GET /api/messaging/logs?limit=20&channel=
     if (route === '/messaging/logs' && method === 'GET') {
+      if (!user) return handleCORS(NextResponse.json({ error: 'Oturum gerekli' }, { status: 401 }))
       const url = new URL(request.url)
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10) || 20, 100)
       const channel = url.searchParams.get('channel')
-      const filter = channel && channel !== 'all' ? { channel } : {}
+      const filter = { ...(user.role === 'admin' ? {} : { user_id: user.id }), ...(channel && channel !== 'all' ? { channel } : {}) }
       const items = await db.collection('message_logs')
         .find(filter, { projection: { _id: 0 } })
         .sort({ created_at: -1 })
@@ -178,7 +181,22 @@ async function handleRoute(request, { params }) {
 
     // POST /api/messaging/send  { channel: 'email'|'sms', type, to, guestName, eventTitle, hosts, eventDate, venue, invitationUrl }
     if (route === '/messaging/send' && method === 'POST') {
+      if (!user) return handleCORS(NextResponse.json({ error: 'Oturum gerekli' }, { status: 401 }))
       const body = await request.json().catch(() => ({}))
+      const requestKey = getRequestKey(request)
+      if (!requestKey) return handleCORS(NextResponse.json({ error: 'Gönderim için Idempotency-Key başlığı zorunludur' }, { status: 400 }))
+      if (typeof body.projectId !== 'string' || !body.projectId) {
+        return handleCORS(NextResponse.json({ error: 'Gönderim için etkinlik projesi seçin' }, { status: 400 }))
+      }
+      const project = await db.collection('event_projects').findOne({ id: body.projectId, user_id: user.id }, { projection: { _id: 0 } })
+      if (!project) return handleCORS(NextResponse.json({ error: 'Etkinlik bulunamadı' }, { status: 404 }))
+      const projectPlan = await getProjectPlan(db, user.id, project.id)
+      const priorSent = await db.collection('message_logs').countDocuments({ project_id: project.id, status: { $in: ['sent', 'delivered', 'queued'] } })
+      await db.collection('billing_usage_counters').updateOne(
+        { _id: `${user.id}:messages:${project.id}` },
+        { $setOnInsert: { user_id: user.id, meter: 'messages', project_id: project.id }, $max: { used: priorSent } },
+        { upsert: true },
+      )
       const channel = body.channel === 'sms' ? 'sms' : body.channel === 'email' ? 'email' : null
       if (!channel) {
         return handleCORS(NextResponse.json({ error: "channel 'email' veya 'sms' olmalı" }, { status: 400 }))
@@ -211,6 +229,20 @@ async function handleRoute(request, { params }) {
         }
       }
 
+      const messageQuota = await consumeQuota(db, {
+        userId: user.id,
+        meter: 'messages',
+        requestKey,
+        limit: projectPlan.entitlements.messages,
+        projectId: project.id,
+      })
+      if (!messageQuota.allowed) {
+        return handleCORS(NextResponse.json({ error: 'Bu etkinlik için mesaj kotanız doldu', code: 'QUOTA_EXCEEDED' }, { status: 403 }))
+      }
+      if (messageQuota.used) {
+        return handleCORS(NextResponse.json({ ok: true, idempotent: true }))
+      }
+
       const log = {
         id: uuidv4(),
         channel,
@@ -218,7 +250,9 @@ async function handleRoute(request, { params }) {
         to: destination,
         guest_name: ctx.guestName || null,
         event_title: ctx.eventTitle,
-        project_id: body.projectId || null,
+        project_id: project.id,
+        user_id: user.id,
+        idempotency_key: requestKey,
         status: 'pending',
         provider: channel === 'email' ? 'resend' : 'twilio',
         provider_id: null,
@@ -240,6 +274,7 @@ async function handleRoute(request, { params }) {
         log.status = 'failed'
         log.error = e.message
         log.provider_code = e.providerCode || e.providerName || null
+        await releaseQuota(db, { userId: user.id, meter: 'messages', requestKey, projectId: project.id })
         await db.collection('message_logs').insertOne({ ...log })
         console.error(`[messaging:${channel}] send failed`, { to: destination, error: e.message })
         const { _id, ...clean } = log

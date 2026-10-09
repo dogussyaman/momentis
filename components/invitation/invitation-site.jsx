@@ -341,7 +341,7 @@ export function InvitationSite({ project, template }) {
       <footer className="px-4 py-10 text-center sm:px-6 sm:py-12">
         <div className="mx-auto mb-6 h-px w-12" style={{ backgroundColor: p.accent }} />
         <p className="font-serif text-2xl">{names.join(' & ')}</p>
-        <a href="/" className="mt-6 inline-block text-[10px] uppercase tracking-[0.35em]" style={{ color: p.muted }}>Momentis ile hazırlandı</a>
+        {project.remove_branding !== true && <a href="/" className="mt-6 inline-block text-[10px] uppercase tracking-[0.35em]" style={{ color: p.muted }}>Momentis ile hazırlandı</a>}
       </footer>
     </div>
   )
@@ -363,7 +363,9 @@ function RsvpForm({ project, p, isDark }) {
   const [form, setForm] = useState({ name: '', email: '', phone: '', attending: null, guest_count: 1, menu: '', note: '' })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(null)
-  const menuOptions = project.menu_options?.length ? project.menu_options : DEFAULT_MENU_OPTIONS
+  const menuOptions = project.advanced_rsvp === false
+    ? []
+    : project.menu_options?.length ? project.menu_options : DEFAULT_MENU_OPTIONS
   const fieldStyle = { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', borderColor: `${p.accent}66`, color: p.text }
 
   const submit = async (e) => {
@@ -408,10 +410,10 @@ function RsvpForm({ project, p, isDark }) {
             <Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Kişi Sayısı</Label>
             <div className="flex gap-2">{[1, 2, 3, 4].map((n) => <button key={n} type="button" onClick={() => setForm({ ...form, guest_count: n })} data-testid={`rsvp-count-${n}`} className="h-12 flex-1 rounded-xl border font-serif text-lg" style={form.guest_count === n ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66` }}>{n}</button>)}</div>
           </div>
-          <div className="space-y-2">
+          {menuOptions.length > 0 && <div className="space-y-2">
             <Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Menü Tercihi</Label>
             <div className="flex flex-wrap gap-2">{menuOptions.map((m) => <button key={m} type="button" onClick={() => setForm({ ...form, menu: m })} data-testid={`rsvp-menu-${m}`} className="h-12 flex-1 rounded-xl border px-3 text-xs uppercase tracking-[0.15em]" style={form.menu === m ? { backgroundColor: p.accent, borderColor: p.accent, color: p.bg } : { borderColor: `${p.accent}66` }}>{m}</button>)}</div>
-          </div>
+          </div>}
         </div>
       )}
       <div className="space-y-2"><Label className="text-[10px] uppercase tracking-[0.25em]" style={{ color: p.muted }}>Notunuz</Label><Textarea rows={3} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="İletmek istediğiniz bir şey var mı?" className="rounded-2xl" style={fieldStyle} data-testid="rsvp-note" /></div>

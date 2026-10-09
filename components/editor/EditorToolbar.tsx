@@ -2,19 +2,38 @@ import React from 'react'
 import { ZoomIn, ZoomOut, Maximize, Undo2, Redo2, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEditorStore } from '@/store/editor-store'
+import { toast } from 'sonner'
 
-export function EditorToolbar({ topbarLeft, topbarRight }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode }) {
+export function EditorToolbar({ topbarLeft, topbarRight, projectId }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null }) {
   const { zoom, setZoom, design } = useEditorStore()
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     // Find the Konva canvas wrapper
     const canvas = document.querySelector('.konvajs-content canvas') as HTMLCanvasElement
-    if (!canvas) return
-    const dataURL = canvas.toDataURL('image/png')
-    const a = document.createElement('a')
-    a.href = dataURL
-    a.download = 'davetiye.png'
-    a.click()
+    if (!canvas) { toast.error('Davetiye dışa aktarılamadı'); return }
+    if (!projectId) { toast.error('Dışa aktarmadan önce etkinliği kaydedin'); return }
+    let dataURL: string
+    try {
+      dataURL = canvas.toDataURL('image/png')
+    } catch {
+      toast.error('Davetiye görseli oluşturulamadı')
+      return
+    }
+    try {
+      const response = await fetch(`/api/projects/${projectId}/exports`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': window.crypto.randomUUID() },
+        credentials: 'include',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'Dışa aktarma hakkı kullanılamıyor')
+      const a = document.createElement('a')
+      a.href = dataURL
+      a.download = 'davetiye.png'
+      a.click()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Davetiye indirilemedi')
+    }
   }
   
   return (
@@ -42,7 +61,7 @@ export function EditorToolbar({ topbarLeft, topbarRight }: { topbarLeft?: React.
       
       <div className="flex shrink-0 items-center gap-2">
         <span className="hidden text-[10px] text-muted-foreground xl:inline">{design.width} × {design.height} px</span>
-        <Button variant="outline" size="sm" className="h-8 px-3 text-[11px]" onClick={handleDownload}>
+        <Button variant="outline" size="sm" className="h-8 px-3 text-[11px]" onClick={handleDownload} disabled={!projectId}>
           İndir (PNG)
         </Button>
         <Button variant="default" size="sm" className="h-8 bg-midnight px-3 text-[11px] text-ivory hover:bg-midnight/90">

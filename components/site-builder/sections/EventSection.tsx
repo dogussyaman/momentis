@@ -30,7 +30,7 @@ export function EventSection({ section, props }: SectionComponentProps) {
       {layout === 'cards' && (
         <div className="grid gap-6 @3xl:grid-cols-2 text-center">
           {items.map((ev, i) => (
-            <Reveal key={ev.id} className="sb-card p-8 @3xl:p-12 flex flex-col items-center gap-4">
+            <Reveal key={`${section.id}-event-${ev.id ?? 'item'}-${i}`} className="sb-card p-8 @3xl:p-12 flex flex-col items-center gap-4">
               {ev.image && <SbImage src={ev.image} className="w-20 h-20 rounded-full mb-2 object-cover" />}
               <h3 {...editable(i, 'name')} className="sb-heading text-2xl @3xl:text-3xl" style={inlineStyle(i, 'name')}>{ev.name}</h3>
               <div className="flex flex-col gap-1 text-[15px] sb-muted mt-2">
@@ -63,7 +63,7 @@ export function EventSection({ section, props }: SectionComponentProps) {
       {layout === 'split' && (
         <div className="flex flex-col gap-16 @3xl:gap-24">
           {items.map((ev, i) => (
-            <Reveal key={ev.id} className={cn('grid @3xl:grid-cols-2 gap-8 @3xl:gap-16 items-center', i % 2 === 1 && '@3xl:flex-row-reverse')}>
+            <Reveal key={`${section.id}-event-${ev.id ?? 'item'}-${i}`} className={cn('grid @3xl:grid-cols-2 gap-8 @3xl:gap-16 items-center', i % 2 === 1 && '@3xl:flex-row-reverse')}>
               <div className={cn(i % 2 === 1 ? '@3xl:order-2' : '@3xl:order-1')}>
                 {ev.image ? (
                   <SbImage src={ev.image} className="w-full aspect-[4/5] sb-radius object-cover shadow-xl" />
@@ -99,7 +99,7 @@ export function EventSection({ section, props }: SectionComponentProps) {
       {layout === 'list' && (
         <div className="max-w-3xl mx-auto flex flex-col gap-8">
           {items.map((ev, i) => (
-            <Reveal key={ev.id} className="flex flex-col @2xl:flex-row gap-6 @2xl:gap-8 items-center @2xl:items-start text-center @2xl:text-left py-8 border-b last:border-0 border-border/50">
+            <Reveal key={`${section.id}-event-${ev.id ?? 'item'}-${i}`} className="flex flex-col @2xl:flex-row gap-6 @2xl:gap-8 items-center @2xl:items-start text-center @2xl:text-left py-8 border-b last:border-0 border-border/50">
               <div className="w-32 shrink-0">
                 <div className="sb-heading text-xl">{ev.time || formatTime(ev.date)}</div>
                 <div className="text-sm sb-accent mt-1">{formatDate(ev.date) || ev.date}</div>

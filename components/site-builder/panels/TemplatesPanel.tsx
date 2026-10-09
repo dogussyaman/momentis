@@ -7,14 +7,24 @@ import { TEMPLATES } from '@/lib/site-builder/templates'
 import { Check, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import type { SiteTemplate } from '@/lib/site-builder/templates'
 
-export function TemplatesPanel() {
+export function TemplatesPanel({ eventData }: { eventData?: Record<string, any> }) {
   const { site, loadTemplate } = useSiteEditorStore()
   const activeTemplateId = site?.templateId
   const [query, setQuery] = useState('')
+  const [pendingTemplate, setPendingTemplate] = useState<SiteTemplate | null>(null)
   const templates = TEMPLATES.filter((template) =>
     `${template.name} ${template.tagline}`.toLocaleLowerCase('tr').includes(query.trim().toLocaleLowerCase('tr'))
   )
+
+  const applyTemplate = (keepContent: boolean) => {
+    if (!pendingTemplate) return
+    loadTemplate(pendingTemplate.id, keepContent, eventData)
+    setPendingTemplate(null)
+  }
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -43,7 +53,9 @@ export function TemplatesPanel() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.98 }}
                   transition={{ duration: 0.18, ease: 'easeOut' }}
-                  onClick={() => loadTemplate(tpl.id, false)}
+                  onClick={() => {
+                    if (!isActive) setPendingTemplate(tpl)
+                  }}
                   className={cn(
                     'group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[20px] border text-left shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]/30',
                     isActive
@@ -93,6 +105,26 @@ export function TemplatesPanel() {
           </motion.p>
         )}
       </div>
+
+      <Dialog open={!!pendingTemplate} onOpenChange={(open) => !open && setPendingTemplate(null)}>
+        <DialogContent className="rounded-2xl border-0 bg-ivory">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl text-midnight">Şablon değişikliğini seçin</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {pendingTemplate?.name} şablonu için mevcut bölümlerinizi koruyabilir veya yeni şablonun bölüm düzenini uygulayabilirsiniz. Etkinlik bilgileriniz korunur.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-2 gap-2 sm:gap-2">
+            <Button type="button" variant="outline" onClick={() => setPendingTemplate(null)} className="rounded-xl">Vazgeç</Button>
+            <Button type="button" variant="outline" onClick={() => applyTemplate(true)} className="rounded-xl border-midnight/20 bg-white text-midnight hover:bg-ivory-50">
+              Renk ve yazı tipini uygula
+            </Button>
+            <Button type="button" onClick={() => applyTemplate(false)} className="rounded-xl bg-midnight text-ivory hover:bg-midnight/90">
+              Bölüm düzenini değiştir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

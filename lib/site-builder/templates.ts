@@ -59,17 +59,17 @@ export const TEMPLATES: SiteTemplate[] = [
     settings: { navStyle: 'centered' },
     sections: [
       ['hero', { props: { buttons: [btn('Katılım Bildir', 'rsvp', 'solid'), btn('Takvime Ekle', 'calendar', 'outline')] }, style: { corners: 'classic', cornerColor: '#e9d8b4' } }],
-      ['text', { props: { title: 'Bir ömür, aynı hikâye', eyebrow: 'Birlikteliğimize davetlisiniz', text: '“Ve sizi çiftler halinde yarattık.”\nNebe, 8', variant: 'quote', author: 'Nebe, 8' }, style: { paddingY: 72 } }],
+      ['text', { props: { title: '{{eventTypeLabel}}', eyebrow: '', text: '{{eventDate}}', variant: 'plain', author: '' }, style: { paddingY: 72 } }],
       ['couple', { props: { photoShape: 'arch', layout: 'side' } }],
       ['countdown', { props: { variant: 'minimal' } }],
       ['story', { props: { layout: 'zigzag' }, style: { bgType: 'color', bgColor: '#ffffff' } }],
       ['event', { props: { layout: 'cards', showMap: true, showCalendar: true } }],
       ['gallery', { props: { layout: 'masonry', showCaptions: true }, style: { bgType: 'color', bgColor: '#ffffff' } }],
-      ['album', { props: { title: 'Kutlamadan anılar', subtitle: 'Gününüzden kareleri davetlilerimizle paylaşın.' } }],
+      ['album', { props: { title: 'Anı albümü', subtitle: '' } }],
       ['rsvp', { props: { layout: 'card', askPhone: true, askGuests: true, askMenu: true, askNote: true } }],
       ['faq', { props: { layout: 'accordion' } }],
       ['share'],
-      ['footer', { props: { layout: 'split', monogram: '{{brideName}} & {{groomName}}', title: 'Bu güzel günde görüşmek üzere', text: 'Sevgiyle, {{coupleNames}}', date: '{{eventDate}}', buttons: [btn('Başa Dön', 'scroll', 'ghost')] } }],
+      ['footer', { props: { layout: 'split', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', buttons: [btn('Başa Dön', 'scroll', 'ghost')] } }],
     ],
   },
 
@@ -114,7 +114,7 @@ export const TEMPLATES: SiteTemplate[] = [
       ['album'],
       ['rsvp', { props: { layout: 'plain', askGuests: true, askPhone: true, askNote: true } }],
       ['share'],
-      ['footer', { props: { layout: 'columns', monogram: '{{brideName}} · {{groomName}}', title: 'Kutlamada görüşmek üzere', text: 'Birlikte daha güzel.', date: '{{eventDate}}' }, style: { bgType: 'color', bgColor: '#111111', textColor: '#ffffff' } }],
+      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}' }, style: { bgType: 'color', bgColor: '#111111', textColor: '#ffffff' } }],
     ],
   },
 
@@ -159,7 +159,7 @@ export const TEMPLATES: SiteTemplate[] = [
       ['album'],
       ['rsvp', { props: { layout: 'split', image: STOCK.bouquet }, style: { marginX: 24, radius: 28, bgType: 'color', bgColor: '#fbfaf6', shadow: 'lg' } }],
       ['share'],
-      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Birlikte güzelleşen anılar', text: '{{city}}’da, gün batımında…', date: '{{eventDate}}' }, style: { bgColor: '#3d4a35' } }],
+      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '{{venueName}}', date: '{{eventDate}}' }, style: { bgColor: '#3d4a35' } }],
     ],
   },
 
@@ -189,11 +189,11 @@ export const TEMPLATES: SiteTemplate[] = [
       [
         'hero',
         {
-          props: { layout: 'bottom', titleFont: 'script', titleSize: 120, eyebrow: '{{city}}’da evleniyoruz', showCountdown: true, buttons: [btn('Katılımını Bildir', 'rsvp', 'solid'), btn('Konumu Gör', 'map', 'outline')] },
+          props: { layout: 'bottom', titleFont: 'script', titleSize: 120, eyebrow: '{{eventTypeLabel}}', showCountdown: true, buttons: [btn('Katılımını Bildir', 'rsvp', 'solid'), btn('Konumu Gör', 'map', 'outline')] },
           style: { bgImage: STOCK.hero3, overlayColor: '#3b2a22', overlayOpacity: 35, divider: 'wave' },
         },
       ],
-      ['text', { props: { variant: 'script', title: 'Merhaba!', text: 'Ege’nin en güzel koyunda, gün batımında birlikte kutlayalım.' } }],
+      ['text', { props: { variant: 'script', title: '{{eventTypeLabel}}', text: '{{venueName}}' } }],
       ['event', { props: { layout: 'cards', showMap: true, showCalendar: true }, style: { bgType: 'gradient', gradientFrom: '#fbf3ea', gradientTo: '#f4dcc6', gradientAngle: 180 } }],
       ['schedule'],
       ['gallery', { props: { layout: 'carousel', aspect: 'portrait', showCaptions: true } }],
@@ -203,7 +203,7 @@ export const TEMPLATES: SiteTemplate[] = [
       ['gift'],
       ['music', { props: { variant: 'vinyl' } }],
       ['share'],
-      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Gün batımında görüşmek üzere', text: 'Sevgiyle, {{coupleNames}}', date: '{{eventDate}}' }, style: { bgColor: '#3b2a22' } }],
+      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}' }, style: { bgColor: '#3b2a22' } }],
     ],
   },
 
@@ -235,7 +235,7 @@ export const TEMPLATES: SiteTemplate[] = [
       [
         'hero',
         {
-          props: { titleFont: 'heading', titleSize: 85, contentBox: 'glass', eyebrow: 'An evening to remember', buttons: [btn('Katılım Bildir', 'rsvp', 'solid'), btn('Takvime Ekle', 'calendar', 'outline')] },
+          props: { titleFont: 'heading', titleSize: 85, contentBox: 'glass', eyebrow: '{{eventTypeLabel}}', buttons: [btn('Katılım Bildir', 'rsvp', 'solid'), btn('Takvime Ekle', 'calendar', 'outline')] },
           style: { bgImage: STOCK.hero5, overlayColor: '#0b1020', overlayOpacity: 55, corners: 'minimal', cornerColor: '#d4b483' },
         },
       ],

@@ -12,10 +12,10 @@ import { ResizableSidebar } from '@/components/shared/ResizableSidebar'
 // Stage needs to be CSR only because Konva uses document/window
 const CanvasStage = dynamic(() => import('./CanvasStage'), { ssr: false })
 
-export function CanvasEditor({ topbarLeft, topbarRight }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode }) {
+export function CanvasEditor({ topbarLeft, topbarRight, projectId }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null }) {
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-b border-border bg-ivory">
-      <EditorToolbar topbarLeft={topbarLeft} topbarRight={topbarRight} />
+      <EditorToolbar topbarLeft={topbarLeft} topbarRight={topbarRight} projectId={projectId} />
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <ResizableSidebar id="invitation-left" label="Davetiye araç paneli" side="left" initialWidth={340} minWidth={260} maxWidth={520} className="border-r border-border bg-white shadow-[2px_0_18px_-16px_rgba(16,24,39,0.35)]">
           <LeftSidebar />

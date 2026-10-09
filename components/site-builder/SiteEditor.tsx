@@ -63,7 +63,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
   useEffect(() => {
     if (initialSite) {
       const hydrated = normalizeSiteForEditor(initialSite, { title: 'Bizim Düğün', slug: 'bizim-dugun', templateId: 'minimal' })
-      if (!site || site.id !== hydrated.id || site.templateId !== hydrated.templateId) {
+      if (!site || site.id !== hydrated.id) {
         initSite(hydrated)
       }
       return
@@ -199,7 +199,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
           </div>
           <div className="min-w-0 flex-1 overflow-hidden">
              {leftTab === 'add' && <SectionsPanel />}
-             {leftTab === 'templates' && <TemplatesPanel />}
+             {leftTab === 'templates' && <TemplatesPanel eventData={eventData} />}
              {leftTab === 'music' && site && (
                <div className="h-full space-y-4 overflow-y-auto p-4">
                  <div>

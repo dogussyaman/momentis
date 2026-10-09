@@ -38,7 +38,7 @@ export function SendTab({ projectId, project, onSent }) {
     setSending(true)
     setResult(null)
     try {
-      const res = await fetch(`/api/projects/${projectId}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ channel, type, guest_ids: eligible.map((g) => g.id) }) })
+      const res = await fetch(`/api/projects/${projectId}/send`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() }, credentials: 'include', body: JSON.stringify({ channel, type, guest_ids: eligible.map((g) => g.id) }) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Gönderim başarısız')
       setResult(data)

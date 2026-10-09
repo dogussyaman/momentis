@@ -82,10 +82,10 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     category: 'Giriş',
     defaults: {
       props: {
-        eyebrow: 'Evleniyoruz',
-        title: 'Ayşe & Mehmet',
-        date: '12 Haziran 2027 · İstanbul',
-        subtitle: 'Hayatımızın en özel gününde sizleri de aramızda görmekten mutluluk duyarız.',
+        eyebrow: '{{eventTypeLabel}}',
+        title: '{{coupleNames}}',
+        date: '{{eventDate}}',
+        subtitle: '',
         layout: 'center',
         titleFont: 'script',
         titleSize: 100,
@@ -148,21 +148,21 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     defaults: {
       props: {
         eyebrow: 'Biz',
-        title: 'Gelin & Damat',
-        subtitle: 'İki kalp, tek bir hikaye.',
+        title: '',
+        subtitle: '',
         layout: 'side',
         photoShape: 'arch',
         showAmpersand: true,
-        brideName: 'Ayşe Yılmaz',
+        brideName: '{{brideName}}',
         brideRole: 'Gelin',
-        brideBio: 'Kahve, kitaplar ve uzun yürüyüşlerin tutkunu. Mimar.',
-        brideParents: 'Fatma & Ali Yılmaz’ın kızı',
+        brideBio: '',
+        brideParents: '',
         bridePhoto: STOCK.bride,
         brideInstagram: '',
-        groomName: 'Mehmet Demir',
+        groomName: '{{groomName}}',
         groomRole: 'Damat',
-        groomBio: 'Müzik, deniz ve iyi yemeğe düşkün. Yazılım mühendisi.',
-        groomParents: 'Zeynep & Hasan Demir’in oğlu',
+        groomBio: '',
+        groomParents: '',
         groomPhoto: STOCK.groom,
         groomInstagram: '',
       },
@@ -210,16 +210,12 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     category: 'İçerik',
     defaults: {
       props: {
-        eyebrow: 'Bizim Hikayemiz',
-        title: 'Nasıl Başladı?',
-        subtitle: 'Küçük anlardan büyük bir aşka uzanan yolculuk.',
+        eyebrow: '',
+        title: 'Hikayemiz',
+        subtitle: '',
         layout: 'zigzag',
         showImages: true,
-        items: [
-          { id: uid('it'), date: 'Eylül 2019', title: 'İlk Tanışma', text: 'Bir arkadaş doğum gününde, aynı şarkıya eşlik ederken tanıştık.', image: STOCK.couple2 },
-          { id: uid('it'), date: 'Mart 2021', title: 'İlk Seyahat', text: 'Kapadokya’da balonların arasında gün doğumunu izledik.', image: STOCK.hero3 },
-          { id: uid('it'), date: 'Aralık 2024', title: 'Evlilik Teklifi', text: 'Galata’da, ilk buluştuğumuz yerde “evet” dedi.', image: STOCK.rings },
-        ],
+        items: [],
       },
       style: { ...baseStyle },
       animation: baseAnim,
@@ -228,7 +224,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       ...headingFields(),
       {
         key: 'items', label: 'Anılar', type: 'list', group: 'Anılar', itemLabelKey: 'title',
-        newItem: () => ({ id: uid('it'), date: '2025', title: 'Yeni anı', text: 'Bu anıyı anlatın…', image: '' }),
+        newItem: () => ({ id: uid('it'), date: '', title: 'Anı başlığı', text: '', image: '' }),
         itemFields: [
           { key: 'date', label: 'Tarih', type: 'text' },
           { key: 'title', label: 'Başlık', type: 'text' },
@@ -308,15 +304,12 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       props: {
         eyebrow: 'Ne Zaman & Nerede',
         title: 'Etkinlikler',
-        subtitle: 'Bu mutlu günde bizimle olun.',
+        subtitle: '',
         layout: 'cards',
         showMap: true,
         showDirections: true,
         showCalendar: true,
-        events: [
-          { id: uid('ev'), name: 'Nikah Töreni', date: '2027-06-12T17:00', time: '17:00', venue: 'Feriye Sarayı', address: 'Çırağan Cd. No:40, Beşiktaş, İstanbul', note: 'Tören bahçede gerçekleşecektir.', image: STOCK.ceremony },
-          { id: uid('ev'), name: 'Düğün Yemeği', date: '2027-06-12T19:30', time: '19:30', venue: 'Feriye Sarayı', address: 'Çırağan Cd. No:40, Beşiktaş, İstanbul', note: 'Kokteyl ile başlayacaktır.', image: STOCK.table },
-        ],
+        events: [],
       },
       style: { ...baseStyle, width: 'wide' },
       animation: baseAnim,
@@ -325,7 +318,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       ...headingFields(),
       {
         key: 'events', label: 'Etkinlikler', type: 'list', group: 'Etkinlikler', itemLabelKey: 'name',
-        newItem: () => ({ id: uid('ev'), name: 'Yeni Etkinlik', date: '', time: '20:00', venue: 'Mekan adı', address: '', note: '', image: '', link: '' }),
+        newItem: () => ({ id: uid('ev'), name: 'Etkinlik adı', date: '', time: '', venue: '', address: '', note: '', image: '', link: '' }),
         itemFields: [
           { key: 'name', label: 'Etkinlik adı', type: 'text' },
           { key: 'date', label: 'Tarih & saat', type: 'datetime' },
@@ -361,13 +354,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         title: 'Program',
         subtitle: '',
         layout: 'timeline',
-        items: [
-          { id: uid('sc'), time: '17:00', title: 'Karşılama', desc: 'Hoş geldin içecekleri' },
-          { id: uid('sc'), time: '17:30', title: 'Nikah Töreni', desc: 'Bahçede' },
-          { id: uid('sc'), time: '18:30', title: 'Kokteyl', desc: 'Canlı müzik eşliğinde' },
-          { id: uid('sc'), time: '20:00', title: 'Yemek', desc: 'Akşam yemeği' },
-          { id: uid('sc'), time: '21:30', title: 'İlk Dans & Parti', desc: 'Sabaha kadar' },
-        ],
+        items: [],
       },
       style: { ...baseStyle, width: 'narrow' },
       animation: baseAnim,
@@ -376,7 +363,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       ...headingFields(),
       {
         key: 'items', label: 'Akış', type: 'list', group: 'Akış', itemLabelKey: 'title',
-        newItem: () => ({ id: uid('sc'), time: '22:00', title: 'Yeni madde', desc: '' }),
+        newItem: () => ({ id: uid('sc'), time: '', title: 'Program başlığı', desc: '' }),
         itemFields: [
           { key: 'time', label: 'Saat', type: 'text' },
           { key: 'title', label: 'Başlık', type: 'text' },
@@ -399,13 +386,13 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     category: 'Etkinlik',
     defaults: {
       props: {
-        eyebrow: 'Büyük Güne',
+        eyebrow: 'Etkinliğe',
         title: 'Kalan Zaman',
         subtitle: '',
         targetDate: '',
         variant: 'boxes',
         showSeconds: true,
-        finishedText: 'Bugün evleniyoruz! 🎉',
+        finishedText: 'Etkinlik başladı.',
         buttons: [btn('Takvime Ekle', 'calendar', 'outline')],
       },
       style: { ...baseStyle, paddingY: 80, bgType: 'image', bgImage: STOCK.hero4, overlayColor: '#0b1020', overlayOpacity: 60, textColor: '#ffffff', bgParallax: true },
@@ -435,7 +422,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       props: {
         eyebrow: 'Lütfen Cevap Veriniz',
         title: 'Katılım Durumu',
-        subtitle: 'Planlamamıza yardımcı olmak için lütfen 1 Haziran 2027’ye kadar bildirin.',
+        subtitle: 'Katılım durumunuzu bildirin.',
         layout: 'card',
         image: STOCK.bouquet,
         askGuests: true,
@@ -482,9 +469,9 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     category: 'Etkileşim',
     defaults: {
       props: {
-        title: 'Bizim Şarkımız',
-        songTitle: 'Perfect',
-        artist: 'Ed Sheeran',
+        title: 'Etkinlik müziği',
+        songTitle: '',
+        artist: '',
         src: SITE_AUDIO_LIBRARY[0].src,
         cover: STOCK.couple3,
         variant: 'card',
@@ -520,12 +507,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         title: 'Sıkça Sorulan Sorular',
         subtitle: '',
         layout: 'accordion',
-        items: [
-          { id: uid('q'), q: 'Çocuklar davetli mi?', a: 'Sevgili minikler de bizimle kutlayabilir, lütfen LCV formunda belirtin.' },
-          { id: uid('q'), q: 'Otopark var mı?', a: 'Mekanda ücretsiz vale hizmeti bulunmaktadır.' },
-          { id: uid('q'), q: 'Kıyafet kuralı nedir?', a: 'Şık / kokteyl. Lütfen beyaz giymekten kaçının.' },
-          { id: uid('q'), q: 'Hediye vermek istiyorum?', a: 'Varlığınız en güzel hediye! Yine de dilerseniz Hediye bölümüne göz atabilirsiniz.' },
-        ],
+        items: [],
       },
       style: { ...baseStyle, width: 'narrow' },
       animation: baseAnim,
@@ -558,8 +540,8 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       props: {
         eyebrow: 'Hediye',
         title: 'Takı & Hediye',
-        subtitle: 'Varlığınız bizim için en büyük hediye. Yine de bir jest yapmak isterseniz:',
-        accounts: [{ id: uid('acc'), bank: 'Ziraat Bankası', holder: 'Ayşe Yılmaz', iban: 'TR00 0000 0000 0000 0000 0000 00' }],
+        subtitle: '',
+        accounts: [],
         registryLabel: 'Hediye Listemiz',
         registryUrl: '',
       },
@@ -593,12 +575,8 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
       props: {
         eyebrow: 'Şehir Dışından Gelenler',
         title: 'Konaklama',
-        subtitle: 'Misafirlerimiz için anlaşmalı oteller.',
-        items: [
-          { id: uid('h'), name: 'Çırağan Palace', image: STOCK.hotel1, distance: '200 m', price: '₺₺₺₺', desc: 'MOMENTIS koduyla %15 indirim.', url: '' },
-          { id: uid('h'), name: 'The Stay Bosphorus', image: STOCK.hotel2, distance: '1.2 km', price: '₺₺₺', desc: 'Boğaz manzaralı butik otel.', url: '' },
-          { id: uid('h'), name: 'Radisson Ortaköy', image: STOCK.hotel3, distance: '2 km', price: '₺₺', desc: 'Ücretsiz servis imkanı.', url: '' },
-        ],
+        subtitle: '',
+        items: [],
       },
       style: { ...baseStyle, width: 'wide' },
       animation: baseAnim,
@@ -630,8 +608,8 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     defaults: {
       props: {
         eyebrow: 'Dress Code',
-        title: 'Şık & Kokteyl',
-        subtitle: 'Bu renkler bizim için çok özel. Kombinlerinizde kullanırsanız çok mutlu oluruz.',
+        title: 'Kıyafet rehberi',
+        subtitle: '',
         colors: [
           { id: uid('c'), color: '#d8c3a5', name: 'Bej' },
           { id: uid('c'), color: '#8e9e82', name: 'Adaçayı' },
@@ -639,9 +617,9 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
           { id: uid('c'), color: '#e7cfc4', name: 'Pudra' },
           { id: uid('c'), color: '#101827', name: 'Gece' },
         ],
-        womenNote: 'Uzun / midi elbise, rahat topuklu ayakkabı (bahçe zemini).',
-        menNote: 'Takım elbise, kravat opsiyonel.',
-        avoid: 'Lütfen beyaz giymekten kaçının.',
+        womenNote: '',
+        menNote: '',
+        avoid: '',
       },
       style: { ...baseStyle, width: 'narrow' },
       animation: baseAnim,
@@ -704,7 +682,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     defaults: {
       props: {
         eyebrow: 'Birlikte Biriktirelim',
-        title: 'Gecenin güzel anıları',
+        title: 'Anı albümü',
         subtitle: 'QR kodu okutarak fotoğraflarınızı ortak albümümüze ekleyin.',
       },
       style: { ...baseStyle, width: 'wide' },
@@ -754,8 +732,8 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     defaults: {
       props: {
         eyebrow: '',
-        title: 'Sevgili Misafirlerimiz',
-        text: 'Bu yolculukta yanımızda olan herkese teşekkür ederiz. Sizinle bu özel günü paylaşmak bizim için tarif edilemez bir mutluluk.',
+        title: 'Başlık',
+        text: '',
         variant: 'plain',
         author: '',
         image: '',
@@ -791,7 +769,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     icon: Minus,
     category: 'Düzen',
     defaults: {
-      props: { variant: 'ornament', monogram: 'A & M', lineWidth: 40 },
+      props: { variant: 'ornament', monogram: '', lineWidth: 40 },
       style: { ...baseStyle, paddingY: 40 },
       animation: { type: 'fade', duration: 0.8 },
     },
@@ -821,12 +799,13 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     category: 'Düzen',
     defaults: {
       props: {
-        monogram: 'A & M',
-        title: 'Sizi bekliyoruz',
-        text: 'Sevgiyle,\nAyşe & Mehmet',
-        date: '12.06.2027',
-        hashtag: '#AyseVeMehmet',
+        monogram: '{{coupleNames}}',
+        title: 'Görüşmek üzere',
+        text: '',
+        date: '{{eventDate}}',
+        hashtag: '',
         instagram: '',
+        showLinks: true,
         showCredit: true,
         buttons: [btn('Başa Dön', 'scroll', 'ghost')],
       },
@@ -835,7 +814,7 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
     },
     fields: [
       { key: 'layout', label: 'Yerleşim', type: 'select', group: 'Yerleşim', options: [{ value: 'centered', label: 'Ortalı' }, { value: 'split', label: 'İki sütun + linkler' }, { value: 'columns', label: '3 sütunlu' }, { value: 'minimal', label: 'Minimal şerit' }] },
-      { key: 'showLinks', label: 'Hızlı linkleri göster', type: 'toggle', group: 'Yerleşim', showIf: (p) => !p.layout || p.layout === 'centered' },
+      { key: 'showLinks', label: 'Hızlı linkleri göster', type: 'toggle', group: 'Yerleşim' },
       { key: 'monogram', label: 'Monogram', type: 'text', group: 'İçerik' },
       { key: 'title', label: 'Başlık', type: 'text', group: 'İçerik' },
       { key: 'text', label: 'Metin', type: 'textarea', group: 'İçerik' },

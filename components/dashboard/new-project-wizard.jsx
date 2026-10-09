@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Loader2, Sparkles, Image as ImageIcon, LayoutTemplate, Globe, Heart, Moon, Gem, HeartHandshake, Gift, Smile, Briefcase, Clock3 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { EVENT_TYPES_LIST, EVENT_CONFIG } from '@/lib/events/event-config'
 import { NEW_PROJECT_DRAFT_KEY } from '@/lib/events/event-draft'
 import { useEditorStore } from '@/store/editor-store'
 import { useSiteEditorStore } from '@/store/site-editor-store'
+import { BILLING_PLANS } from '@/lib/billing/plans'
 
 const ICONS = {
   Rings: Heart,
@@ -33,8 +34,14 @@ const UNSPECIFIED_TIME = 'unspecified'
 export function NewProjectWizard() {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const requestedPackage = searchParams.get('paket')
+  const packageIntent = requestedPackage || 'baslangic'
+  const [selectedPackage, setSelectedPackage] = useState(packageIntent)
   const [step, setStep] = useState(1)
   const [openingEditor, setOpeningEditor] = useState(null)
+  const [billingSnapshot, setBillingSnapshot] = useState(null)
+  const [billingError, setBillingError] = useState('')
 
   const [eventType, setEventType] = useState(null)
   const [eventData, setEventData] = useState({})
@@ -44,6 +51,39 @@ export function NewProjectWizard() {
   useEffect(() => {
     setOpeningEditor(null)
   }, [pathname])
+
+  useEffect(() => {
+    setSelectedPackage(packageIntent)
+  }, [packageIntent])
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || 'Paket hakları alınamadı')
+        if (active) setBillingSnapshot(data)
+      })
+      .catch((error) => { if (active) setBillingError(error.message) })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(NEW_PROJECT_DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      if (!EVENT_CONFIG[draft.eventType]) return
+      const restoredPackage = requestedPackage && BILLING_PLANS[requestedPackage] ? requestedPackage : draft.packageId
+      if (!BILLING_PLANS[restoredPackage]) return
+      setSelectedPackage(restoredPackage)
+      setEventType(draft.eventType)
+      setEventData(draft.eventData || {})
+      setStep(3)
+    } catch {
+      window.sessionStorage.removeItem(NEW_PROJECT_DRAFT_KEY)
+    }
+  }, [packageIntent])
 
   const handleTypeSelect = (id) => {
     setEventType(id)
@@ -66,17 +106,58 @@ export function NewProjectWizard() {
       return
     }
 
+    if (!BILLING_PLANS[selectedPackage]) {
+      toast.error('Geçersiz paket seçimi.')
+      return
+    }
+    if (!billingSnapshot) {
+      toast.error(billingError || 'Paket hakları yüklenirken bekleyin.')
+      return
+    }
+
     try {
-      window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify({ eventType, eventData, deliverables }))
+      let savedDraft = null
+      try { savedDraft = JSON.parse(window.sessionStorage.getItem(NEW_PROJECT_DRAFT_KEY) || 'null') } catch {}
+      const draft = {
+        eventType,
+        eventData,
+        deliverables,
+        packageId: selectedPackage,
+        idempotencyKey: savedDraft?.packageId === selectedPackage ? savedDraft.idempotencyKey : window.crypto.randomUUID(),
+      }
+      const credits = billingSnapshot.grants
+        .filter((grant) => grant.package_id === selectedPackage)
+        .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0)
+      const projectAvailable = selectedPackage === 'baslangic'
+        ? (billingSnapshot.usage.free_projects || 0) < billingSnapshot.quotas.freeProjects
+        : credits > 0 && billingSnapshot.usage.projects < billingSnapshot.quotas.projects
+      const siteAvailable = !deliverables.site || (
+        selectedPackage === 'baslangic'
+          ? (billingSnapshot.usage.websites || 0) < 1
+          : true
+      )
+      const invitationAvailable = !deliverables.invitation || (
+        selectedPackage === 'baslangic'
+          ? (billingSnapshot.usage.invitations || 0) < 1
+          : true
+      )
+      if (!projectAvailable || !siteAvailable || !invitationAvailable) {
+        window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify(draft))
+        toast.error('Seçili paket için kullanılabilir hak bulunmuyor. Başka bir paket seçin.')
+        return
+      }
+
+      window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify(draft))
       useEditorStore.getState().resetDesign()
       useEditorStore.temporal.getState().clear()
       useSiteEditorStore.getState().reset()
       const mode = deliverables.site ? 'site' : 'card'
       setOpeningEditor(deliverables.site && deliverables.invitation ? 'both' : deliverables.site ? 'site' : 'invitation')
       router.push(`/panel/etkinlik/new/duzenle?mode=${mode}&new=1`)
-    } catch {
-      toast.error('Editör açılamadı. Lütfen tekrar deneyin.')
+    } catch (error) {
+      toast.error(error.message || 'Editör açılamadı. Lütfen tekrar deneyin.')
       setOpeningEditor(null)
+      return
     }
   }
 
@@ -218,34 +299,80 @@ export function NewProjectWizard() {
                </Button>
             </div>
 
+            {billingError && <p role="alert" className="mb-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{billingError}</p>}
+            {!billingSnapshot && !billingError && <p role="status" className="mb-4 text-center text-sm text-muted-foreground">Paket hakları yükleniyor…</p>}
+            {billingSnapshot && !BILLING_PLANS[selectedPackage] && <p role="alert" className="mb-4 text-center text-sm text-destructive">Bilinmeyen paket seçimi. Lütfen paket ekranından yeniden başlayın.</p>}
+
+            {billingSnapshot && (
+               <section className="mb-6 rounded-3xl border border-border bg-white p-5 sm:p-6" aria-labelledby="project-package-heading">
+                 <div className="mb-4">
+                   <h3 id="project-package-heading" className="font-serif text-xl text-midnight">Bu etkinlikte hangi paketi kullanalım?</h3>
+                   <p className="mt-1 text-sm text-muted-foreground">Ücretli krediler yalnızca seçtiğiniz etkinliğe uygulanır; hesap paketiniz Başlangıç olarak görünmeye devam edebilir.</p>
+                 </div>
+                 <div className="grid gap-3 sm:grid-cols-3">
+                   {Object.values(BILLING_PLANS)
+                     .filter((plan) => plan.id === 'baslangic' || billingSnapshot.grants.some((grant) => grant.package_id === plan.id))
+                     .map((plan) => {
+                       const credits = plan.id === 'baslangic'
+                         ? null
+                         : billingSnapshot.grants
+                           .filter((grant) => grant.package_id === plan.id)
+                           .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0)
+                       const available = plan.id === 'baslangic'
+                         ? (billingSnapshot.usage?.free_projects || 0) < billingSnapshot.quotas.freeProjects
+                         : credits > 0 && billingSnapshot.usage.projects < billingSnapshot.quotas.projects
+                       const selected = selectedPackage === plan.id
+                       return (
+                         <button
+                           key={plan.id}
+                           type="button"
+                           onClick={() => setSelectedPackage(plan.id)}
+                           disabled={!available}
+                           aria-pressed={selected}
+                           className={`rounded-2xl border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${selected ? 'border-champagne bg-champagne/10 ring-1 ring-champagne' : 'border-border hover:border-midnight/40'}`}
+                         >
+                           <span className="block font-medium text-midnight">{plan.name}</span>
+                           <span className="mt-1 block text-xs text-muted-foreground">
+                             {plan.id === 'baslangic' ? 'Ücretsiz proje hakkı' : `${credits} kullanılabilir etkinlik kredisi`}
+                           </span>
+                         </button>
+                       )
+                     })}
+                 </div>
+               </section>
+            )}
+
             <div className="grid gap-6 md:grid-cols-3">
                <DeliverableCard
-                 icon={Globe}
-                 title="Davet Sitesi"
-                 desc="Modern, interaktif, mobil uyumlu davet sitesi."
-                 availability="1 / 1 kullanılabilir"
-                 onClick={() => startEditing({ site: true, invitation: false })}
-                 loading={openingEditor === 'site'}
-                 busy={Boolean(openingEditor)}
+                  icon={Globe}
+                  title="Davet Sitesi"
+                  desc="Modern, interaktif, mobil uyumlu davet sitesi."
+                  availability={selectedPackage === 'baslangic' ? `${Math.max(0, 1 - (billingSnapshot?.usage?.websites || 0))} / 1 kullanılabilir` : 'Etkinlik kredisi'}
+                  onClick={() => startEditing({ site: true, invitation: false })}
+                  loading={openingEditor === 'site'}
+                  busy={Boolean(openingEditor)}
+                  disabled={!billingSnapshot || (selectedPackage === 'baslangic' && (billingSnapshot.usage?.websites || 0) >= 1)}
                />
                <DeliverableCard
-                 icon={ImageIcon}
-                 title="Dijital Davetiye"
-                 desc="Paylaşılabilir ve indirilebilir dijital davetiye."
-                 availability="1 / 1 kullanılabilir"
-                 onClick={() => startEditing({ site: false, invitation: true })}
-                 loading={openingEditor === 'invitation'}
-                 busy={Boolean(openingEditor)}
+                  icon={ImageIcon}
+                  title="Dijital Davetiye"
+                  desc="Paylaşılabilir ve indirilebilir dijital davetiye."
+                  availability={selectedPackage === 'baslangic' ? `${Math.max(0, 1 - (billingSnapshot?.usage?.invitations || 0))} / 1 kullanılabilir` : 'Etkinlik kredisi'}
+                  onClick={() => startEditing({ site: false, invitation: true })}
+                  loading={openingEditor === 'invitation'}
+                  busy={Boolean(openingEditor)}
+                  disabled={!billingSnapshot || (selectedPackage === 'baslangic' && (billingSnapshot.usage?.invitations || 0) >= 1)}
                />
                <DeliverableCard
-                 icon={LayoutTemplate}
-                 title="Site + Davetiye"
-                 desc="İkisini birlikte hazırlayın."
-                 availability="Uygun"
-                 highlight
-                 onClick={() => startEditing({ site: true, invitation: true })}
-                 loading={openingEditor === 'both'}
-                 busy={Boolean(openingEditor)}
+                  icon={LayoutTemplate}
+                  title="Site + Davetiye"
+                  desc="İkisini birlikte hazırlayın."
+                  availability={selectedPackage === 'baslangic' ? 'Site + davetiye hakları gerekir' : `${billingSnapshot?.quotas?.eventCreditsRemaining || 0} etkinlik kredisi`}
+                  highlight
+                  onClick={() => startEditing({ site: true, invitation: true })}
+                  loading={openingEditor === 'both'}
+                  busy={Boolean(openingEditor)}
+                  disabled={!billingSnapshot || (selectedPackage === 'baslangic' && ((billingSnapshot.usage?.websites || 0) >= 1 || (billingSnapshot.usage?.invitations || 0) >= 1))}
                />
             </div>
            </div>
@@ -255,11 +382,11 @@ export function NewProjectWizard() {
   )
 }
 
-function DeliverableCard({ icon: Icon, title, desc, availability, onClick, loading, busy, highlight }) {
+function DeliverableCard({ icon: Icon, title, desc, availability, onClick, loading, busy, disabled, highlight }) {
   return (
     <button
       onClick={onClick}
-      disabled={busy}
+      disabled={busy || disabled}
       aria-busy={Boolean(loading)}
       className={`group relative flex flex-col items-start rounded-3xl border p-6 text-left transition-all hover:shadow-lg ${highlight ? 'border-champagne bg-champagne/5' : 'border-border bg-white hover:border-midnight/30'}`}
     >

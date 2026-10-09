@@ -10,6 +10,7 @@ import { SABLONLAR } from '@/lib/davetiye-svg'
 import { getEventType } from '@/lib/data/events'
 
 import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
+import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
 
 export default function LivePreviewPage() {
   const [data, setData] = useState(null)
@@ -34,7 +35,21 @@ export default function LivePreviewPage() {
           const isWebsite = t.tags?.includes('web sitesi')
           if (isWebsite) {
             const builderId = t.slug.replace(/^sb-/, '') // 'sb-classic' -> 'classic'
-            const siteData = buildSiteFromTemplate(builderId, { title: 'Elif & Kaan' })
+            const eventData = {
+              couple: { bride: 'Elif', groom: 'Kaan' },
+              date: '2027-06-12',
+              time: '19:00',
+              venue: 'Feriye Sarayı',
+              address: 'İstanbul',
+              city: 'İstanbul',
+              eventTypeLabel: 'Düğün',
+            }
+            const templateSite = buildSiteFromTemplate(builderId, { title: 'Elif & Kaan' })
+            const siteData = syncSiteEventData(
+              JSON.parse(resolveTokens(JSON.stringify(templateSite), eventData)),
+              null,
+              eventData,
+            )
             
             setData({
               mode: 'site',

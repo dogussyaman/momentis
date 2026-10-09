@@ -2,15 +2,15 @@
 // And flatten the new format into legacy fields if needed for backward compatibility.
 
 export function normalizeEventProject(project: any) {
-  // If it already has event_data, it's a new project.
+  // Preserve explicit selections; otherwise infer deliverables from saved output.
   if (project.event_data) {
     const defaults = {
       site: {
-        enabled: true,
+        enabled: Boolean(project.site_data || project.published),
         status: project.published ? 'published' : 'draft'
       },
       invitation: {
-        enabled: true,
+        enabled: Boolean(project.canvas_design),
         status: 'draft'
       }
     }

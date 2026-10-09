@@ -2,13 +2,20 @@ import { notFound } from 'next/navigation'
 import { getDb } from '@/lib/db'
 import { InvitationSite } from '@/components/invitation/invitation-site'
 import { SiteViewer } from '@/components/site-builder/SiteViewer'
+import { getProjectPlan } from '@/lib/billing/usage'
+import { applySiteEntitlements } from '@/lib/billing/site-entitlements'
 
 export const dynamic = 'force-dynamic'
 
 async function loadInvitation(slug) {
   const db = await getDb()
-  const project = await db.collection('event_projects').findOne({ slug, published: true, archived: { $ne: true } }, { projection: { _id: 0, user_id: 0 } })
+  const project = await db.collection('event_projects').findOne({ slug, published: true, archived: { $ne: true } }, { projection: { _id: 0 } })
   if (!project) return null
+  const plan = await getProjectPlan(db, project.user_id, project.id)
+  project.site_data = applySiteEntitlements(project.site_data, plan.entitlements)
+  project.advanced_rsvp = plan.entitlements.advancedRsvp
+  project.remove_branding = plan.entitlements.removeBranding
+  delete project.user_id
   const template = await db.collection('templates').findOne({ slug: project.template_slug }, { projection: { _id: 0 } })
   return { project: JSON.parse(JSON.stringify(project)), template: template ? JSON.parse(JSON.stringify(template)) : null }
 }

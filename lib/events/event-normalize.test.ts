@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { syncEventDataFromForm } from './event-normalize'
+import { normalizeEventProject, syncEventDataFromForm } from './event-normalize'
 import { syncEventTokens, syncSiteEventData } from './event-tokens'
+import { buildProjectDoc } from '../projects.js'
 
 test('syncEventDataFromForm updates the canonical event details', () => {
   const previous = {
@@ -28,6 +29,42 @@ test('syncEventDataFromForm updates the canonical event details', () => {
   assert.deepEqual(next.family, { brideMother: 'Aylin Korkmaz' })
   assert.equal(next.date, '2027-07-18')
   assert.equal(next.venue, 'Sahil Bahçesi')
+})
+
+test('missing deliverable metadata is inferred from saved output instead of enabling everything', () => {
+  const normalized = normalizeEventProject({
+    event_data: { couple: { bride: 'Deniz', groom: 'Mert' } },
+    site_data: { sections: [] },
+    canvas_design: null,
+    published: false,
+  })
+
+  assert.equal(normalized.deliverables.site.enabled, true)
+  assert.equal(normalized.deliverables.invitation.enabled, false)
+})
+
+test('new drafts without saved outputs infer both deliverables as disabled', () => {
+  const normalized = normalizeEventProject({
+    event_data: { couple: { bride: 'Deniz', groom: 'Mert' } },
+    site_data: null,
+    canvas_design: null,
+    published: false,
+  })
+
+  assert.equal(normalized.deliverables.site.enabled, false)
+  assert.equal(normalized.deliverables.invitation.enabled, false)
+})
+
+test('new project documents are unpublished and keep premium albums disabled by default', () => {
+  const project = buildProjectDoc('user-1', {
+    event_type: 'dugun',
+    host_a: 'Deniz',
+    host_b: 'Mert',
+    date: '2027-07-18',
+  }, 'deniz-mert')
+
+  assert.equal(project.published, false)
+  assert.equal(project.album_enabled, false)
 })
 
 test('syncEventTokens updates template tokens and previously resolved text', () => {
@@ -92,4 +129,32 @@ test('syncSiteEventData replaces template demo details with event details', () =
   assert.equal(synced.sections[1].props.events[0].note, '')
   assert.equal(synced.sections[2].props.items[0].title, 'Düğün')
   assert.equal(synced.settings.brideName, 'Deniz Korkmaz')
+})
+
+test('syncSiteEventData hydrates event and schedule sections that start empty', () => {
+  const site = {
+    settings: {},
+    sections: [
+      { type: 'event', props: { events: [] } },
+      { type: 'schedule', props: { items: [] } },
+    ],
+  }
+  const eventData = {
+    date: '2027-07-18',
+    time: '19:30',
+    venue: 'Sahil Bahçesi',
+    address: 'İskele Caddesi',
+    city: 'İzmir',
+    eventTypeLabel: 'Düğün',
+    program: [{ title: 'Karşılama', time: '19:00', note: 'Bahçe girişi' }],
+  }
+
+  const synced = syncSiteEventData(site, null, eventData)
+
+  assert.equal(synced.sections[0].props.events.length, 1)
+  assert.equal(synced.sections[0].props.events[0].name, 'Karşılama')
+  assert.equal(synced.sections[0].props.events[0].date, '2027-07-18T19:00')
+  assert.equal(synced.sections[0].props.events[0].venue, 'Sahil Bahçesi')
+  assert.equal(synced.sections[1].props.items[0].title, 'Karşılama')
+  assert.equal(synced.sections[1].props.items[0].time, '19:00')
 })

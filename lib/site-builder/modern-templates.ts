@@ -29,7 +29,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     id: 'noir',
     name: 'Noir & Altın',
     tagline: 'Siyah zemin, altın detaylar — gala gecesi',
-    preview: STOCK.hero5,
+    preview: STOCK.decor,
     swatches: ['#0a0a0a', '#c8a24a', '#f5efe0'],
     theme: theme({
       primaryColor: '#c8a24a', secondaryColor: '#c8a24a', accentColor: '#c8a24a',
@@ -40,7 +40,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     settings: { showNavbar: false },
     sections: [
       ['hero', { props: { titleFont: 'heading', titleSize: 96, eyebrow: 'Bir gala gecesi', showCountdown: true, buttons: rsvpBtns }, style: { bgImage: STOCK.hero5, overlayColor: '#000000', overlayOpacity: 62, minHeight: 'screen' } }],
-      ['text', { props: { variant: 'quote', eyebrow: 'Davet', title: 'Sizi en özel gecemize bekliyoruz', text: 'Işıltılı bir akşam, sevdiklerimizle.' }, style: { paddingY: 90 } }],
+      ['text', { props: { variant: 'quote', eyebrow: 'Davet', title: '{{eventTypeLabel}}', text: '{{eventDate}}' }, style: { paddingY: 90 } }],
       ['couple', { props: { photoShape: 'square', layout: 'side' } }],
       ['story', { props: { layout: 'timeline' }, style: { bgType: 'color', bgColor: '#111111' } }],
       ['event', { props: { layout: 'split', showMap: true, showCalendar: true } }],
@@ -49,7 +49,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['dresscode', { props: { title: 'Black Tie', colors: [{ id: 'n1', color: '#000000', name: 'Siyah' }, { id: 'n2', color: '#c8a24a', name: 'Altın' }, { id: 'n3', color: '#f5efe0', name: 'Fildişi' }] } }],
       ['rsvp', { props: { layout: 'card', askGuests: true, askPhone: true, askMenu: true, askNote: true }, style: { marginX: 24, radius: 4, borderWidth: 1, borderColor: '#c8a24a55', bgType: 'color', bgColor: '#151515' } }],
       ['faq'],
-      ['footer', { props: { layout: 'columns', monogram: 'A & M', title: 'Gecenin ışığında görüşmek üzere', text: 'Sevgiyle,\nAyşe & Mehmet', date: '12.06.2027', hashtag: '#AyseVeMehmet', showCredit: true }, style: { bgType: 'color', bgColor: '#050505' } }],
+      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#050505' } }],
     ],
   },
 
@@ -68,7 +68,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     }),
     settings: { navStyle: 'floating' },
     sections: [
-      ['hero', { props: { layout: 'frame', contentBox: 'glass', titleFont: 'script', titleSize: 110, eyebrow: 'Evleniyoruz', buttons: rsvpBtns }, style: { bgImage: STOCK.bouquet, overlayColor: '#5a2e3a', overlayOpacity: 25, textColor: '#ffffff', corners: 'floral', cornerColor: '#ffffff' } }],
+      ['hero', { props: { layout: 'frame', contentBox: 'glass', titleFont: 'script', titleSize: 110, eyebrow: '{{eventTypeLabel}}', buttons: rsvpBtns }, style: { bgImage: STOCK.bouquet, overlayColor: '#5a2e3a', overlayOpacity: 25, textColor: '#ffffff', corners: 'floral', cornerColor: '#ffffff' } }],
       ['countdown', { props: { variant: 'circles' } }],
       ['couple', { props: { photoShape: 'arch', layout: 'cards' } }],
       ['story', { props: { layout: 'zigzag' }, style: { bgType: 'gradient', gradientFrom: '#fdf4f3', gradientTo: '#f9e1e4', gradientAngle: 180 } }],
@@ -77,7 +77,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['album'],
       ['rsvp', { props: { layout: 'split', image: STOCK.bride2 }, style: { marginX: 24, radius: 32, bgType: 'color', bgColor: '#ffffff', shadow: 'xl' } }],
       ['gift'],
-      ['footer', { props: { layout: 'split', monogram: 'A & M', title: 'Aşkla, sevgiyle, birlikte', text: 'Bu mutlu güne ortak olduğunuz için teşekkürler.', date: '12.06.2027', hashtag: '#AyseVeMehmet', showCredit: true }, style: { bgType: 'color', bgColor: '#f9e1e4' } }],
+      ['footer', { props: { layout: 'split', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#f9e1e4' } }],
     ],
   },
 
@@ -86,7 +86,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     id: 'editorial',
     name: 'Dergi Kapağı',
     tagline: 'Cesur tipografi, vermilyon vurgu, moda dergisi',
-    preview: STOCK.hero2,
+    preview: STOCK.ceremony,
     swatches: ['#f4f1ea', '#e4572e', '#1a1a1a'],
     theme: theme({
       primaryColor: '#1a1a1a', secondaryColor: '#e4572e', accentColor: '#e4572e',
@@ -106,7 +106,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['gallery', { props: { layout: 'grid', columns: 3, gap: 4, aspect: 'portrait', showCaptions: true }, style: { width: 'full', paddingX: 0 } }],
       ['rsvp', { props: { layout: 'plain', askGuests: true, askPhone: true, askNote: true } }],
       ['faq'],
-      ['footer', { props: { layout: 'columns', monogram: 'A + M', title: 'Sonraki sayıda görüşürüz', text: 'Bir sayfa daha, bir hatıra daha.', date: '12.06.2027', hashtag: '#AyseVeMehmet', showCredit: true }, style: { bgType: 'color', bgColor: '#1a1a1a', textColor: '#f4f1ea' } }],
+      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#1a1a1a', textColor: '#f4f1ea' } }],
     ],
   },
 
@@ -125,8 +125,8 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     }),
     settings: { navStyle: 'centered' },
     sections: [
-      ['hero', { props: { layout: 'bottom', titleFont: 'script', titleSize: 118, eyebrow: 'Masalsı bir gün', showCountdown: true, buttons: rsvpBtns }, style: { bgImage: STOCK.hero4, overlayColor: '#3a2f5c', overlayOpacity: 40, divider: 'curve' } }],
-      ['text', { props: { variant: 'script', title: 'Hoş geldiniz', text: 'Hayallerimizin gerçek olduğu günde yanımızda olun.' } }],
+      ['hero', { props: { layout: 'bottom', titleFont: 'script', titleSize: 118, eyebrow: '{{eventTypeLabel}}', showCountdown: true, buttons: rsvpBtns }, style: { bgImage: STOCK.hero4, overlayColor: '#3a2f5c', overlayOpacity: 40, divider: 'curve' } }],
+      ['text', { props: { variant: 'script', title: '{{eventDate}}', text: '{{venueName}}' } }],
       ['couple', { props: { photoShape: 'circle', layout: 'side' } }],
       ['story', { props: { layout: 'timeline' }, style: { bgType: 'gradient', gradientFrom: '#f5f2fb', gradientTo: '#e6def7', gradientAngle: 180 } }],
       ['event', { props: { layout: 'cards', showMap: true, showCalendar: true } }],
@@ -135,7 +135,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['accommodation'],
       ['rsvp', { props: { layout: 'card' }, style: { bgType: 'image', bgImage: STOCK.flowers, overlayColor: '#3a2f5c', overlayOpacity: 60, textColor: '#ffffff' } }],
       ['share'],
-      ['footer', { props: { layout: 'centered', showLinks: true, monogram: 'A & M', title: 'Masalın devamında görüşmek üzere', text: 'Sevgiyle, Ayşe & Mehmet', date: '12.06.2027', showCredit: true }, style: { bgType: 'gradient', gradientFrom: '#3a2f5c', gradientTo: '#241c3f', gradientAngle: 180, textColor: '#f5f2fb' } }],
+      ['footer', { props: { layout: 'centered', showLinks: true, monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'gradient', gradientFrom: '#3a2f5c', gradientTo: '#241c3f', gradientAngle: 180, textColor: '#f5f2fb' } }],
     ],
   },
 
@@ -144,7 +144,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     id: 'ocean',
     name: 'Okyanus Esintisi',
     tagline: 'Deniz mavisi, ferah plaj düğünü',
-    preview: STOCK.hero3,
+    preview: STOCK.venue,
     swatches: ['#f2f7f9', '#2f7f95', '#12394a'],
     theme: theme({
       primaryColor: '#12394a', secondaryColor: '#2f7f95', accentColor: '#2f7f95',
@@ -152,7 +152,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       headingFont: 'Playfair Display', bodyFont: 'Montserrat', scriptFont: 'Allura',
       borderRadius: 18, buttonRadius: 999,
     }),
-    settings: { navStyle: 'transparent', venueName: 'Çeşme Plajı', venueAddress: 'Ilıca, Çeşme, İzmir' },
+    settings: { navStyle: 'transparent', venueName: '{{venueName}}', venueAddress: '{{venueAddress}}' },
     sections: [
       ['hero', { props: { layout: 'bottom', titleFont: 'heading', titleSize: 88, eyebrow: 'Deniz kenarında', showCountdown: true, buttons: rsvpBtns }, style: { bgImage: STOCK.hero3, overlayColor: '#12394a', overlayOpacity: 38, minHeight: 'screen', divider: 'wave' } }],
       ['couple', { props: { photoShape: 'arch', layout: 'cards' } }],
@@ -163,7 +163,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['accommodation'],
       ['rsvp', { props: { layout: 'split', image: STOCK.ceremony }, style: { marginX: 24, radius: 28, bgType: 'color', bgColor: '#ffffff', shadow: 'lg' } }],
       ['faq'],
-      ['footer', { props: { layout: 'split', monogram: 'A & M', title: 'Dalgaların sesiyle görüşmek üzere', text: 'Çeşme’de, gün batımında…', date: '12.06.2027', hashtag: '#AyseVeMehmet', showCredit: true }, style: { bgType: 'color', bgColor: '#12394a', textColor: '#f2f7f9' } }],
+      ['footer', { props: { layout: 'split', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#12394a', textColor: '#f2f7f9' } }],
     ],
   },
 
@@ -172,7 +172,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     id: 'emerald',
     name: 'Zümrüt Saray',
     tagline: 'Derin yeşil & altın, asil ve görkemli',
-    preview: STOCK.flowers,
+    preview: STOCK.rings,
     swatches: ['#0e2a24', '#d9b86c', '#f3ecd9'],
     theme: theme({
       primaryColor: '#d9b86c', secondaryColor: '#d9b86c', accentColor: '#d9b86c',
@@ -183,7 +183,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     settings: { navStyle: 'floating' },
     sections: [
       ['hero', { props: { layout: 'frame', contentBox: 'glass', titleFont: 'heading', titleSize: 92, eyebrow: 'Asil bir kutlama', buttons: rsvpBtns }, style: { bgImage: STOCK.flowers, overlayColor: '#0e2a24', overlayOpacity: 60, corners: 'classic', cornerColor: '#d9b86c' } }],
-      ['divider', { props: { variant: 'monogram', monogram: 'A & M' } }],
+      ['divider', { props: { variant: 'monogram', monogram: '{{coupleNames}}' } }],
       ['couple', { props: { photoShape: 'arch', layout: 'cards' } }],
       ['countdown', { props: { variant: 'circles' }, style: { bgType: 'color', bgColor: '#14382f' } }],
       ['story', { props: { layout: 'timeline' } }],
@@ -192,7 +192,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['dresscode', { props: { title: 'Resmi Kıyafet', colors: [{ id: 'e1', color: '#0e2a24', name: 'Zümrüt' }, { id: 'e2', color: '#d9b86c', name: 'Altın' }, { id: 'e3', color: '#f3ecd9', name: 'Krem' }] } }],
       ['rsvp', { props: { layout: 'card', askGuests: true, askPhone: true, askMenu: true }, style: { marginX: 24, radius: 8, borderWidth: 1, borderColor: '#d9b86c55', bgType: 'color', bgColor: '#14382f' } }],
       ['faq'],
-      ['footer', { props: { layout: 'columns', monogram: 'A & M', title: 'Görkemli bir akşamda görüşmek üzere', text: 'Sevgiyle,\nAyşe & Mehmet', date: '12.06.2027', hashtag: '#AyseVeMehmet', showCredit: true }, style: { bgType: 'color', bgColor: '#081a16' } }],
+      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#081a16' } }],
     ],
   },
 
@@ -201,7 +201,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     id: 'boho',
     name: 'Bohem Çöl',
     tagline: 'Toprak tonları, pampas ve özgür ruh',
-    preview: STOCK.decor,
+    preview: STOCK.table,
     swatches: ['#f6ece0', '#b5651d', '#4a2c17'],
     theme: theme({
       primaryColor: '#4a2c17', secondaryColor: '#d9a066', accentColor: '#b5651d',
@@ -212,7 +212,7 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
     settings: { showNavbar: false },
     sections: [
       ['hero', { props: { layout: 'frame', contentBox: 'glass', titleFont: 'script', titleSize: 112, eyebrow: 'Özgür ruhlu bir düğün', buttons: rsvpBtns }, style: { bgImage: STOCK.decor, overlayColor: '#4a2c17', overlayOpacity: 38, textColor: '#ffffff', corners: 'leaf', cornerColor: '#ffffff' } }],
-      ['text', { props: { variant: 'script', title: 'Gün batımında…', text: 'Çiçekler, müzik ve en sevdiklerimizle.' } }],
+      ['text', { props: { variant: 'script', title: '{{venueName}}', text: '{{eventDate}}' } }],
       ['couple', { props: { photoShape: 'arch', layout: 'side' } }],
       ['story', { props: { layout: 'cards' }, style: { bgType: 'color', bgColor: '#fbf5ec' } }],
       ['event', { props: { layout: 'cards', showMap: true, showCalendar: true } }],
@@ -221,7 +221,108 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['music', { props: { variant: 'vinyl' } }],
       ['rsvp', { props: { layout: 'card' }, style: { bgType: 'image', bgImage: STOCK.table, overlayColor: '#4a2c17', overlayOpacity: 55, textColor: '#ffffff' } }],
       ['gift'],
-      ['footer', { props: { layout: 'columns', monogram: 'A & M', title: 'Dans pistinde görüşürüz', text: 'Sevgiyle, Ayşe & Mehmet', date: '12.06.2027', hashtag: '#AyseVeMehmet', showCredit: true }, style: { bgType: 'color', bgColor: '#4a2c17', textColor: '#f6ece0' } }],
+      ['footer', { props: { layout: 'columns', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', text: '', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#4a2c17', textColor: '#f6ece0' } }],
+    ],
+  },
+
+  /* ---------------- Renk Bloku ---------------- */
+  {
+    id: 'color-block',
+    name: 'Renk Bloku',
+    tagline: 'Kobalt, limon sarısı ve cesur editoryal düzen',
+    preview: STOCK.bride2,
+    swatches: ['#f4f3ee', '#2349d8', '#f4d35e'],
+    theme: theme({
+      primaryColor: '#2349d8', secondaryColor: '#f4d35e', accentColor: '#2349d8',
+      backgroundColor: '#f4f3ee', surfaceColor: '#ffffff', textColor: '#171717', mutedColor: '#5c5c5c',
+      headingFont: 'Fraunces', bodyFont: 'Inter', scriptFont: 'Pinyon Script',
+      borderRadius: 0, buttonRadius: 0, letterSpacing: 'tight', headingScale: 1.1,
+    }),
+    settings: { navStyle: 'bar' },
+    sections: [
+      ['hero', { props: { layout: 'split', titleFont: 'heading', titleSize: 108, sideImage: STOCK.venue, eyebrow: '{{eventTypeLabel}}', buttons: rsvpBtns }, style: { bgType: 'color', bgColor: '#f4d35e', textColor: '#171717', overlayOpacity: 0, minHeight: 'screen', paddingY: 0, paddingX: 0, width: 'full' } }],
+      ['text', { props: { title: '{{eventDate}}', text: '{{venueName}}', variant: 'plain', align: 'left' }, style: { bgType: 'color', bgColor: '#2349d8', textColor: '#ffffff', width: 'full', paddingY: 32 } }],
+      ['event', { props: { layout: 'list', showMap: true, showCalendar: true }, style: { width: 'wide' } }],
+      ['gallery', { props: { layout: 'grid', columns: 2, gap: 4, aspect: 'landscape' }, style: { width: 'full', paddingX: 0 } }],
+      ['rsvp', { props: { layout: 'plain', askGuests: true, askPhone: false, askNote: true }, style: { bgType: 'color', bgColor: '#f4d35e', width: 'full' } }],
+      ['footer', { props: { layout: 'minimal', monogram: '{{coupleNames}}', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#171717', textColor: '#ffffff' } }],
+    ],
+  },
+
+  /* ---------------- Anı Defteri ---------------- */
+  {
+    id: 'memory-book',
+    name: 'Anı Defteri',
+    tagline: 'Kâğıt dokusu, sıcak bordo ve kişisel hikâyeler',
+    preview: STOCK.hotel1,
+    swatches: ['#f6f0e7', '#7a263a', '#d8ba8c'],
+    theme: theme({
+      primaryColor: '#7a263a', secondaryColor: '#b77965', accentColor: '#9b553f',
+      backgroundColor: '#f6f0e7', surfaceColor: '#fffaf2', textColor: '#372b28', mutedColor: '#77665e',
+      headingFont: 'Cormorant Garamond', bodyFont: 'Lato', scriptFont: 'Parisienne',
+      borderRadius: 14, buttonRadius: 6, letterSpacing: 'normal',
+    }),
+    settings: { navStyle: 'centered' },
+    sections: [
+      ['hero', { props: { layout: 'frame', contentBox: 'solid', titleFont: 'script', titleSize: 112, eyebrow: '{{eventTypeLabel}}', buttons: rsvpBtns }, style: { bgImage: STOCK.couple2, overlayColor: '#372b28', overlayOpacity: 38, corners: 'classic', cornerColor: '#d8ba8c' } }],
+      ['text', { props: { variant: 'quote', title: '{{eventDate}}', text: '{{venueName}}' } }],
+      ['couple', { props: { layout: 'stacked', photoShape: 'rounded', showAmpersand: true } }],
+      ['story', { props: { layout: 'cards' }, style: { bgType: 'color', bgColor: '#fffaf2' } }],
+      ['guestbook', { props: { title: 'Dilek ve notlar' } }],
+      ['gallery', { props: { layout: 'collage', showCaptions: false } }],
+      ['rsvp', { props: { layout: 'card', askGuests: true, askPhone: true, askNote: true }, style: { radius: 14, shadow: 'md' } }],
+      ['footer', { props: { layout: 'centered', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#7a263a', textColor: '#fffaf2' } }],
+    ],
+  },
+
+  /* ---------------- Şehir Işıkları ---------------- */
+  {
+    id: 'city-lights',
+    name: 'Şehir Işıkları',
+    tagline: 'Gece mavisi, keskin grid ve şehirli bir enerji',
+    preview: STOCK.groom,
+    swatches: ['#101927', '#45b8ac', '#e5edf0'],
+    theme: theme({
+      primaryColor: '#45b8ac', secondaryColor: '#45b8ac', accentColor: '#45b8ac',
+      backgroundColor: '#101927', surfaceColor: '#192638', textColor: '#e5edf0', mutedColor: '#9aabb9',
+      headingFont: 'Montserrat', bodyFont: 'Inter', scriptFont: 'Allura',
+      borderRadius: 8, buttonRadius: 8, letterSpacing: 'wide',
+    }),
+    settings: { showNavbar: false },
+    sections: [
+      ['hero', { props: { layout: 'bottom', titleFont: 'heading', titleSize: 92, eyebrow: '{{eventTypeLabel}}', showCountdown: true, buttons: rsvpBtns }, style: { bgImage: STOCK.hero5, overlayColor: '#101927', overlayOpacity: 66, minHeight: 'screen' } }],
+      ['event', { props: { layout: 'split', showMap: true, showCalendar: true }, style: { bgType: 'color', bgColor: '#192638' } }],
+      ['schedule', { props: { layout: 'grid' }, style: { width: 'wide' } }],
+      ['music', { props: { variant: 'minimal' } }],
+      ['gallery', { props: { layout: 'carousel', aspect: 'landscape', showCaptions: false }, style: { width: 'full', paddingX: 0 } }],
+      ['rsvp', { props: { layout: 'split', askGuests: true, askPhone: true, askMenu: false }, style: { marginX: 24, radius: 8, bgType: 'color', bgColor: '#192638' } }],
+      ['footer', { props: { layout: 'split', monogram: '{{coupleNames}}', title: 'Görüşmek üzere', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#080e17', textColor: '#e5edf0' } }],
+    ],
+  },
+
+  /* ---------------- Güneşli Kıyı ---------------- */
+  {
+    id: 'sunlit-coast',
+    name: 'Güneşli Kıyı',
+    tagline: 'Deniz camı tonları, geniş fotoğraflar ve ferah boşluklar',
+    preview: STOCK.couple3,
+    swatches: ['#eef5f1', '#367f78', '#e7b878'],
+    theme: theme({
+      primaryColor: '#367f78', secondaryColor: '#e7b878', accentColor: '#367f78',
+      backgroundColor: '#eef5f1', surfaceColor: '#ffffff', textColor: '#183d3c', mutedColor: '#637c77',
+      headingFont: 'Marcellus', bodyFont: 'Nunito Sans', scriptFont: 'Allura',
+      borderRadius: 24, buttonRadius: 999, letterSpacing: 'normal',
+    }),
+    settings: { navStyle: 'transparent' },
+    sections: [
+      ['hero', { props: { layout: 'bottom', titleFont: 'script', titleSize: 120, eyebrow: '{{city}}', showCountdown: true, buttons: rsvpBtns }, style: { bgImage: STOCK.hero3, overlayColor: '#183d3c', overlayOpacity: 28, divider: 'wave', minHeight: 'screen' } }],
+      ['gallery', { props: { layout: 'carousel', aspect: 'landscape', showCaptions: false }, style: { width: 'full', paddingX: 0 } }],
+      ['couple', { props: { photoShape: 'circle', layout: 'side' } }],
+      ['event', { props: { layout: 'cards', showMap: true, showCalendar: true } }],
+      ['accommodation'],
+      ['album'],
+      ['rsvp', { props: { layout: 'card', askGuests: true, askPhone: false, askNote: true }, style: { marginX: 24, radius: 24, shadow: 'lg' } }],
+      ['footer', { props: { layout: 'minimal', monogram: '{{coupleNames}}', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#183d3c', textColor: '#eef5f1' } }],
     ],
   },
 ]

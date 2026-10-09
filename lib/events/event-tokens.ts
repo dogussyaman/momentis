@@ -181,12 +181,13 @@ export function syncSiteEventData(site, previousData, nextData) {
       rsvpDeadline: nextData.rsvpDeadline || '',
     },
     sections: synced.sections.map((section) => {
-      if (section.type === 'event' && isDemoEventList(section.props?.events)) {
-        const existing = section.props.events[0]
+      if (section.type === 'event' && (isDemoEventList(section.props?.events) || !section.props?.events?.length)) {
+        const existingEvents = Array.isArray(section.props?.events) ? section.props.events : []
+        const existing = existingEvents[0] || {}
         const events = program.length
           ? program.map((item, index) => ({
-              ...(section.props.events[index] || existing),
-              id: section.props.events[index]?.id || `event-${index + 1}`,
+              ...(existingEvents[index] || existing),
+              id: existingEvents[index]?.id || `event-${index + 1}`,
               name: item.title || eventName,
               date: eventDateTime(nextData.date, item.time || nextData.time),
               time: item.time || nextData.time || '',
@@ -206,16 +207,17 @@ export function syncSiteEventData(site, previousData, nextData) {
         return { ...section, props: { ...section.props, events } }
       }
 
-      if (section.type === 'schedule' && isDemoSchedule(section.props?.items)) {
+      if (section.type === 'schedule' && (isDemoSchedule(section.props?.items) || !section.props?.items?.length)) {
+        const existingItems = Array.isArray(section.props?.items) ? section.props.items : []
         const items = program.length
           ? program.map((item, index) => ({
-              id: section.props.items[index]?.id || `schedule-${index + 1}`,
+              id: existingItems[index]?.id || `schedule-${index + 1}`,
               time: item.time || '',
               title: item.title || eventName,
               desc: [nextData.venue, nextData.city].filter(Boolean).join(', '),
             }))
           : [{
-              id: section.props.items[0]?.id || 'schedule-1',
+              id: existingItems[0]?.id || 'schedule-1',
               time: nextData.time || '',
               title: eventName,
               desc: [nextData.venue, nextData.city].filter(Boolean).join(', '),

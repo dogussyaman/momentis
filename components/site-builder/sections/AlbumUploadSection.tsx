@@ -69,7 +69,7 @@ export function AlbumUploadSection({ section, props }: SectionComponentProps) {
       for (const file of files) compressed.push(await compressImageFile(file))
       const response = await fetch(`/api/public/album/${encodeURIComponent(site.slug)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() },
         body: JSON.stringify({ uploader: uploader.trim() || 'Misafir', photos: compressed }),
       })
       const data = await response.json().catch(() => ({}))

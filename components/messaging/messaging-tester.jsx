@@ -34,6 +34,8 @@ export function MessagingTester() {
   const [sending, setSending] = useState(false)
   const [logs, setLogs] = useState([])
   const [loadingLogs, setLoadingLogs] = useState(false)
+  const [projects, setProjects] = useState([])
+  const [projectId, setProjectId] = useState('')
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !form.invitationUrl) {
@@ -53,6 +55,16 @@ export function MessagingTester() {
   useEffect(() => { loadStatus(); loadLogs() }, [loadStatus, loadLogs])
 
   useEffect(() => {
+    fetch('/api/projects?view=active', { credentials: 'include', cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || 'Etkinlikler alınamadı')
+        setProjects(data.items || [])
+      })
+      .catch((error) => toast.error(error.message))
+  }, [])
+
+  useEffect(() => {
     const controller = new AbortController()
     const t = setTimeout(() => {
       fetch('/api/messaging/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel, type, ...form }), signal: controller.signal })
@@ -65,11 +77,13 @@ export function MessagingTester() {
 
   const onSend = async (e) => {
     e.preventDefault()
+    if (!projectId) { toast.error('Önce etkinlik projesi seçin'); return }
     setSending(true)
     try {
       const res = await fetch('/api/messaging/send', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel, type, to, ...form }),
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() },
+        credentials: 'include',
+        body: JSON.stringify({ channel, type, to, projectId, ...form }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Gönderim başarısız')
@@ -102,6 +116,26 @@ export function MessagingTester() {
           </Tabs>
 
           <div className="space-y-2">
+            <Label className="text-[11px] uppercase tracking-[0.2em]">Etkinlik Projesi</Label>
+            <Select value={projectId} onValueChange={(value) => {
+              const selected = projects.find((project) => project.id === value)
+              setProjectId(value)
+              if (selected) setForm((previous) => ({
+                ...previous,
+                hosts: [selected.host_a, selected.host_b].filter(Boolean).join(' & '),
+                eventTitle: selected.title || previous.eventTitle,
+                invitationUrl: selected.url || `${window.location.origin}/d/${selected.slug}`,
+              }))
+            }}>
+              <SelectTrigger className={inputCls} data-testid="message-project"><SelectValue placeholder="Etkinlik seçin" /></SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.title || project.host_a || 'Etkinlik'}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {!projects.length && <p className="text-xs text-muted-foreground">Gönderim için önce bir etkinlik projesi oluşturun.</p>}
+          </div>
+
+          <div className="space-y-2">
             <Label className="text-[11px] uppercase tracking-[0.2em]">Mesaj Türü</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger className={inputCls} data-testid="message-type"><SelectValue /></SelectTrigger>
@@ -129,7 +163,7 @@ export function MessagingTester() {
             <Field label="Davetiye Bağlantısı" value={form.invitationUrl} onChange={update('invitationUrl')} testid="invitation-url" className="sm:col-span-2" />
           </div>
 
-          <Button type="submit" disabled={sending || !channelConfigured} className="h-12 w-full rounded-2xl bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="send-button">
+          <Button type="submit" disabled={sending || !channelConfigured || !projectId} className="h-12 w-full rounded-2xl bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700" data-testid="send-button">
             {sending ? 'Gönderiliyor…' : <><Send className="mr-2 h-4 w-4" /> {channel === 'email' ? 'Test E-postası Gönder' : 'Test SMS Gönder'}</>}
           </Button>
           {!channelConfigured && <p className="text-center text-xs text-destructive" data-testid="not-configured">Bu kanal henüz yapılandırılmadı. .env dosyasına kimlik bilgilerini ekleyin.</p>}

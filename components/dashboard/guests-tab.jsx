@@ -39,7 +39,7 @@ export function GuestsTab({ projectId, onChanged }) {
     e.preventDefault()
     setSaving(true)
     try {
-      const res = await fetch(`/api/projects/${projectId}/guests`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(form) })
+      const res = await fetch(`/api/projects/${projectId}/guests`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() }, credentials: 'include', body: JSON.stringify(form) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Eklenemedi')
       toast.success('Davetli eklendi')
@@ -66,7 +66,7 @@ export function GuestsTab({ projectId, onChanged }) {
       const raw = XLSX.utils.sheet_to_json(sheet, { defval: '' })
       const rows = raw.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [normalizeHeader(k), v])))
       if (!rows.length) throw new Error('Dosyada satır bulunamadı')
-      const res = await fetch(`/api/projects/${projectId}/guests/import`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ rows }) })
+      const res = await fetch(`/api/projects/${projectId}/guests/import`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() }, credentials: 'include', body: JSON.stringify({ rows }) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'İçe aktarılamadı')
       toast.success(`${data.imported} davetli eklendi${data.skipped ? `, ${data.skipped} satır atlandı` : ''}`)

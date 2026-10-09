@@ -12,7 +12,10 @@ const nextConfig = {
     // Lower dev-server memory footprint so the 512MB watchdog does not restart on every route compile
     webpackMemoryOptimizations: true,
   },
-  webpack(config, { dev }) {
+  webpack(config, { dev, isServer }) {
+    if (isServer) {
+      config.resolve.alias['konva$'] = require.resolve('konva/lib/index.js')
+    }
     if (dev) {
       // Reduce CPU/memory from file watching
       config.watchOptions = {
