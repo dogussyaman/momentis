@@ -325,4 +325,5 @@ export const MODERN_TEMPLATES: SiteTemplate[] = [
       ['footer', { props: { layout: 'minimal', monogram: '{{coupleNames}}', date: '{{eventDate}}', showCredit: true }, style: { bgType: 'color', bgColor: '#183d3c', textColor: '#eef5f1' } }],
     ],
   },
+
 ]

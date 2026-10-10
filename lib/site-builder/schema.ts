@@ -74,7 +74,7 @@ export interface SectionStyle {
   titleMarginBottom?: number // Extra margin below title (default 0px)
 }
 
-export type AnimationType = 'none' | 'fade' | 'slide-up' | 'slide-left' | 'slide-right' | 'zoom' | 'blur'
+export type AnimationType = 'none' | 'fade' | 'slide-up' | 'slide-left' | 'slide-right' | 'zoom' | 'blur' | 'scale-blur'
 
 export interface SectionAnimation {
   type: AnimationType

@@ -60,7 +60,7 @@ function hiddenFor(type: SectionAnimation['type']) {
     case 'fade':
       return { opacity: 0 }
     case 'slide-up':
-      return { opacity: 0, y: 40 }
+      return { opacity: 0, y: 16 }
     case 'slide-left':
       return { opacity: 0, x: 60 }
     case 'slide-right':
@@ -69,6 +69,8 @@ function hiddenFor(type: SectionAnimation['type']) {
       return { opacity: 0, scale: 0.92 }
     case 'blur':
       return { opacity: 0, filter: 'blur(12px)' }
+    case 'scale-blur':
+      return { opacity: 0, scale: 0.7, filter: 'blur(20px)' }
     default:
       return {}
   }
@@ -93,8 +95,8 @@ export function Reveal({ children, className, style, as = 'div' }: { children: R
   
   const M = as === 'li' ? motion.li : as === 'span' ? motion.span : motion.div
   
-  // Disable animations in editor mode to prevent framer-motion strict-mode duplication bug
-  if (anim.type === 'none' || mode === 'editor' || prefersReducedMotion) {
+  // Disable animations in editor or preview mode to prevent framer-motion strict-mode duplication bug and viewport detection issues inside scrollable divs
+  if (anim.type === 'none' || mode === 'editor' || mode === 'preview' || prefersReducedMotion) {
     const Tag = as as any
     return <Tag className={className} style={style}>{children}</Tag>
   }
@@ -176,7 +178,7 @@ export function SectionShell({
         )}
 
         <AnimCtx.Provider value={anim}>
-          {mode === 'editor' ? (
+          {mode === 'editor' || mode === 'preview' ? (
             <div
               className={cn('relative z-[2] w-full', contentClassName)}
               style={{

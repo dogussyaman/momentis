@@ -203,7 +203,7 @@ export default function LivePreviewPage() {
   }
 
   if (data.project.site_data) {
-    return <SiteViewer site={data.project.site_data} />
+    return <SiteViewer site={data.project.site_data} mode="preview" />
   }
 
   return <InvitationSite project={data.project} template={data.template} />
