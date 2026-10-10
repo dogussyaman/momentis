@@ -13,7 +13,7 @@ function mergeSettings(source: Partial<SiteSettings> | undefined, fallback: Site
 }
 
 export function createStarterSite(overrides: Partial<WeddingSite> = {}): WeddingSite {
-  const templateId = overrides.templateId || 'minimal'
+  const templateId = overrides.templateId || 'portfolio'
   const template = buildSiteFromTemplate(templateId)
   const now = new Date().toISOString()
 
@@ -42,7 +42,7 @@ export function createStarterSite(overrides: Partial<WeddingSite> = {}): Wedding
 }
 
 export function normalizeSiteForEditor(input: Partial<WeddingSite> | null | undefined, fallback: Partial<WeddingSite> = {}): WeddingSite {
-  const baseTemplateId = input?.templateId || fallback.templateId || 'minimal'
+  const baseTemplateId = input?.templateId || fallback.templateId || 'portfolio'
   const template = buildSiteFromTemplate(baseTemplateId)
   const resolved = {
     ...template,

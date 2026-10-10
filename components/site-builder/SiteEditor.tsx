@@ -62,7 +62,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
 
   useEffect(() => {
     if (initialSite) {
-      const hydrated = normalizeSiteForEditor(initialSite, { title: 'Bizim Düğün', slug: 'bizim-dugun', templateId: 'minimal' })
+      const hydrated = normalizeSiteForEditor(initialSite, { title: 'Bizim Düğün', slug: 'bizim-dugun', templateId: 'portfolio' })
       if (!site || site.id !== hydrated.id) {
         initSite(hydrated)
       }

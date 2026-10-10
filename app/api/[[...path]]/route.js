@@ -100,9 +100,17 @@ async function handleRoute(request, { params }) {
       if (category && category !== 'all') filter.category = category
       if (style && style !== 'all') filter.style = style
       if (tier && tier !== 'all') filter.tier = tier
+      filter.$and = [
+        {
+          $or: [
+            { tags: { $nin: ['web sitesi'] } },
+            { slug: 'sb-portfolio' },
+          ],
+        },
+      ]
       if (q) {
         const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
-        filter.$or = [{ name: rx }, { tagline: rx }, { description: rx }, { tags: rx }]
+        filter.$and.push({ $or: [{ name: rx }, { tagline: rx }, { description: rx }, { tags: rx }] })
       }
 
       const items = await db.collection('templates')
@@ -116,6 +124,9 @@ async function handleRoute(request, { params }) {
 
     // GET /api/templates/:slug
     if (path[0] === 'templates' && path.length === 2 && method === 'GET') {
+      if (path[1].startsWith('sb-') && path[1] !== 'sb-portfolio') {
+        return handleCORS(NextResponse.json({ error: 'Tasarım bulunamadı' }, { status: 404 }))
+      }
       await ensureTemplatesSeeded(db)
       const item = await db.collection('templates').findOne({ slug: path[1] }, { projection: { _id: 0 } })
       if (!item) {

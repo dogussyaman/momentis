@@ -65,6 +65,12 @@ export function runButtonAction(btn: ButtonConfig, site: WeddingSite) {
       if (target) scrollToSection(target)
       else document.querySelector('[data-site-root]')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       break
+    case 'gallery': {
+      const gallery = site.sections.find((x) => x.type === 'gallery' && x.visible)
+      if (target) scrollToSection(target)
+      else if (gallery) scrollToSection(gallery.id)
+      break
+    }
     case 'rsvp': {
       const rsvp = site.sections.find((x) => x.type === 'rsvp' && x.visible)
       if (rsvp) scrollToSection(rsvp.id)
@@ -98,6 +104,7 @@ export function runButtonAction(btn: ButtonConfig, site: WeddingSite) {
 export const ACTION_OPTIONS = [
   { value: 'none', label: 'Aksiyon yok' },
   { value: 'scroll', label: 'Bölüme kaydır' },
+  { value: 'gallery', label: 'Galeriye git' },
   { value: 'rsvp', label: 'LCV formuna git' },
   { value: 'link', label: 'Bağlantı aç' },
   { value: 'map', label: 'Haritada aç' },
@@ -110,6 +117,7 @@ export const ACTION_OPTIONS = [
 export const ACTION_TARGET_HINT: Record<string, string | null> = {
   none: null,
   scroll: 'section',
+  gallery: 'section',
   rsvp: null,
   link: 'https://…',
   map: 'Adres (boşsa mekan adresi)',

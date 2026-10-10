@@ -237,7 +237,7 @@ export function ProjectEditor() {
     return normalizeSiteForEditor(synchronized, {
       title: form.title || 'Bizim Düğün',
       slug: form.slug || project?.slug || 'bizim-dugun',
-      templateId: form.template_slug || 'minimal',
+      templateId: form.template_slug || 'portfolio',
       userId: project?.user_id || 'demo'
     });
   }, [form?.site_data, form?.title, form?.slug, form?.template_slug, project?.event_data, eventData, project?.slug, project?.user_id]);

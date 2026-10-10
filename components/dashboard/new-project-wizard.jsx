@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Loader2, Sparkles, Image as ImageIcon, LayoutTemplate, Globe, Heart, Moon, Gem, HeartHandshake, Gift, Smile, Briefcase, Clock3 } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles, Image as ImageIcon, LayoutTemplate, Globe, Heart, Moon, Gem, HeartHandshake, Gift, Smile, Briefcase, Clock3, Check, ArrowUpRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DatePickerField } from '@/components/ui/date-picker-field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EVENT_TYPES_LIST, EVENT_CONFIG } from '@/lib/events/event-config'
@@ -14,6 +15,7 @@ import { NEW_PROJECT_DRAFT_KEY } from '@/lib/events/event-draft'
 import { useEditorStore } from '@/store/editor-store'
 import { useSiteEditorStore } from '@/store/site-editor-store'
 import { BILLING_PLANS } from '@/lib/billing/plans'
+import { formatPrice } from '@/lib/data/packages'
 
 const ICONS = {
   Rings: Heart,
@@ -42,6 +44,8 @@ export function NewProjectWizard() {
   const [openingEditor, setOpeningEditor] = useState(null)
   const [billingSnapshot, setBillingSnapshot] = useState(null)
   const [billingError, setBillingError] = useState('')
+  const [lockedDeliverables, setLockedDeliverables] = useState(null)
+  const [busyPackage, setBusyPackage] = useState('')
 
   const [eventType, setEventType] = useState(null)
   const [eventData, setEventData] = useState({})
@@ -100,17 +104,108 @@ export function NewProjectWizard() {
     return config.required.every(field => !!eventData[field]?.trim())
   }
 
-  const startEditing = (deliverables) => {
+  const hasDeliverableRights = (deliverables, packageId = selectedPackage, snapshot = billingSnapshot) => {
+    if (!snapshot) return false
+    const credits = snapshot.grants
+      .filter((grant) => grant.package_id === packageId)
+      .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0)
+    const projectAvailable = packageId === 'baslangic'
+      ? (snapshot.usage.free_projects || 0) < snapshot.quotas.freeProjects
+      : credits > 0 && snapshot.usage.projects < snapshot.quotas.projects
+    const siteAvailable = !deliverables.site || (
+      packageId === 'baslangic'
+        ? (snapshot.usage.websites || 0) < 1
+        : true
+    )
+    const invitationAvailable = !deliverables.invitation || (
+      packageId === 'baslangic'
+        ? (snapshot.usage.invitations || 0) < 1
+        : true
+    )
+    return projectAvailable && siteAvailable && invitationAvailable
+  }
+
+  const selectDeliverable = (deliverables) => {
+    if (!billingSnapshot) {
+      toast.error(billingError || 'Paket hakları yüklenirken bekleyin.')
+      return
+    }
+    if (!hasDeliverableRights(deliverables)) {
+      try {
+        window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify({
+          eventType,
+          eventData,
+          deliverables,
+          packageId: selectedPackage,
+          idempotencyKey: window.crypto.randomUUID(),
+        }))
+      } catch (error) {
+        toast.error(error.message || 'Etkinlik bilgileri kaydedilemedi.')
+      }
+      setLockedDeliverables(deliverables)
+      return
+    }
+    startEditing(deliverables)
+  }
+
+  const saveDraftPackage = (packageId) => {
+    try {
+      const draft = JSON.parse(window.sessionStorage.getItem(NEW_PROJECT_DRAFT_KEY) || 'null')
+      if (draft) window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify({ ...draft, packageId }))
+    } catch {
+      toast.error('Paket seçimi bu oturumda kaydedilemedi. Lütfen etkinlik bilgilerinizi yeniden kontrol edin.')
+    }
+  }
+
+  const buyPackage = async (plan) => {
+    const deliverables = lockedDeliverables
+    setBusyPackage(plan.id)
+    try {
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() },
+        credentials: 'include',
+        body: JSON.stringify({ packageId: plan.id }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Satın alma başlatılamadı')
+
+      const confirmation = await fetch('/api/billing/mock-confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ purchaseId: data.purchase.id }),
+      })
+      const confirmationData = await confirmation.json().catch(() => ({}))
+      if (!confirmation.ok) throw new Error(confirmationData.error || 'Satın alma onaylanamadı')
+
+      const accountResponse = await fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' })
+      const accountData = await accountResponse.json().catch(() => ({}))
+      if (!accountResponse.ok) throw new Error(accountData.error || 'Yeni paket hakkı alınamadı')
+      setBillingSnapshot(accountData)
+      setSelectedPackage(plan.id)
+      saveDraftPackage(plan.id)
+      setLockedDeliverables(null)
+      toast.success(`${plan.name} paketi test ortamında etkinleştirildi.`)
+      if (deliverables) startEditing(deliverables, plan.id, accountData)
+    } catch (error) {
+      toast.error(error.message || 'Paket satın alınamadı.')
+    } finally {
+      setBusyPackage('')
+    }
+  }
+
+  const startEditing = (deliverables, packageId = selectedPackage, snapshot = billingSnapshot) => {
     if (!canProceedToDeliverables()) {
       toast.error('Lütfen zorunlu alanları doldurun.')
       return
     }
 
-    if (!BILLING_PLANS[selectedPackage]) {
+    if (!BILLING_PLANS[packageId]) {
       toast.error('Geçersiz paket seçimi.')
       return
     }
-    if (!billingSnapshot) {
+    if (!snapshot) {
       toast.error(billingError || 'Paket hakları yüklenirken bekleyin.')
       return
     }
@@ -122,28 +217,12 @@ export function NewProjectWizard() {
         eventType,
         eventData,
         deliverables,
-        packageId: selectedPackage,
-        idempotencyKey: savedDraft?.packageId === selectedPackage ? savedDraft.idempotencyKey : window.crypto.randomUUID(),
+        packageId,
+        idempotencyKey: savedDraft?.packageId === packageId ? savedDraft.idempotencyKey : window.crypto.randomUUID(),
       }
-      const credits = billingSnapshot.grants
-        .filter((grant) => grant.package_id === selectedPackage)
-        .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0)
-      const projectAvailable = selectedPackage === 'baslangic'
-        ? (billingSnapshot.usage.free_projects || 0) < billingSnapshot.quotas.freeProjects
-        : credits > 0 && billingSnapshot.usage.projects < billingSnapshot.quotas.projects
-      const siteAvailable = !deliverables.site || (
-        selectedPackage === 'baslangic'
-          ? (billingSnapshot.usage.websites || 0) < 1
-          : true
-      )
-      const invitationAvailable = !deliverables.invitation || (
-        selectedPackage === 'baslangic'
-          ? (billingSnapshot.usage.invitations || 0) < 1
-          : true
-      )
-      if (!projectAvailable || !siteAvailable || !invitationAvailable) {
+      if (!hasDeliverableRights(deliverables, packageId, snapshot)) {
         window.sessionStorage.setItem(NEW_PROJECT_DRAFT_KEY, JSON.stringify(draft))
-        toast.error('Seçili paket için kullanılabilir hak bulunmuyor. Başka bir paket seçin.')
+        setLockedDeliverables(deliverables)
         return
       }
 
@@ -347,34 +426,108 @@ export function NewProjectWizard() {
                   icon={Globe}
                   title="Davet Sitesi"
                   desc="Modern, interaktif, mobil uyumlu davet sitesi."
-                  availability={selectedPackage === 'baslangic' ? `${Math.max(0, 1 - (billingSnapshot?.usage?.websites || 0))} / 1 kullanılabilir` : 'Etkinlik kredisi'}
-                  onClick={() => startEditing({ site: true, invitation: false })}
+                  availability={hasDeliverableRights({ site: true, invitation: false }) ? (selectedPackage === 'baslangic' ? '1 / 1 kullanılabilir' : 'Etkinlik kredisi kullanılabilir') : 'Hak yok · Paket seçin'}
+                  onClick={() => selectDeliverable({ site: true, invitation: false })}
                   loading={openingEditor === 'site'}
                   busy={Boolean(openingEditor)}
-                  disabled={!billingSnapshot || (selectedPackage === 'baslangic' && (billingSnapshot.usage?.websites || 0) >= 1)}
+                  disabled={!billingSnapshot}
                />
                <DeliverableCard
                   icon={ImageIcon}
                   title="Dijital Davetiye"
                   desc="Paylaşılabilir ve indirilebilir dijital davetiye."
-                  availability={selectedPackage === 'baslangic' ? `${Math.max(0, 1 - (billingSnapshot?.usage?.invitations || 0))} / 1 kullanılabilir` : 'Etkinlik kredisi'}
-                  onClick={() => startEditing({ site: false, invitation: true })}
+                  availability={hasDeliverableRights({ site: false, invitation: true }) ? (selectedPackage === 'baslangic' ? '1 / 1 kullanılabilir' : 'Etkinlik kredisi kullanılabilir') : 'Hak yok · Paket seçin'}
+                  onClick={() => selectDeliverable({ site: false, invitation: true })}
                   loading={openingEditor === 'invitation'}
                   busy={Boolean(openingEditor)}
-                  disabled={!billingSnapshot || (selectedPackage === 'baslangic' && (billingSnapshot.usage?.invitations || 0) >= 1)}
+                  disabled={!billingSnapshot}
                />
                <DeliverableCard
                   icon={LayoutTemplate}
                   title="Site + Davetiye"
                   desc="İkisini birlikte hazırlayın."
-                  availability={selectedPackage === 'baslangic' ? 'Site + davetiye hakları gerekir' : `${billingSnapshot?.quotas?.eventCreditsRemaining || 0} etkinlik kredisi`}
+                  availability={hasDeliverableRights({ site: true, invitation: true }) ? (selectedPackage === 'baslangic' ? 'Site ve davetiye hakkı kullanılabilir' : 'Etkinlik kredisi kullanılabilir') : 'Hak yok · Paket seçin'}
                   highlight
-                  onClick={() => startEditing({ site: true, invitation: true })}
+                  onClick={() => selectDeliverable({ site: true, invitation: true })}
                   loading={openingEditor === 'both'}
                   busy={Boolean(openingEditor)}
-                  disabled={!billingSnapshot || (selectedPackage === 'baslangic' && ((billingSnapshot.usage?.websites || 0) >= 1 || (billingSnapshot.usage?.invitations || 0) >= 1))}
+                  disabled={!billingSnapshot}
                />
             </div>
+
+            <Dialog open={Boolean(lockedDeliverables)} onOpenChange={(open) => { if (!open && !busyPackage) setLockedDeliverables(null) }}>
+              <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-3xl border-[#e8dfd1] bg-[#fbf9f5] p-5 sm:max-w-2xl sm:p-7">
+                <DialogHeader>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#a28453]">Paket hakkı gerekli</p>
+                  <DialogTitle className="font-serif text-2xl text-[#172033]">Bu format için bir paket seçin</DialogTitle>
+                  <DialogDescription className="text-sm leading-6 text-[#77746f]">
+                    {lockedDeliverables?.site && lockedDeliverables?.invitation
+                      ? 'Site ve dijital davetiyeyi birlikte hazırlamak için kullanılabilir etkinlik hakkınız bulunmuyor.'
+                      : `Bu ${lockedDeliverables?.site ? 'davet sitesi' : 'dijital davetiye'} hakkınız dolmuş. Var olan etkinlik kredinizi kullanabilir veya bir paket alabilirsiniz.`}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {Object.values(BILLING_PLANS).filter((plan) => plan.price > 0).map((plan) => {
+                    const credits = billingSnapshot?.grants
+                      .filter((grant) => grant.package_id === plan.id)
+                      .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0) || 0
+                    const canUseCredit = credits > 0 && billingSnapshot.usage.projects < billingSnapshot.quotas.projects
+                    const isBusy = busyPackage === plan.id
+                    return (
+                      <article key={plan.id} className="flex flex-col rounded-2xl border border-[#e8dfd1] bg-white p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="font-serif text-xl text-[#172033]">{plan.name}</h3>
+                            <p className="mt-1 text-sm font-medium text-[#8f744b]">{formatPrice(plan.price)} <span className="font-normal text-[#77746f]">· {plan.period}</span></p>
+                          </div>
+                          {plan.highlighted && <span className="rounded-full bg-[#f2e6d2] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-[#8f744b]">Önerilen</span>}
+                        </div>
+                        <ul className="my-4 flex-1 space-y-2 text-xs leading-5 text-[#68645d]">
+                          {plan.features.slice(0, 4).map((feature) => (
+                            <li key={feature} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#809184]" />{feature}</li>
+                          ))}
+                        </ul>
+                        <Button
+                          type="button"
+                          className="h-10 rounded-xl bg-[#172033] text-xs text-white hover:bg-[#25314a]"
+                          disabled={Boolean(busyPackage) || (!canUseCredit && !billingSnapshot?.mockPaymentAvailable)}
+                          onClick={() => {
+                            if (canUseCredit) {
+                              setSelectedPackage(plan.id)
+                              saveDraftPackage(plan.id)
+                              setLockedDeliverables(null)
+                              if (lockedDeliverables) startEditing(lockedDeliverables, plan.id, billingSnapshot)
+                            } else {
+                              buyPackage(plan)
+                            }
+                          }}
+                        >
+                          {isBusy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor</> : canUseCredit ? `${credits} krediyi kullan` : billingSnapshot?.mockPaymentAvailable ? 'Test satın alımı' : 'Ödeme kullanılamıyor'}
+                        </Button>
+                      </article>
+                    )
+                  })}
+                </div>
+                {billingSnapshot?.mockPaymentAvailable && (
+                  <p className="rounded-xl bg-[#f2eee6] px-4 py-3 text-xs leading-5 text-[#68645d]">
+                    Bu ortamda satın alma yalnızca test amaçlıdır; gerçek ödeme alınmaz.
+                  </p>
+                )}
+                {!billingSnapshot?.mockPaymentAvailable && (
+                  <p className="rounded-xl bg-[#f2eee6] px-4 py-3 text-xs leading-5 text-[#68645d]">
+                    Online ödeme henüz etkin değil. Paketleri ve ödeme seçeneklerini incelemek için{' '}
+                    <a href="/fiyatlandirma" className="font-semibold text-[#8f744b] underline underline-offset-2">fiyatlandırma sayfasını açın</a>.
+                  </p>
+                )}
+                <DialogFooter className="sm:justify-between">
+                  <Button type="button" variant="ghost" className="text-xs text-[#77746f]" disabled={Boolean(busyPackage)} onClick={() => setLockedDeliverables(null)}>Şimdilik vazgeç</Button>
+                  <a href="/panel/paketim" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#e8dfd1] bg-white px-4 text-xs font-medium text-[#172033] hover:bg-[#f7f4ee]">
+                    Paketimi görüntüle <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
            </div>
         )}
       </div>

@@ -18,12 +18,12 @@ function Person({ p, prefix, shape, card, horizontal, reverse }: { p: Record<str
     <Reveal
       className={cn(
         'flex flex-col items-center gap-5 text-center',
-        card && 'sb-card p-6 @3xl:p-8 shadow-sm',
+        card && 'sb-card rounded-3xl border border-current/10 bg-white/70 p-5 shadow-sm @3xl:p-6',
         horizontal && '@3xl:flex-row @3xl:text-left @3xl:gap-12',
         horizontal && reverse && '@3xl:flex-row-reverse @3xl:text-right',
       )}
     >
-      <div className={cn('relative w-full max-w-[280px] shrink-0', horizontal && '@3xl:max-w-[340px]')}>
+      <div className={cn('relative w-full max-w-[230px] shrink-0', horizontal && '@3xl:max-w-[280px]')}>
         <SbImage
           src={p[`${prefix}Photo`]}
           alt={name}
@@ -60,10 +60,10 @@ export function CoupleSection({ section, props }: SectionComponentProps) {
           <Person p={props} prefix="groom" shape={shape} horizontal reverse />
         </div>
       ) : (
-        <div className={cn('grid items-center gap-12', props.showAmpersand && layout === 'side' ? '@3xl:grid-cols-[1fr_auto_1fr]' : '@3xl:grid-cols-2')}>
-          <Person p={props} prefix="bride" shape={shape} card={layout === 'cards'} />
+        <div className={cn('mx-auto grid w-full max-w-5xl items-center gap-5 @3xl:gap-8', props.showAmpersand && layout === 'side' ? '@3xl:grid-cols-[1fr_auto_1fr]' : '@3xl:grid-cols-2')}>
+          <Person p={props} prefix="bride" shape={shape} card={layout === 'cards' || layout === 'side'} />
           {props.showAmpersand && layout === 'side' && <Reveal className="sb-script sb-accent text-7xl @3xl:text-8xl text-center">&</Reveal>}
-          <Person p={props} prefix="groom" shape={shape} card={layout === 'cards'} />
+          <Person p={props} prefix="groom" shape={shape} card={layout === 'cards' || layout === 'side'} />
         </div>
       )}
     </SectionShell>

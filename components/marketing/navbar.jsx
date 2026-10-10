@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu } from 'lucide-react'
+import { Loader2, Menu, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Logo } from '@/components/shared/logo'
@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 
 export function Navbar() {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user, status, refresh } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
 
@@ -55,7 +55,13 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          {user ? (
+          {status === 'loading' ? (
+            <div className="h-10 w-32 rounded-2xl bg-white/15" role="status" aria-label="Oturum kontrol ediliyor" />
+          ) : status === 'error' ? (
+            <Button variant="ghost" onClick={refresh} className={cn('text-[13px] uppercase tracking-[0.16em]', overHero ? 'text-ivory hover:bg-ivory/10 hover:text-ivory' : 'text-midnight hover:bg-midnight/5')}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Tekrar dene
+            </Button>
+          ) : user ? (
             <Button asChild className="rounded-2xl bg-champagne px-6 text-[13px] uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
               <Link href="/panel" data-testid="nav-panel">Panelim</Link>
             </Button>
@@ -89,7 +95,13 @@ export function Navbar() {
                 ))}
               </nav>
               <div className="mt-auto flex flex-col gap-3 pb-8">
-                {user ? (
+                {status === 'loading' ? (
+                  <div className="h-11 rounded-2xl bg-midnight/5" role="status" aria-label="Oturum kontrol ediliyor" />
+                ) : status === 'error' ? (
+                  <Button variant="outline" onClick={() => { refresh(); setOpen(false) }} className="rounded-2xl border-midnight uppercase tracking-[0.16em]">
+                    <RefreshCw className="mr-2 h-4 w-4" /> Tekrar dene
+                  </Button>
+                ) : user ? (
                   <Button asChild className="rounded-2xl bg-champagne uppercase tracking-[0.16em] text-midnight hover:bg-champagne-dark">
                     <Link href="/panel" onClick={() => setOpen(false)}>Panelim</Link>
                   </Button>

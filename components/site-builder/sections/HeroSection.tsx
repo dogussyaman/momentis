@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import {
   Reveal, SectionShell, SiteButtons, SbImage, alignToJustify, editableTextAttributes, editableTextStyle, useCountdown, useSiteRender, type SectionComponentProps,
 } from '../render/primitives'
+import { SideRays } from '../shared/SideRays'
 
 function fontClass(f?: string) {
   return f === 'script' ? 'sb-script' : f === 'body' ? 'sb-body font-light' : 'sb-heading'
@@ -33,13 +34,28 @@ function MiniCountdown() {
 }
 
 export function HeroSection({ section, props }: SectionComponentProps) {
-  const { mode } = useSiteRender()
+  const { mode, site } = useSiteRender()
+  const isPortfolio = site.templateId === 'portfolio'
+  const shellSection = isPortfolio && props.showSideRays
+    ? { ...section, style: { ...section.style, paddingY: 0, overlayOpacity: 0 } }
+    : section
   const layout = props.layout ?? 'center'
   const align = section.style.align ?? 'center'
   const justify = alignToJustify(align)
   const scale = (props.titleSize ?? 100) / 100
   const isScript = props.titleFont === 'script'
   const titleSize = `calc(clamp(${isScript ? '3.4rem' : '2.6rem'}, ${isScript ? '11cqi' : '8cqi'}, ${isScript ? '8rem' : '6rem'}) * ${scale} * var(--sb-heading-scale))`
+  const rays = props.showSideRays ? (
+    <SideRays
+      className="pointer-events-none absolute inset-y-0 left-1/2 z-0 w-screen max-w-none -translate-x-1/2"
+      speed={props.raySpeed}
+      rayColor1={props.rayColor1}
+      rayColor2={props.rayColor2}
+      intensity={props.rayIntensity}
+      spread={props.raySpread}
+      origin={props.rayOrigin}
+    />
+  ) : null
 
   const content = (
     <div
@@ -96,15 +112,46 @@ export function HeroSection({ section, props }: SectionComponentProps) {
   )
 
   if (layout === 'split') {
+    if (isPortfolio) {
+      return (
+        <SectionShell section={shellSection} noContainer>
+          <div
+            className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pt-16 sm:px-10 @3xl:grid-cols-[1.1fr_0.9fr] @3xl:gap-16"
+            style={{ minHeight: section.style.minHeight === 'screen' ? 'var(--sb-screen)' : undefined }}
+          >
+            {rays}
+            <div className="relative z-10 flex items-center py-8 @3xl:py-14">
+              {content}
+            </div>
+            <div
+              className="relative z-10 mx-auto w-full max-w-[520px]"
+              data-editable-image-section={section.id}
+              data-editable-image-key="sideImage"
+              tabIndex={mode === 'editor' ? 0 : undefined}
+            >
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-current/10 bg-[var(--sb-surface)] p-1.5 shadow-sm">
+                <div className="relative h-full w-full overflow-hidden rounded-[1.6rem]">
+                  <Reveal className="absolute inset-0">
+                    <SbImage src={props.sideImage} className="h-full w-full" />
+                  </Reveal>
+                </div>
+              </div>
+            </div>
+          </div>
+        </SectionShell>
+      )
+    }
+
     return (
-      <SectionShell section={section} noContainer>
-        <div className="grid w-full @3xl:grid-cols-2" style={{ minHeight: section.style.minHeight === 'screen' ? 'var(--sb-screen)' : undefined }}>
-          <div className="relative min-h-[380px] overflow-hidden" data-editable-image-section={section.id} data-editable-image-key="sideImage" tabIndex={mode === 'editor' ? 0 : undefined}>
+      <SectionShell section={shellSection} noContainer>
+        <div className="relative grid w-full @3xl:grid-cols-2" style={{ minHeight: section.style.minHeight === 'screen' ? 'var(--sb-screen)' : undefined }}>
+          {rays}
+          <div className="relative z-10 min-h-[380px] overflow-hidden" data-editable-image-section={section.id} data-editable-image-key="sideImage" tabIndex={mode === 'editor' ? 0 : undefined}>
             <Reveal className="absolute inset-0">
               <SbImage src={props.sideImage} className="h-full w-full" />
             </Reveal>
           </div>
-          <div className="flex items-center px-8 py-16 @3xl:px-20" style={{ justifyContent: justify }}>
+          <div className="relative z-10 flex items-center px-8 py-16 @3xl:px-20" style={{ justifyContent: justify }}>
             {content}
           </div>
         </div>
@@ -113,9 +160,12 @@ export function HeroSection({ section, props }: SectionComponentProps) {
   }
 
   return (
-    <SectionShell section={section} contentClassName={layout === 'bottom' ? 'mt-auto' : undefined}>
-      <div className="flex w-full" style={{ justifyContent: justify }}>
-        {content}
+    <SectionShell section={shellSection} contentClassName={layout === 'bottom' ? 'mt-auto' : undefined}>
+      <div className="relative flex w-full" style={{ justifyContent: justify }}>
+        {rays}
+        <div className="relative z-10 flex w-full" style={{ justifyContent: justify }}>
+          {content}
+        </div>
       </div>
       {props.showScrollHint && layout !== 'bottom' && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 sb-scroll-hint">

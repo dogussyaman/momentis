@@ -7,8 +7,11 @@ test('createStarterSite returns a valid default site', () => {
   const site = createStarterSite({ title: 'Özel Düğün' })
 
   assert.equal(site.title, 'Özel Düğün')
-  assert.equal(site.templateId, 'minimal')
-  assert.ok(Array.isArray(site.sections) && site.sections.length > 0)
+  assert.equal(site.templateId, 'portfolio')
+  assert.ok(Array.isArray(site.sections) && site.sections.length >= 10)
+  assert.ok(site.sections.some((section) => section.type === 'album'))
+  assert.ok(site.sections.some((section) => section.type === 'share'))
+  assert.equal(site.sections.find((section) => section.type === 'hero')?.props.showSideRays, true)
   assert.equal(site.status, 'draft')
 })
 

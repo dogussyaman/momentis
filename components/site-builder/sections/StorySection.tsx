@@ -65,18 +65,18 @@ export function StorySection({ section, props }: SectionComponentProps) {
       )}
       
       {layout === 'cards' && (
-        <div className="grid @2xl:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="mx-auto grid max-w-5xl gap-4 @2xl:grid-cols-2">
           {items.map((it) => (
-             <Reveal key={it.id} className="sb-card flex flex-col text-left overflow-hidden shadow-lg group">
+             <Reveal key={it.id} className="sb-card group flex flex-col overflow-hidden rounded-3xl border border-current/10 bg-white/70 text-left shadow-sm">
                 {props.showImages && it.image && (
                   <div className="w-full aspect-[4/3] overflow-hidden">
                     <SbImage src={it.image} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
                   </div>
                 )}
-                <div className="p-6 @2xl:p-8 flex flex-col gap-3">
-                  <span className="text-xs uppercase tracking-widest font-semibold sb-accent">{it.date}</span>
-                  <h3 className="sb-heading text-xl">{it.title}</h3>
-                  <p className="text-[14px] leading-relaxed sb-muted mt-2">{it.text}</p>
+                <div className="flex flex-col gap-2 p-5 @2xl:p-6">
+                  {it.date && <span className="text-[10px] font-semibold uppercase tracking-[0.18em] sb-accent">{it.date}</span>}
+                  <h3 className="sb-heading text-lg @2xl:text-xl">{it.title}</h3>
+                  <p className="text-sm leading-relaxed sb-muted">{it.text}</p>
                 </div>
              </Reveal>
           ))}

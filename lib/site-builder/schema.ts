@@ -5,6 +5,7 @@
 export type ButtonAction =
   | 'none'
   | 'scroll'
+  | 'gallery'
   | 'link'
   | 'rsvp'
   | 'map'
@@ -146,6 +147,7 @@ export interface SiteSettings {
   showNavbar?: boolean
   navStyle?: 'bar' | 'floating' | 'centered' | 'transparent'
   rsvpDeadline?: string
+  envelopeEnabled?: boolean
 }
 
 export type WeddingSite = {

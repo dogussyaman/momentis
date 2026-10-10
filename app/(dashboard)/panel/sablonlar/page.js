@@ -69,8 +69,8 @@ export default function SiteTemplatesPage() {
         >
           <div className="relative aspect-[1.55/1] overflow-hidden bg-midnight/5">
             <img
-              src="/portfolio-preview/josh.webp"
-              alt="Portfolio şablonunun portre görseli"
+              src="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=80"
+              alt="Düğün şablonunda birlikte poz veren çift"
               loading="lazy"
               className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]"
             />
@@ -83,13 +83,13 @@ export default function SiteTemplatesPage() {
             </span>
           </div>
           <div className="p-5">
-            <h2 className="font-serif text-2xl text-midnight">Portfolio</h2>
+            <h2 className="font-serif text-2xl text-midnight">Modern Düğün</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Referans sitedeki portfolio ana sayfasının aynısı.
+              Düğün hikâyeniz, etkinlik programı, RSVP ve QR anı albümü için düzenlenebilir tek site yapısı.
             </p>
             <div className="mt-5 flex items-center justify-between border-t border-midnight/8 pt-4">
               <div className="flex items-center gap-1.5" aria-label="Renk paleti">
-                {["#ffffff", "#0a0a0a", "#f5f5f5"].map((color) => (
+                {["#fbf8f3", "#ad8059", "#f2ebe2"].map((color) => (
                   <span
                     key={color}
                     className="h-4 w-4 rounded-full border border-midnight/10"

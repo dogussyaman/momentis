@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -17,7 +17,8 @@ const NAV_GROUPS = [
   {
     label: 'Çalışma Alanı',
     items: [
-      { href: '/panel', label: 'Etkinliklerim', icon: LayoutDashboard, isActive: (pathname) => pathname === '/panel' || pathname.startsWith('/panel/etkinlik/') },
+      { href: '/panel', label: 'Genel Bakış', icon: LayoutDashboard, exact: true },
+      { href: '/panel/etkinlikler', label: 'Etkinliklerim', icon: CalendarDays, isActive: (pathname) => pathname.startsWith('/panel/etkinlikler') || pathname.startsWith('/panel/etkinlik/') },
       { href: '/panel/taslaklar', label: 'Taslaklar', icon: FileEdit },
       { href: '/panel/arsiv', label: 'Arşiv', icon: Archive },
       { href: '/panel/yeni', label: 'Yeni Etkinlik', icon: Plus },
@@ -200,7 +201,7 @@ function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed }) {
 }
 
 export function DashboardShell({ children }) {
-  const { user, logout } = useAuth()
+  const { user, status, refresh, logout } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -217,7 +218,14 @@ export function DashboardShell({ children }) {
       <div className="flex min-h-screen items-center justify-center bg-ivory">
         <div className="text-center">
           <Logo />
-          <p className="mt-6 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">{user === null ? 'Oturum kontrol ediliyor…' : 'Yönlendiriliyor…'}</p>
+          {status === 'error' ? (
+            <>
+              <p className="mt-6 text-sm text-muted-foreground">Oturum doğrulanamadı. Bağlantınızı kontrol edip yeniden deneyin.</p>
+              <Button variant="outline" onClick={refresh} className="mt-4">Yeniden dene</Button>
+            </>
+          ) : (
+            <p className="mt-6 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">{user === null ? 'Oturum kontrol ediliyor…' : 'Yönlendiriliyor…'}</p>
+          )}
         </div>
       </div>
     )

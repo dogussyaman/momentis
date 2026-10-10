@@ -226,6 +226,7 @@ function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){
    <label className="block space-y-1"><span className="text-[9px] text-muted-foreground">Harf aralığı</span><select aria-label="Harf aralığı" value={site.theme.letterSpacing} onChange={e=>updateTheme({letterSpacing:e.target.value})} className="h-8 w-full rounded-md border bg-white px-2 text-[10px]"><option value="tight">Dar</option><option value="normal">Normal</option><option value="wide">Geniş</option></select></label>
   </Group>
   <Group title="Yayın">
+   <SwitchRow label="Zarf açılışı göster" value={site.settings.envelopeEnabled} set={v=>updateSettings({envelopeEnabled:v})}/>
    <SwitchRow label="Site müziği" value={site.settings.musicEnabled} set={v=>updateSettings({musicEnabled:v})}/>
    <SiteAudioField label="Müzik seç" value={site.settings.musicUrl} onChange={musicUrl=>updateSettings({musicUrl,musicEnabled:true})}/>
    <SwitchRow label="Geri sayım" value={site.settings.showCountdown} set={v=>updateSettings({showCountdown:v})}/>

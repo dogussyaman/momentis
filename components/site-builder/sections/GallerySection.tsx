@@ -33,6 +33,24 @@ export function GallerySection({ section, props }: SectionComponentProps) {
     <SectionShell section={section}>
       <SectionHeading eyebrow={props.eyebrow} title={props.title} subtitle={props.subtitle} />
 
+      {layout === 'cards' && (
+        <>
+          <style>{`[data-section-id="${section.id}"] .sb-gal-cards{grid-template-columns:repeat(1,minmax(0,1fr))}@container (min-width:38rem){[data-section-id="${section.id}"] .sb-gal-cards{grid-template-columns:repeat(${cols},minmax(0,1fr))}}`}</style>
+          <div className="sb-gal-cards grid" style={{ gap }}>
+            {images.map((img, i) => (
+              <div key={img.id} data-editable-image-section={section.id} data-editable-image-key={`images.${i}.src`}>
+                <article className="sb-card sb-portfolio-card overflow-hidden p-3">
+                  {tile({ ...img, caption: undefined }, i, 'aspect-[4/3]')}
+                  {props.showCaptions && img.caption && (
+                    <h3 className="sb-heading px-1 pb-1 pt-4 text-lg">{img.caption}</h3>
+                  )}
+                </article>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {layout === 'grid' && (
         <>
           <style>{`[data-section-id="${section.id}"] .sb-gal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@container (min-width:48rem){[data-section-id="${section.id}"] .sb-gal-grid{grid-template-columns:repeat(${cols},minmax(0,1fr))}}`}</style>

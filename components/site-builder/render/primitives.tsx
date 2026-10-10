@@ -95,13 +95,24 @@ export function Reveal({ children, className, style, as = 'div' }: { children: R
   
   const M = as === 'li' ? motion.li : as === 'span' ? motion.span : motion.div
   
-  // Disable animations in editor or preview mode to prevent framer-motion strict-mode duplication bug and viewport detection issues inside scrollable divs
-  if (anim.type === 'none' || mode === 'editor' || mode === 'preview' || prefersReducedMotion) {
+  // Keep the editable canvas still; previews and published sites should show the selected motion.
+  if (anim.type === 'none' || mode === 'editor' || prefersReducedMotion) {
     const Tag = as as any
     return <Tag className={className} style={style}>{children}</Tag>
   }
   
-  return <M variants={variants} className={className} style={style}>{children}</M>
+  return (
+    <M
+      variants={variants}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.05 }}
+      className={className}
+      style={style}
+    >
+      {children}
+    </M>
+  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -136,6 +147,7 @@ export function SectionShell({
 
   const minH =
     s.minHeight === 'screen' ? 'var(--sb-screen)' : s.minHeight === 'large' ? 'calc(var(--sb-screen) * 0.75)' : s.minHeight === 'half' ? 'calc(var(--sb-screen) * 0.5)' : undefined
+  const verticalPadding = s.minHeight === 'screen' ? 0 : s.paddingY ?? 96
 
   const hasMargin = (s.marginX ?? 0) > 0 || (s.marginY ?? 0) > 0
 
@@ -178,12 +190,12 @@ export function SectionShell({
         )}
 
         <AnimCtx.Provider value={anim}>
-          {mode === 'editor' || mode === 'preview' ? (
+          {mode === 'editor' ? (
             <div
               className={cn('relative z-[2] w-full', contentClassName)}
               style={{
-                paddingTop: s.paddingY ?? 96,
-                paddingBottom: s.paddingY ?? 96,
+                paddingTop: verticalPadding,
+                paddingBottom: verticalPadding,
                 paddingLeft: noContainer ? 0 : s.paddingX ?? 24,
                 paddingRight: noContainer ? 0 : s.paddingX ?? 24,
                 textAlign: align,
@@ -196,12 +208,12 @@ export function SectionShell({
               key={`${anim.type}-${anim.duration}-${anim.delay}-${anim.stagger}`}
               initial={anim.type === 'none' ? false : 'hidden'}
               whileInView="show"
-              viewport={{ once: true, amount: 0.15 }}
+              viewport={{ once: true, amount: 0.1 }}
               variants={containerVariants}
               className={cn('relative z-[2] w-full', contentClassName)}
               style={{
-                paddingTop: s.paddingY ?? 96,
-                paddingBottom: s.paddingY ?? 96,
+                paddingTop: verticalPadding,
+                paddingBottom: verticalPadding,
                 paddingLeft: noContainer ? 0 : s.paddingX ?? 24,
                 paddingRight: noContainer ? 0 : s.paddingX ?? 24,
                 textAlign: align,

@@ -33,7 +33,7 @@ export function TemplatesPanel({ eventData }: { eventData?: Record<string, any> 
           <h3 className="text-xs font-semibold uppercase tracking-[0.22em] text-midnight">Şablonlar</h3>
           <span className="rounded-full bg-[#f5f1eb] px-2 py-1 text-[9px] font-medium text-midnight/70">{templates.length}</span>
         </div>
-        <p className="mt-1 text-[10px] text-muted-foreground">Sitenizin genel görünümünü ve düzenini değiştirin.</p>
+        <p className="mt-1 text-[10px] text-muted-foreground">Düğün sitenizin bölüm düzenini uygulayın; içerikleriniz ayrıca düzenlenebilir.</p>
         <div className="relative mt-3">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Şablon ara..." aria-label="Şablon ara" className="h-9 rounded-lg border-[#e7e0d7] bg-[#faf7f2] pl-8 text-[11px]" />

@@ -19,7 +19,7 @@ export default function LivePreviewPage() {
   const cardRef = useRef(null)
 
   useEffect(() => {
-    // 1) Eğer direkt tarayıcıdan /preview?template=sb-classic gibi gelindiyse
+    // 1) If opened directly with a site-builder template, load its editable site data.
     const params = new URLSearchParams(window.location.search)
     const templateSlug = params.get('template')
 
@@ -34,7 +34,7 @@ export default function LivePreviewPage() {
           // Eğer site builder (isWebsite) ise buildSiteFromTemplate ile tam tasarımı yükle
           const isWebsite = t.tags?.includes('web sitesi')
           if (isWebsite) {
-            const builderId = t.slug.replace(/^sb-/, '') // 'sb-classic' -> 'classic'
+            const builderId = t.slug.replace(/^sb-/, '')
             const eventData = {
               couple: { bride: 'Elif', groom: 'Kaan' },
               date: '2027-06-12',

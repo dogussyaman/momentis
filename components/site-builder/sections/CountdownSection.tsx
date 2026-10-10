@@ -18,23 +18,23 @@ export function CountdownSection({ section, props }: SectionComponentProps) {
   ] as const
 
   const display = c.done && c.valid ? (
-    <Reveal className="sb-heading text-3xl @3xl:text-5xl my-10">{props.finishedText}</Reveal>
+    <Reveal className="sb-heading text-2xl @3xl:text-4xl">{props.finishedText}</Reveal>
   ) : !c.valid ? (
-    <Reveal className="my-10 italic opacity-50">Tarih ayarlanmadı</Reveal>
+    <Reveal className="italic opacity-60">Tarih ayarlanmadı</Reveal>
   ) : (
-    <Reveal className={cn("grid gap-4 @2xl:gap-8 my-10", secs ? "grid-cols-4" : "grid-cols-3")}>
+    <Reveal className={cn("grid gap-2 @2xl:gap-4", secs ? "grid-cols-4" : "grid-cols-3")}>
       {items.map(([val, label]) => (
         <div 
           key={label} 
           className={cn(
-            "flex flex-col items-center justify-center p-4 @2xl:p-6",
-            v === 'boxes' && "sb-card shadow-lg bg-background/90 backdrop-blur",
-            v === 'circles' && "border-2 rounded-full aspect-square w-24 h-24 @2xl:w-32 @2xl:h-32 mx-auto"
+            "flex min-w-0 flex-col items-center justify-center rounded-2xl px-2 py-3 @2xl:px-4 @2xl:py-5",
+            v === 'boxes' && "border border-current/10 bg-white/75 shadow-sm backdrop-blur",
+            v === 'circles' && "aspect-square w-full max-w-24 @2xl:max-w-32 mx-auto border"
           )}
-          style={v === 'circles' ? { borderColor: 'var(--sb-accent)' } : undefined}
+          style={v === 'circles' || v === 'boxes' ? { borderColor: 'color-mix(in srgb, var(--sb-accent) 22%, transparent)' } : undefined}
         >
-          <span className={cn("sb-heading tabular-nums", v === 'boxes' ? 'text-4xl @2xl:text-6xl' : 'text-3xl @2xl:text-5xl')}>{String(val).padStart(2, '0')}</span>
-          <span className={cn("sb-eyebrow mt-1 @2xl:mt-2", v === 'minimal' && 'sb-accent')}>{label}</span>
+          <span className={cn("sb-heading tabular-nums leading-none", v === 'boxes' ? 'text-2xl @2xl:text-4xl' : 'text-2xl @2xl:text-4xl')}>{String(val).padStart(2, '0')}</span>
+          <span className="mt-2 text-[9px] @2xl:text-[10px] uppercase tracking-[0.16em] opacity-65">{label}</span>
         </div>
       ))}
     </Reveal>
@@ -43,8 +43,10 @@ export function CountdownSection({ section, props }: SectionComponentProps) {
   return (
     <SectionShell section={section}>
       <SectionHeading eyebrow={props.eyebrow} title={props.title} subtitle={props.subtitle} />
-      {display}
-      <SiteButtons buttons={props.buttons} />
+      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-current/10 bg-white/45 p-4 shadow-sm backdrop-blur-sm @2xl:p-7">
+        {display}
+        <SiteButtons buttons={props.buttons} style={{ marginTop: 20 }} />
+      </div>
     </SectionShell>
   )
 }

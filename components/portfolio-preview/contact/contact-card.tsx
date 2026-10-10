@@ -24,7 +24,7 @@ export function ContactCard(): ReactNode {
                 maskImage: CARD_FADE_MASK,
               }}
             >
-              <ShaderFlow scale={3} brightness={3}/>
+              <ShaderFlow scale={3} brightness={3} />
             </div>
 
             <div className="relative grid gap-8 p-6 sm:gap-10 sm:p-7 md:grid-cols-[1.2fr_1fr] md:items-stretch md:gap-6 md:p-6">

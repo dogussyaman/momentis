@@ -28,21 +28,21 @@ export function EventSection({ section, props }: SectionComponentProps) {
       <SectionHeading eyebrow={props.eyebrow} title={props.title} subtitle={props.subtitle} />
 
       {layout === 'cards' && (
-        <div className="grid gap-6 @3xl:grid-cols-2 text-center">
+        <div className={cn('mx-auto grid w-full gap-5 text-center', items.length === 1 ? 'max-w-2xl grid-cols-1' : 'max-w-5xl @3xl:grid-cols-2')}>
           {items.map((ev, i) => (
-            <Reveal key={`${section.id}-event-${ev.id ?? 'item'}-${i}`} className="sb-card p-8 @3xl:p-12 flex flex-col items-center gap-4">
-              {ev.image && <SbImage src={ev.image} className="w-20 h-20 rounded-full mb-2 object-cover" />}
-              <h3 {...editable(i, 'name')} className="sb-heading text-2xl @3xl:text-3xl" style={inlineStyle(i, 'name')}>{ev.name}</h3>
-              <div className="flex flex-col gap-1 text-[15px] sb-muted mt-2">
+            <Reveal key={`${section.id}-event-${ev.id ?? 'item'}-${i}`} className="sb-card flex flex-col items-center gap-3 rounded-3xl border border-current/10 bg-white/75 p-6 shadow-sm @3xl:p-8">
+              {ev.image && <SbImage src={ev.image} className="mb-1 h-16 w-16 rounded-2xl object-cover" />}
+              <h3 {...editable(i, 'name')} className="sb-heading text-xl @3xl:text-2xl" style={inlineStyle(i, 'name')}>{ev.name}</h3>
+              <div className="flex flex-col gap-1 text-sm sb-muted">
                 <span className="font-medium text-foreground">{formatDate(ev.date) || ev.date}</span>
                 <span>Saat: {ev.time || formatTime(ev.date)}</span>
               </div>
-              <div className="flex flex-col gap-1 mt-4">
-                <span {...editable(i, 'venue')} className="font-semibold text-foreground text-[15px]" style={inlineStyle(i, 'venue')}>{ev.venue}</span>
+              <div className="mt-2 flex flex-col gap-1">
+                <span {...editable(i, 'venue')} className="font-semibold text-foreground text-sm" style={inlineStyle(i, 'venue')}>{ev.venue}</span>
                 <span {...editable(i, 'address')} className="text-sm sb-muted" style={inlineStyle(i, 'address')}>{ev.address}</span>
               </div>
-              {ev.note && <span {...editable(i, 'note')} className="mt-2 text-sm italic sb-accent" style={inlineStyle(i, 'note')}>{ev.note}</span>}
-              <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+              {ev.note && <span {...editable(i, 'note')} className="mt-1 text-sm italic sb-accent" style={inlineStyle(i, 'note')}>{ev.note}</span>}
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 {props.showMap && (
                   <SiteButton
                     button={{ id: 'map', action: 'map', target: ev.address || ev.venue, label: 'Harita', variant: 'outline', icon: 'MapPin' }}
@@ -137,16 +137,16 @@ export function ScheduleSection({ section, props }: SectionComponentProps) {
 
       {layout === 'timeline' && (
         <div className="relative mx-auto max-w-xl text-left">
-          <div className="absolute left-[11px] top-2 bottom-2 w-px bg-current opacity-20" />
-          <div className="flex flex-col gap-10">
+          <div className="absolute bottom-2 left-[11px] top-2 w-px bg-current opacity-15" />
+          <div className="flex flex-col gap-4">
             {items.map((it) => (
-              <Reveal key={it.id} className="relative pl-10">
-                 <span className="absolute left-0 top-1.5 w-[23px] h-[23px] rounded-full border-2 flex items-center justify-center" style={{ borderColor: 'var(--sb-accent)', background: 'var(--sb-bg)' }}>
+              <Reveal key={it.id} className="sb-card relative ml-10 rounded-2xl border border-current/10 bg-white/70 p-4 @2xl:p-5">
+                 <span className="absolute -left-[41px] top-5 flex h-[23px] w-[23px] items-center justify-center rounded-full border-2" style={{ borderColor: 'var(--sb-accent)', background: 'var(--sb-bg)' }}>
                   <span className="w-2 h-2 rounded-full sb-bg-accent" />
                 </span>
-                <div className="sb-eyebrow sb-accent mb-1">{it.time}</div>
-                <h3 className="sb-heading text-xl">{it.title}</h3>
-                {it.desc && <p className="text-[15px] sb-muted mt-1">{it.desc}</p>}
+                <div className="mb-1 text-xs font-semibold tracking-wide sb-accent">{it.time}</div>
+                <h3 className="sb-heading text-lg @2xl:text-xl">{it.title}</h3>
+                {it.desc && <p className="mt-1 text-sm leading-relaxed sb-muted">{it.desc}</p>}
               </Reveal>
             ))}
           </div>

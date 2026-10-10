@@ -49,7 +49,7 @@ export function SiteStartFlow({ eventTitle, stage, onBack, onContinue, onChooseT
               </div>
               <h1 className="font-serif text-3xl sm:text-4xl">Davet sitenizi birlikte hazırlayalım</h1>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#77746f]">
-                Başlamadan önce editörde neler yapabileceğinize göz atın. Henüz bir site oluşturmadık; önce size uygun şablonu seçeceksiniz.
+                Düğün sitenizin başlangıç düzenini açın. Kapak, gezinme, hikâye, program, RSVP ve QR albümünü etkinliğinize göre düzenleyin.
               </p>
             </div>
 
@@ -102,8 +102,8 @@ export function SiteStartFlow({ eventTitle, stage, onBack, onContinue, onChooseT
             <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a28453]">İlk adım · Görünümünüzü seçin</p>
-                <h1 className="mt-2 font-serif text-3xl sm:text-4xl">Şimdi siteleri inceleyin</h1>
-                <p className="mt-2 text-sm text-[#77746f]">Bir tasarım seçin; içeriklerini editörde dilediğiniz gibi değiştirebilirsiniz.</p>
+                <h1 className="mt-2 font-serif text-3xl sm:text-4xl">Düğün sitenizin başlangıç düzeni</h1>
+                <p className="mt-2 text-sm text-[#77746f]">Düğün odaklı tek bir temel düzen; tüm bölümler, içerik ve görseller editörde sizin kontrolünüzde.</p>
               </div>
               <Button variant="ghost" onClick={onBack} className="w-fit text-xs text-[#77746f]">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Tanıtıma dön
@@ -132,7 +132,7 @@ export function SiteStartFlow({ eventTitle, stage, onBack, onContinue, onChooseT
                     <h2 className="font-serif text-lg">{template.name}</h2>
                     <p className="mt-1 min-h-10 text-xs leading-5 text-[#77746f]">{template.tagline}</p>
                     <Button onClick={() => onChooseTemplate(template)} className="mt-3 h-9 w-full rounded-xl bg-[#172033] text-xs text-white hover:bg-[#25314a]">
-                      <Plus className="mr-2 h-3.5 w-3.5" /> Bu tasarımla başla
+                      <Plus className="mr-2 h-3.5 w-3.5" /> Bu yapıyla editöre geç
                     </Button>
                   </div>
                 </motion.article>

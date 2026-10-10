@@ -9,22 +9,14 @@ const nextConfig = {
   // Renamed from experimental.serverComponentsExternalPackages in Next 15
   serverExternalPackages: ['mongodb', 'twilio', 'resend', 'bcryptjs', 'jose'],
   experimental: {
-    // Lower dev-server memory footprint so the 512MB watchdog does not restart on every route compile
     webpackMemoryOptimizations: true,
+    preloadEntriesOnStart: false,
   },
   webpack(config, { dev, isServer }) {
     if (isServer) {
       config.resolve.alias['konva$'] = require.resolve('konva/lib/index.js')
     }
-    if (dev) {
-      // Reduce CPU/memory from file watching
-      config.watchOptions = {
-        poll: 2000, // check every 2 seconds
-        aggregateTimeout: 300, // wait before rebuilding
-        ignored: ['**/node_modules'],
-      };
-    }
-    return config;
+    return config
   },
   turbopack: {},
   onDemandEntries: {

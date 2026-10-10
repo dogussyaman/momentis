@@ -1,5 +1,5 @@
-import { ProjectsList } from '@/components/dashboard/projects-list'
+import { DashboardHome } from '@/components/dashboard/dashboard-home'
 
 export default function PanelPage() {
-  return <ProjectsList />
+  return <DashboardHome />
 }

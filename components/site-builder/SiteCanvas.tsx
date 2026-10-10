@@ -481,6 +481,7 @@ export function SiteCanvas() {
       <div
         id="site-start"
         data-site-root
+        data-template-id={site.templateId}
         className="sb-root sb-editor-canvas relative flex min-h-full w-full flex-col bg-white"
         onPointerDown={handleOverlayPointerDown}
         onPointerMove={handleOverlayPointerMove}

@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowDown, AudioLines, Heart, Pause, Play, Volume2 } from 'lucide-react'
 import { SITE_AUDIO_LIBRARY } from '@/lib/site-builder/media'
 import type { WeddingSite } from '@/lib/site-builder/schema'
 import { sectionRegistry } from './sections'
-import { SiteRenderProvider, useSiteRender } from './render/primitives'
+import { SiteRenderProvider, useSiteRender, type RenderMode } from './render/primitives'
 import { loadGoogleFonts } from '@/lib/site-builder/fonts'
 import { getSiteRootStyle } from '@/lib/site-builder/render-style'
 import { SECTION_DEFINITIONS } from '@/lib/site-builder/definitions'
@@ -78,6 +79,18 @@ export function SiteNavigation({ site }: { site: WeddingSite }) {
   }
 
   if (navStyle === 'floating') {
+    if (site.templateId === 'portfolio') {
+      return (
+        <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-4 z-40 mx-auto -mb-16 w-fit max-w-[calc(100%-1.5rem)]">
+          <div className={`flex min-h-12 max-w-full items-center gap-1 rounded-full border border-current/10 px-1.5 shadow-sm backdrop-blur-2xl transition-colors duration-300 ${scrolled ? 'bg-[color-mix(in_srgb,var(--sb-bg)_94%,transparent)]' : 'bg-[color-mix(in_srgb,var(--sb-bg)_82%,transparent)]'}`}>
+            {brand}
+            <div className="sb-no-scrollbar hidden max-w-[min(44vw,32rem)] items-center gap-0.5 overflow-x-auto sm:flex">{linkEls}</div>
+            {cta}
+          </div>
+        </nav>
+      )
+    }
+
     return (
       <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-3 z-40 mx-auto -mb-16 w-[calc(100%-1.5rem)] max-w-5xl">
         <div className={`flex min-h-14 items-center justify-between gap-3 rounded-full border border-current/10 px-3 pl-4 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-colors duration-300 ${scrolled ? 'bg-[color-mix(in_srgb,var(--sb-bg)_92%,transparent)]' : 'bg-[color-mix(in_srgb,var(--sb-bg)_70%,transparent)]'}`}>
@@ -111,7 +124,7 @@ export function SiteNavigation({ site }: { site: WeddingSite }) {
   )
 }
 
-export function SiteViewer({ site, mode = 'live', viewportHeight, textScale = 100 }: { site: WeddingSite; mode?: 'live' | 'preview'; viewportHeight?: number; textScale?: number }) {
+export function SiteViewer({ site, mode = 'live', viewportHeight, textScale = 100 }: { site: WeddingSite; mode?: RenderMode; viewportHeight?: number; textScale?: number }) {
   useEffect(() => {
     loadGoogleFonts([site.theme.headingFont, site.theme.bodyFont, site.theme.scriptFont])
   }, [site.theme.headingFont, site.theme.bodyFont, site.theme.scriptFont])
@@ -172,9 +185,11 @@ export function SiteViewer({ site, mode = 'live', viewportHeight, textScale = 10
       <div 
         id="site-start"
         data-site-root
+        data-template-id={site.templateId}
         className={`sb-root relative flex w-full flex-col ${viewportHeight ? '' : 'min-h-screen'}`}
         style={getSiteRootStyle(site, textScale, viewportHeight)}
       >
+        {mode !== 'editor' && site.settings.envelopeEnabled && <EnvelopeIntro site={site} />}
         {site.settings.showNavbar !== false && <SiteNavigation site={site} />}
         {site.sections.filter(s => s.visible).map((section) => {
           const Component = sectionRegistry[section.type]?.component
@@ -192,7 +207,65 @@ export function SiteViewer({ site, mode = 'live', viewportHeight, textScale = 10
   )
 }
 
-function SiteMusicPlayer({ site, mode }: { site: WeddingSite; mode: 'live' | 'preview' }) {
+function EnvelopeIntro({ site }: { site: WeddingSite }) {
+  const [open, setOpen] = useState(true)
+  const [opening, setOpening] = useState(false)
+  const coupleSection = site.sections.find((section) => section.type === 'couple')
+  const names = [coupleSection?.props.brideName, coupleSection?.props.groomName, site.settings.brideName, site.settings.groomName]
+    .filter((name): name is string => Boolean(name && !name.includes('{{')))
+    .slice(0, 2)
+    .join(' & ') || (site.title.includes('{{') ? 'Gelin & Damat' : site.title)
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Düğün davetiyesi"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: opening ? 0 : 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.55, ease: 'easeInOut' }}
+          onAnimationComplete={() => { if (opening) setOpen(false) }}
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[#302621] px-5 py-10 text-[#3b302c]"
+          style={{ backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(215,183,122,.22), transparent 55%)' }}
+        >
+          <motion.div
+            animate={opening ? { y: -18, scale: 0.97 } : { y: 0, scale: 1 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-[#e8d9c2] bg-[#fbf8f3] px-8 py-12 text-center shadow-[0_36px_120px_-38px_rgba(0,0,0,.7)] sm:px-14"
+          >
+            <div className="pointer-events-none absolute inset-3 rounded-[1.5rem] border border-[#ad8059]/25" />
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#ad8059]/30 text-[#ad8059]">
+              <Heart className="h-5 w-5" strokeWidth={1.25} />
+            </span>
+            <p className="mt-7 text-[10px] font-medium uppercase tracking-[0.28em] text-[#927355]">Bir davetiniz var</p>
+            <h1 className="mt-3 font-serif text-3xl leading-tight sm:text-4xl">{names}</h1>
+            <p className="mx-auto mt-4 max-w-xs text-sm leading-6 text-[#776c64]">Bu özel günü bizimle paylaşmanız dileğiyle…</p>
+            <div className="relative mx-auto mt-9 h-24 w-40">
+              <div className="absolute inset-0 rounded-lg border border-[#c6a87e] bg-[#f2e8d8] shadow-md" />
+              <div className="absolute inset-x-0 top-0 h-1/2 origin-top border-x border-b border-[#c6a87e] bg-[#e9dcc8]" style={{ clipPath: 'polygon(0 0, 100% 0, 50% 100%)' }} />
+              <span className="absolute left-1/2 top-[42%] flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full bg-[#ad8059] text-white shadow-sm">
+                <Heart className="h-4 w-4" fill="currentColor" strokeWidth={1.25} />
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpening(true)}
+              disabled={opening}
+              className="mt-8 inline-flex h-11 items-center justify-center rounded-full bg-[#3b302c] px-7 text-[10px] font-medium uppercase tracking-[0.18em] text-white transition hover:bg-[#56443a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ad8059] focus-visible:ring-offset-2 disabled:opacity-70"
+            >
+              Davetiyeyi aç
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function SiteMusicPlayer({ site, mode }: { site: WeddingSite; mode: RenderMode }) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState(false)
   const [playbackError, setPlaybackError] = useState('')
