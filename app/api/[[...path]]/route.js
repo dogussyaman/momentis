@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { getTemplateById } from '@/lib/site-builder/template-registry'
 import { TEMPLATES } from '@/lib/data/templates'
 import { PACKAGES } from '@/lib/data/packages'
 import { EVENT_TYPES, TEMPLATE_STYLES } from '@/lib/data/events'
@@ -62,6 +63,31 @@ async function handleRoute(request, { params }) {
   const method = request.method
 
   try {
+    if (path[0] === 'templates' && path.length === 2 && method === 'GET' && path[1].startsWith('sb-')) {
+      const templateId = path[1].slice(3)
+      const template = getTemplateById(templateId)
+      if (!template) {
+        return handleCORS(NextResponse.json({ error: 'Tasarım bulunamadı' }, { status: 404 }))
+      }
+
+      return handleCORS(NextResponse.json({
+        id: `tpl-${path[1]}`,
+        slug: path[1],
+        name: template.name,
+        tagline: template.tagline,
+        description: template.tagline,
+        cover: template.preview,
+        palette: {
+          bg: template.theme.backgroundColor,
+          accent: template.theme.accentColor,
+          text: template.theme.textColor,
+          muted: template.theme.mutedColor,
+        },
+        layout: 'site',
+        tags: ['web sitesi', template.id],
+      }))
+    }
+
     const db = await connectToMongo()
 
     // Auth / projects / public modules
@@ -124,9 +150,6 @@ async function handleRoute(request, { params }) {
 
     // GET /api/templates/:slug
     if (path[0] === 'templates' && path.length === 2 && method === 'GET') {
-      if (path[1].startsWith('sb-') && path[1] !== 'sb-portfolio') {
-        return handleCORS(NextResponse.json({ error: 'Tasarım bulunamadı' }, { status: 404 }))
-      }
       await ensureTemplatesSeeded(db)
       const item = await db.collection('templates').findOne({ slug: path[1] }, { projection: { _id: 0 } })
       if (!item) {

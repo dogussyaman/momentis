@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { createStarterSite, normalizeSiteForEditor } from './normalize-site'
+import { buildSiteFromTemplate, TEMPLATES } from './templates'
 
 test('createStarterSite returns a valid default site', () => {
   const site = createStarterSite({ title: 'Özel Düğün' })
@@ -63,4 +64,20 @@ test('normalizeSiteForEditor hydrates saved project site data without losing def
   assert.equal(normalized.settings.showCountdown, false)
   assert.equal(normalized.sections[0].props.title, 'Merhaba')
   assert.equal(normalized.sections[0].visible, true)
+})
+
+test('the template catalog includes 20 additional designs with the shared wedding-site features', () => {
+  const addedTemplates = TEMPLATES.filter((template) => template.id !== 'portfolio')
+  const requiredSections = ['hero', 'couple', 'story', 'gallery', 'countdown', 'event', 'schedule', 'rsvp', 'guestbook', 'album', 'share', 'footer']
+
+  assert.equal(addedTemplates.length, 20)
+  assert.equal(new Set(TEMPLATES.map((template) => template.id)).size, TEMPLATES.length)
+
+  for (const template of addedTemplates) {
+    const site = buildSiteFromTemplate(template.id)
+    const sectionTypes = new Set(site.sections.map((section) => section.type))
+
+    assert.equal(site.templateId, template.id)
+    for (const sectionType of requiredSections) assert.ok(sectionTypes.has(sectionType), `${template.id} is missing ${sectionType}`)
+  }
 })
