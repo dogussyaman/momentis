@@ -297,22 +297,25 @@ export function ProjectEditor() {
     if (missingField) { toast.error(`${missingField} zorunludur`); return }
     setSaving(true)
     try {
-      const selectedDeliverables = project?.deliverables
+      const selectedDeliverables = project?.deliverables || {}
+      const published = asDraft ? false : (project?.published ?? true)
       const body = { 
         ...form, 
         event_type: project?.event_type || form.event_type,
         event_data: eventData || null,
-        published: asDraft ? false : project?.published ?? true,
-        ...(selectedDeliverables ? { deliverables: {
+        published,
+        deliverables: {
           site: {
-            ...selectedDeliverables.site,
-            status: asDraft || !isManual ? 'draft' : selectedDeliverables.site.status,
+            ...(selectedDeliverables.site || {}),
+            enabled: Boolean(form.site_data || selectedDeliverables.site?.enabled || false),
+            status: asDraft ? 'draft' : (published ? 'published' : 'draft'),
           },
           invitation: {
-            ...selectedDeliverables.invitation,
-            status: asDraft || isManual ? 'draft' : selectedDeliverables.invitation.status,
+            ...(selectedDeliverables.invitation || {}),
+            enabled: Boolean((isManual ? canvasDesign : form.canvas_design) || selectedDeliverables.invitation?.enabled || false),
+            status: asDraft ? 'draft' : (published ? 'published' : 'draft'),
           },
-        } } : {}),
+        },
         host_a: form.host_a,
         date: form.date,
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
@@ -346,16 +349,25 @@ export function ProjectEditor() {
     if (missingField) { toast.error(`${missingField} zorunludur`); return }
     setSaving(true)
     try {
-      const selectedDeliverables = project?.deliverables
+      const selectedDeliverables = project?.deliverables || {}
+      const published = asDraft ? false : (project?.published ?? true)
       const body = { 
         ...form, 
         event_type: project?.event_type || form.event_type,
         event_data: eventData || null,
-        published: asDraft ? false : project?.published ?? true,
-        ...(selectedDeliverables ? { deliverables: {
-          site: { ...selectedDeliverables.site, status: 'draft' },
-          invitation: { ...selectedDeliverables.invitation, ...(asDraft ? { status: 'draft' } : {}) },
-        } } : {}),
+        published,
+        deliverables: {
+          site: {
+            ...(selectedDeliverables.site || {}),
+            enabled: Boolean(siteData || selectedDeliverables.site?.enabled || false),
+            status: asDraft ? 'draft' : (published ? 'published' : 'draft'),
+          },
+          invitation: {
+            ...(selectedDeliverables.invitation || {}),
+            enabled: Boolean(selectedDeliverables.invitation?.enabled || form.canvas_design || canvasDesign || false),
+            status: asDraft ? 'draft' : (published ? 'published' : 'draft'),
+          },
+        },
         host_a: form.host_a,
         date: form.date,
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,

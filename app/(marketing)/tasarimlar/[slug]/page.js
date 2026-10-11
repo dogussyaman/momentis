@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { InvitationPreview } from '@/components/shared/invitation-preview'
 import { TemplateCard } from '@/components/templates/template-card'
+import { TemplateTierBadge } from '@/components/templates/template-tier-badge'
+import { TemplateStartButton } from '@/components/templates/template-start-button'
 import { Reveal } from '@/components/shared/reveal'
 import { TEMPLATES, getTemplateBySlug } from '@/lib/data/templates'
 import { getEventType, getStyle } from '@/lib/data/events'
@@ -69,11 +71,7 @@ export default async function TemplateDetailPage({ params }) {
               <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{isWebsite ? 'Web Sitesi' : 'Davetiye'}</Badge>
               <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{category?.label}</Badge>
               <Badge variant="outline" className="rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.2em]">{style?.label}</Badge>
-              {template.tier === 'premium' ? (
-                <Badge className="rounded-full border-0 bg-champagne text-[10px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne">Premium</Badge>
-              ) : (
-                <Badge className="rounded-full border-0 bg-midnight text-[10px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight">Ücretsiz</Badge>
-              )}
+              <TemplateTierBadge type={isWebsite ? 'website' : 'invitation'} templateKey={isWebsite ? template.slug.slice(3) : template.slug} />
             </div>
             <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-midnight md:text-6xl" data-testid="template-name">{template.name}</h1>
             <p className="mt-3 font-serif text-xl italic text-champagne-dark">{template.tagline}</p>
@@ -101,9 +99,7 @@ export default async function TemplateDetailPage({ params }) {
             </div>
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="group h-14 flex-1 rounded-2xl bg-midnight text-[12px] uppercase tracking-[0.2em] text-ivory hover:bg-midnight-700">
-                <Link href={`/kayit?tasarim=${template.slug}`} data-testid="start-with-template">Bu Tasarımla Başla <ArrowRight className="ml-3 h-4 w-4 transition-transform duration-500 group-hover:translate-x-1" /></Link>
-              </Button>
+              <TemplateStartButton templateKey={template.slug} isWebsite={isWebsite} />
               {isWebsite && (
                 <Button asChild size="lg" variant="outline" className="h-14 flex-1 rounded-2xl border-midnight/30 bg-white text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-midnight/5">
                   <a href={`/preview?template=${template.slug}`} target="_blank" rel="noopener noreferrer">Demo İncele</a>

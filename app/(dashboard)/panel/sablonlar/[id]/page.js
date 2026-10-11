@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Eye } from 'lucide-react'
 import { TEMPLATES } from '@/lib/site-builder/templates'
+import { TemplateTierBadge } from '@/components/templates/template-tier-badge'
 
 export function generateStaticParams() {
   return TEMPLATES.map((template) => ({ id: template.id }))
@@ -31,6 +32,7 @@ export default async function SiteTemplatePreviewPage({ params }) {
           </Link>
           <p className="mt-6 font-serif text-3xl text-midnight sm:text-4xl">{template.name}</p>
           <p className="mt-1.5 text-sm text-muted-foreground">{template.tagline}</p>
+          <TemplateTierBadge type="website" templateKey={template.id} />
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-champagne-dark/20 bg-champagne/10 px-3.5 py-2 text-[10px] font-medium uppercase tracking-[0.16em] text-midnight/70">
           <Eye className="h-3.5 w-3.5 text-champagne-dark" /> Salt okunur örnek

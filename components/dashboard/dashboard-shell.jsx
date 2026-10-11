@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, CalendarDays, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -12,6 +12,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { canManageSuperAdmin } from '@/lib/admin/authorization'
 
 const NAV_GROUPS = [
   {
@@ -43,9 +44,37 @@ const NAV_GROUPS = [
       { href: '/panel/gonderim-testi', label: 'Gönderim Testi', icon: Send },
     ],
   },
+  {
+    label: 'Yönetim',
+    adminOnly: true,
+    items: [
+      { href: '/panel/admin', label: 'Admin Paneli', icon: ShieldCheck },
+    ],
+  },
+]
+
+const ADMIN_NAV_GROUPS = [
+  {
+    label: 'Yönetim',
+    items: [
+      { href: '/panel/admin', label: 'Yönetim Özeti', icon: ShieldCheck, exact: true },
+      { href: '/panel/admin/templates', label: 'Şablon Yönetimi', icon: PanelsTopLeft },
+      { href: '/panel/admin/users', label: 'Kullanıcılar ve Kotalar', icon: User },
+    ],
+  },
+  {
+    label: 'Uygulama',
+    items: [
+      { href: '/panel', label: 'Kullanıcı Paneline Dön', icon: LayoutDashboard, exact: true },
+    ],
+  },
 ]
 
 function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed }) {
+  const isAdmin = ['super_admin', 'admin', 'support'].includes(user?.role)
+  const navGroups = isAdmin
+    ? ADMIN_NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => item.href !== '/panel/admin/users' || canManageSuperAdmin(user)) }))
+    : NAV_GROUPS.filter((group) => !group.adminOnly)
   return (
     <TooltipProvider delayDuration={100}>
       <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-midnight via-midnight to-midnight-700">
@@ -76,7 +105,7 @@ function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed }) {
         </div>
         
         <nav className={cn("sb-no-scrollbar relative min-h-0 flex-1 space-y-7 overflow-y-auto overflow-x-hidden py-7 transition-all duration-300", isCollapsed ? "px-3" : "px-4")}>
-          {NAV_GROUPS.map((group) => (
+          {navGroups.map((group) => (
             <div key={group.label} className={cn(isCollapsed && "flex flex-col items-center space-y-2")}>
               <AnimatePresence initial={false}>
                 {!isCollapsed && (

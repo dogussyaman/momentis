@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSiteEditorStore } from '@/store/site-editor-store'
 import { TEMPLATES } from '@/lib/site-builder/templates'
 import { Check, Search } from 'lucide-react'
@@ -10,13 +10,40 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { SiteTemplate } from '@/lib/site-builder/templates'
+import { Badge } from '@/components/ui/badge'
 
 export function TemplatesPanel({ eventData }: { eventData?: Record<string, any> }) {
   const { site, loadTemplate } = useSiteEditorStore()
   const activeTemplateId = site?.templateId
   const [query, setQuery] = useState('')
   const [pendingTemplate, setPendingTemplate] = useState<SiteTemplate | null>(null)
+  const [templateTiers, setTemplateTiers] = useState<Record<string, string>>({})
+  const [availableTemplateIds, setAvailableTemplateIds] = useState<string[]>([])
+  const [tierError, setTierError] = useState('')
+  const [tiersLoaded, setTiersLoaded] = useState(false)
+  useEffect(() => {
+    let active = true
+    fetch('/api/templates?type=website', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || 'Şablon paket bilgileri alınamadı')
+        if (active) {
+          setTemplateTiers(Object.fromEntries((data.items || []).map((item: { id: string; tier: string }) => [item.id.slice(3), item.tier])))
+          setAvailableTemplateIds((data.items || []).map((item: { id: string }) => item.id.slice(3)))
+          setTiersLoaded(true)
+        }
+      })
+      .catch((error: Error) => {
+        if (active) {
+          setTierError(error.message)
+          setAvailableTemplateIds([])
+          setTiersLoaded(true)
+        }
+      })
+    return () => { active = false }
+  }, [])
   const templates = TEMPLATES.filter((template) =>
+    availableTemplateIds.includes(template.id) &&
     `${template.name} ${template.tagline}`.toLocaleLowerCase('tr').includes(query.trim().toLocaleLowerCase('tr'))
   )
 
@@ -85,6 +112,12 @@ export function TemplatesPanel({ eventData }: { eventData?: Record<string, any> 
                         <h4 className="text-sm font-semibold text-midnight">{tpl.name}</h4>
                         <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">{tpl.tagline}</p>
                       </div>
+                      <Badge
+                        variant={tiersLoaded && !tierError ? 'default' : 'outline'}
+                        className={templateTiers[tpl.id] === 'premium' ? 'shrink-0 bg-champagne text-midnight hover:bg-champagne' : 'shrink-0 bg-midnight/5 text-midnight hover:bg-midnight/5'}
+                      >
+                        {!tiersLoaded ? 'Yükleniyor' : tierError ? 'Paket bilgisi yok' : templateTiers[tpl.id] === 'premium' ? 'Premium' : 'Free'}
+                      </Badge>
                     </div>
 
                     <div className="mt-3 flex items-center gap-1.5">
@@ -101,11 +134,12 @@ export function TemplatesPanel({ eventData }: { eventData?: Record<string, any> 
 
         {!templates.length && (
           <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-xl border border-dashed border-[#ddd1c2] bg-[#faf7f2] p-5 text-center text-xs text-muted-foreground">
-            Şablon bulunamadı.
+            {tierError || (tiersLoaded ? 'Kullanılabilir şablon bulunmuyor.' : 'Şablonlar yükleniyor…')}
           </motion.p>
         )}
       </div>
 
+      {tierError && <p className="border-t px-4 py-2 text-[10px] text-destructive" role="alert">{tierError}</p>}
       <Dialog open={!!pendingTemplate} onOpenChange={(open) => !open && setPendingTemplate(null)}>
         <DialogContent className="rounded-2xl border-0 bg-ivory">
           <DialogHeader>

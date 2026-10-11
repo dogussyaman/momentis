@@ -1,12 +1,30 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
-import { PACKAGES, formatPrice } from '@/lib/data/packages'
+import { formatPrice } from '@/lib/data/packages'
 import { cn } from '@/lib/utils'
 
 export function PricingSection({ showHeading = true }) {
+  const [packages, setPackages] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/packages', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || 'Paketler yüklenemedi')
+        if (active) setPackages(data.items || [])
+      })
+      .catch((loadError) => { if (active) setError(loadError.message) })
+    return () => { active = false }
+  }, [])
+
   return (
     <section className="bg-ivory py-28" data-testid="pricing">
       <div className="container">
@@ -18,8 +36,10 @@ export function PricingSection({ showHeading = true }) {
             description="Abonelik yok, gizli ücret yok. Etkinliğiniz için bir kez ödeyin; davetiyeniz 12 ay boyunca yayında kalsın."
           />
         )}
+        {error && <p className="mt-10 text-center text-sm text-destructive" role="alert">{error}</p>}
+        {!packages && !error && <p className="mt-10 text-center text-sm text-muted-foreground" role="status">Paketler yükleniyor…</p>}
         <div className="mt-16 grid gap-6 lg:grid-cols-3">
-          {PACKAGES.map((pkg, i) => (
+          {(packages || []).map((pkg, i) => (
             <Reveal key={pkg.id} delay={i * 0.1} className={cn('relative flex flex-col rounded-3xl border p-10 transition-shadow duration-500 hover:shadow-[0_34px_70px_-28px_rgba(16,24,39,0.3)]', pkg.highlighted ? 'border-champagne bg-midnight text-ivory lg:-translate-y-4' : 'border-border bg-ivory-50 text-midnight')} >
               {pkg.highlighted && (
                 <span className="absolute -top-3 left-10 rounded-full bg-champagne px-4 py-1 text-[10px] uppercase tracking-[0.24em] text-midnight">En çok tercih edilen</span>
@@ -44,6 +64,10 @@ export function PricingSection({ showHeading = true }) {
             </Reveal>
           ))}
         </div>
+        {packages?.length === 0 && <p className="mt-8 text-center text-sm text-muted-foreground">Şu anda satışa açık paket bulunmuyor.</p>}
+        <p className="mx-auto mt-8 max-w-4xl text-center text-xs leading-relaxed text-muted-foreground">
+          Davetiye dışa aktarma kotası, etkinlik başına 1 ayrı dışa aktarma isteğidir. Aynı istek anahtarıyla yapılan teknik tekrarlar yeniden sayılmaz; yeni istekler kota kullanır. Dosya türüne göre ayrı bir kota tanımlı değildir.
+        </p>
       </div>
     </section>
   )

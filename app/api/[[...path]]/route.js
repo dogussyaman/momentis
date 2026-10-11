@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from 'uuid'
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { getTemplateById } from '@/lib/site-builder/template-registry'
+import { getTemplateById, getTemplateCatalog } from '@/lib/site-builder/template-registry'
 import { TEMPLATES } from '@/lib/data/templates'
-import { PACKAGES } from '@/lib/data/packages'
+import { getPublicBillingPackages } from '@/lib/billing/package-settings'
+import { getTemplateAvailability, getTemplateTier, getTemplateTierOverrides } from '@/lib/billing/template-tiers'
 import { EVENT_TYPES, TEMPLATE_STYLES } from '@/lib/data/events'
 import { MESSAGE_TYPES, isValidEmail, toE164, buildContext } from '@/lib/messaging/shared'
 import { isEmailConfigured, getEmailSender, sendEmail, buildEmail } from '@/lib/messaging/email'
@@ -12,6 +13,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { handleAuthRoutes } from '@/lib/api/auth-routes'
 import { handleProjectRoutes, handlePublicRoutes } from '@/lib/api/project-routes'
 import { handleBillingRoutes } from '@/lib/api/billing-routes'
+import { handleAdminRoutes } from '@/lib/api/admin-routes'
 import { consumeQuota, getProjectPlan, getRequestKey, releaseQuota } from '@/lib/billing/usage'
 
 export const runtime = 'nodejs'
@@ -64,12 +66,15 @@ async function handleRoute(request, { params }) {
 
   try {
     if (path[0] === 'templates' && path.length === 2 && method === 'GET' && path[1].startsWith('sb-')) {
+      const db = await connectToMongo()
       const templateId = path[1].slice(3)
       const template = getTemplateById(templateId)
       if (!template) {
         return handleCORS(NextResponse.json({ error: 'Tasarım bulunamadı' }, { status: 404 }))
       }
 
+      const tier = await getTemplateTier(db, 'website', template.id, 'free')
+      const active = await getTemplateAvailability(db, 'website', template.id)
       return handleCORS(NextResponse.json({
         id: `tpl-${path[1]}`,
         slug: path[1],
@@ -84,17 +89,20 @@ async function handleRoute(request, { params }) {
           muted: template.theme.mutedColor,
         },
         layout: 'site',
+        tier,
+        active,
         tags: ['web sitesi', template.id],
-      }))
+      }, { headers: { 'Cache-Control': 'no-store' } }))
     }
 
     const db = await connectToMongo()
 
     // Auth / projects / public modules
     const user = await getCurrentUser(request, db)
-    const ctx = { db, route, path, method, request, user }
+    const siteTemplates = getTemplateCatalog()
+    const ctx = { db, route, path, method, request, user, siteTemplates }
     if (path[0] === 'projects' || path[0] === 'public') await ensureTemplatesSeeded(db)
-    const modular = (await handleAuthRoutes(ctx)) || (await handleBillingRoutes(ctx)) || (await handleProjectRoutes(ctx)) || (await handlePublicRoutes(ctx))
+    const modular = (await handleAdminRoutes(ctx)) || (await handleAuthRoutes(ctx)) || (await handleBillingRoutes(ctx)) || (await handleProjectRoutes({ ...ctx, siteTemplates })) || (await handlePublicRoutes(ctx))
     if (modular) return handleCORS(modular)
 
     // Health / root
@@ -109,13 +117,39 @@ async function handleRoute(request, { params }) {
 
     // GET /api/packages
     if (route === '/packages' && method === 'GET') {
-      return handleCORS(NextResponse.json({ items: PACKAGES }))
+      return handleCORS(NextResponse.json({ items: await getPublicBillingPackages(db) }, { headers: { 'Cache-Control': 'no-store' } }))
     }
 
     // GET /api/templates?category=&style=&tier=&q=&limit=
     if (route === '/templates' && method === 'GET') {
-      await ensureTemplatesSeeded(db)
       const url = new URL(request.url)
+      const requestedType = url.searchParams.get('type')
+      if (requestedType === 'website') {
+        const overrides = await getTemplateTierOverrides(db)
+        const settingsByTemplate = new Map(overrides.map((item) => [`${item.type}:${item.template_key}`, item]))
+        const items = siteTemplates.map((template) => ({
+          id: `sb-${template.id}`,
+          slug: `sb-${template.id}`,
+          name: template.name,
+          tagline: template.tagline,
+          description: template.tagline,
+          cover: template.preview,
+          palette: {
+            bg: template.theme.backgroundColor,
+            accent: template.theme.accentColor,
+            text: template.theme.textColor,
+            muted: template.theme.mutedColor,
+          },
+          layout: 'site',
+          category: 'dugun',
+          style: 'modern',
+          tier: settingsByTemplate.get(`website:${template.id}`)?.tier || 'free',
+          active: settingsByTemplate.get(`website:${template.id}`)?.active !== false,
+          tags: ['web sitesi', template.id],
+        })).filter((template) => template.active)
+        return handleCORS(NextResponse.json({ items, total: items.length }, { headers: { 'Cache-Control': 'no-store' } }))
+      }
+      await ensureTemplatesSeeded(db)
       const category = url.searchParams.get('category')
       const style = url.searchParams.get('style')
       const tier = url.searchParams.get('tier')
@@ -125,7 +159,6 @@ async function handleRoute(request, { params }) {
       const filter = {}
       if (category && category !== 'all') filter.category = category
       if (style && style !== 'all') filter.style = style
-      if (tier && tier !== 'all') filter.tier = tier
       filter.$and = [
         {
           $or: [
@@ -139,13 +172,28 @@ async function handleRoute(request, { params }) {
         filter.$and.push({ $or: [{ name: rx }, { tagline: rx }, { description: rx }, { tags: rx }] })
       }
 
-      const items = await db.collection('templates')
+      const storedItems = await db.collection('templates')
         .find(filter, { projection: { _id: 0 } })
         .sort({ popularity: -1 })
-        .limit(limit)
+        .limit(100)
         .toArray()
+      const overrides = await getTemplateTierOverrides(db)
+      const settingsByTemplate = new Map(overrides.map((item) => [`${item.type}:${item.template_key}`, item]))
+      const items = storedItems
+        .map((template) => ({
+          ...template,
+          tier: (template.tags || []).includes('web sitesi') && template.slug.startsWith('sb-')
+            ? settingsByTemplate.get(`website:${template.slug.slice(3)}`)?.tier || template.tier || 'free'
+            : settingsByTemplate.get(`invitation:${template.slug}`)?.tier || template.tier || 'free',
+          active: (template.tags || []).includes('web sitesi') && template.slug.startsWith('sb-')
+            ? settingsByTemplate.get(`website:${template.slug.slice(3)}`)?.active !== false
+            : settingsByTemplate.get(`invitation:${template.slug}`)?.active !== false,
+        }))
+        .filter((template) => template.active)
+        .filter((template) => !tier || tier === 'all' || template.tier === tier)
+        .slice(0, limit)
 
-      return handleCORS(NextResponse.json({ items, total: items.length }))
+      return handleCORS(NextResponse.json({ items, total: items.length }, { headers: { 'Cache-Control': 'no-store' } }))
     }
 
     // GET /api/templates/:slug
@@ -155,7 +203,9 @@ async function handleRoute(request, { params }) {
       if (!item) {
         return handleCORS(NextResponse.json({ error: 'Tasarım bulunamadı' }, { status: 404 }))
       }
-      return handleCORS(NextResponse.json(item))
+      const tier = await getTemplateTier(db, 'invitation', item.slug, item.tier || 'free')
+      const active = await getTemplateAvailability(db, 'invitation', item.slug)
+      return handleCORS(NextResponse.json({ ...item, tier, active }, { headers: { 'Cache-Control': 'no-store' } }))
     }
 
     // POST /api/leads  { email, source }
@@ -204,7 +254,7 @@ async function handleRoute(request, { params }) {
       const url = new URL(request.url)
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10) || 20, 100)
       const channel = url.searchParams.get('channel')
-      const filter = { ...(user.role === 'admin' ? {} : { user_id: user.id }), ...(channel && channel !== 'all' ? { channel } : {}) }
+      const filter = { ...(['admin', 'super_admin'].includes(user.role) ? {} : { user_id: user.id }), ...(channel && channel !== 'all' ? { channel } : {}) }
       const items = await db.collection('message_logs')
         .find(filter, { projection: { _id: 0 } })
         .sort({ created_at: -1 })

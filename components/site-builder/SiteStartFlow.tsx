@@ -1,8 +1,10 @@
 'use client'
 
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Check, Eye, Layers3, MousePointer2, Palette, PanelsTopLeft, Plus, Sparkles, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { TEMPLATES, type SiteTemplate } from '@/lib/site-builder/templates'
 
 interface SiteStartFlowProps {
@@ -21,6 +23,31 @@ const editorTools = [
 ]
 
 export function SiteStartFlow({ eventTitle, stage, onBack, onContinue, onChooseTemplate }: SiteStartFlowProps) {
+  const [templateTiers, setTemplateTiers] = useState<Record<string, string>>({})
+  const [availableTemplateIds, setAvailableTemplateIds] = useState<string[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(true)
+  const [templatesError, setTemplatesError] = useState('')
+
+  const loadTemplates = useCallback(async () => {
+    setTemplatesLoading(true)
+    setTemplatesError('')
+    try {
+      const response = await fetch('/api/templates?type=website', { cache: 'no-store' })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Site şablonları yüklenemedi')
+      const items: { id: string; tier: string }[] = data.items || []
+      setTemplateTiers(Object.fromEntries(items.map((item) => [item.id.slice(3), item.tier])))
+      setAvailableTemplateIds(items.map((item) => item.id.slice(3)))
+    } catch (error) {
+      setTemplatesError(error instanceof Error ? error.message : 'Site şablonları yüklenemedi')
+      setAvailableTemplateIds([])
+    } finally {
+      setTemplatesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadTemplates() }, [loadTemplates])
+
   return (
     <div className="min-h-dvh overflow-y-auto bg-[#f7f4ee] px-5 py-8 text-[#172033] sm:px-8 sm:py-12">
       <div className="mx-auto w-full max-w-6xl">
@@ -110,8 +137,18 @@ export function SiteStartFlow({ eventTitle, stage, onBack, onContinue, onChooseT
               </Button>
             </div>
 
+            {templatesLoading ? (
+              <p role="status" className="rounded-2xl border border-[#e5ded2] bg-white p-6 text-sm text-[#77746f]">Kullanılabilir site şablonları yükleniyor…</p>
+            ) : templatesError ? (
+              <div className="rounded-2xl border border-red-200 bg-white p-6" role="alert">
+                <p className="text-sm text-red-700">{templatesError}</p>
+                <Button variant="outline" onClick={loadTemplates} className="mt-4">Tekrar dene</Button>
+              </div>
+            ) : availableTemplateIds.length === 0 ? (
+              <p className="rounded-2xl border border-[#e5ded2] bg-white p-6 text-sm text-[#77746f]">Şu anda seçilebilir site şablonu bulunmuyor.</p>
+            ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATES.map((template, index) => (
+              {TEMPLATES.filter((template) => availableTemplateIds.includes(template.id)).map((template, index) => (
                 <motion.article
                   key={template.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -122,6 +159,9 @@ export function SiteStartFlow({ eventTitle, stage, onBack, onContinue, onChooseT
                   <div className="relative h-44 overflow-hidden bg-[#eee9df]">
                     <img src={template.preview} alt={`${template.name} davet sitesi şablonu`} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#172033]/35 to-transparent" />
+                    <Badge variant="outline" className={`absolute right-3 top-3 shadow-sm ${templateTiers[template.id] === 'premium' ? 'border-0 bg-[#ead9b6] text-[#172033] hover:bg-[#ead9b6]' : 'border border-white/80 bg-white text-[#172033] hover:bg-white'}`}>
+                      {templateTiers[template.id] === 'premium' ? 'Premium' : 'Free'}
+                    </Badge>
                     <div className="absolute bottom-3 left-3 flex items-center gap-1.5" aria-label={`${template.name} renk paleti`}>
                       {template.swatches.map((color, colorIndex) => (
                         <span key={`${template.id}-${colorIndex}`} className="h-4 w-4 rounded-full border border-white/80 shadow-sm" style={{ backgroundColor: color }} />
@@ -138,6 +178,7 @@ export function SiteStartFlow({ eventTitle, stage, onBack, onContinue, onChooseT
                 </motion.article>
               ))}
             </div>
+            )}
           </motion.main>
         )}
       </div>

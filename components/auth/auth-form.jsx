@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from './auth-provider'
+import { getPostLoginDestination } from '@/lib/admin/authorization'
 
 const inputCls = 'h-11 rounded-xl border-border/80 bg-ivory-50/70 px-4 focus-visible:border-champagne-dark focus-visible:ring-2 focus-visible:ring-champagne/25'
 
@@ -41,14 +42,16 @@ export function AuthForm({ mode = 'login' }) {
     return p.toString()
   }
 
-  const destination = () => {
+  const destination = (user) => {
     const next = searchParams.get('next')
+    let requested
     if (next) {
       const target = new URL(next, window.location.origin)
-      if (target.origin === window.location.origin) return `${target.pathname}${target.search}${target.hash}`
+      if (target.origin === window.location.origin) requested = `${target.pathname}${target.search}${target.hash}`
     }
     const q = nextParams()
-    return isLogin && !q ? '/panel' : `/panel/yeni${q ? `?${q}` : ''}`
+    requested ||= isLogin && !q ? '/panel' : `/panel/yeni${q ? `?${q}` : ''}`
+    return getPostLoginDestination(user, requested)
   }
 
   const onSubmit = async (e) => {
@@ -64,7 +67,7 @@ export function AuthForm({ mode = 'login' }) {
       if (!res.ok) throw new Error(data?.error || 'Bir hata oluştu')
       setUser(data.user)
       toast.success(isLogin ? 'Tekrar hoş geldiniz!' : 'Hesabınız oluşturuldu.')
-      router.replace(destination())
+      router.replace(destination(data.user))
     } catch (err) {
       setError(err.message)
     } finally {

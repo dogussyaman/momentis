@@ -43,6 +43,7 @@ export function NewProjectWizard() {
   const [step, setStep] = useState(1)
   const [openingEditor, setOpeningEditor] = useState(null)
   const [billingSnapshot, setBillingSnapshot] = useState(null)
+  const [availablePackageIds, setAvailablePackageIds] = useState(null)
   const [billingError, setBillingError] = useState('')
   const [lockedDeliverables, setLockedDeliverables] = useState(null)
   const [busyPackage, setBusyPackage] = useState('')
@@ -62,11 +63,21 @@ export function NewProjectWizard() {
 
   useEffect(() => {
     let active = true
-    fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json().catch(() => ({}))
+    Promise.all([
+      fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' }),
+      fetch('/api/packages', { cache: 'no-store' }),
+    ])
+      .then(async ([response, packageResponse]) => {
+        const [data, packageData] = await Promise.all([
+          response.json().catch(() => ({})),
+          packageResponse.json().catch(() => ({})),
+        ])
         if (!response.ok) throw new Error(data.error || 'Paket hakları alınamadı')
-        if (active) setBillingSnapshot(data)
+        if (!packageResponse.ok) throw new Error(packageData.error || 'Paket kataloğu alınamadı')
+        if (active) {
+          setBillingSnapshot(data)
+          setAvailablePackageIds((packageData.items || []).map((plan) => plan.id))
+        }
       })
       .catch((error) => { if (active) setBillingError(error.message) })
     return () => { active = false }
@@ -110,7 +121,7 @@ export function NewProjectWizard() {
       .filter((grant) => grant.package_id === packageId)
       .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0)
     const projectAvailable = packageId === 'baslangic'
-      ? (snapshot.usage.free_projects || 0) < snapshot.quotas.freeProjects
+      ? availablePackageIds?.includes(packageId) && (snapshot.usage.free_projects || 0) < snapshot.quotas.freeProjects
       : credits > 0 && snapshot.usage.projects < snapshot.quotas.projects
     const siteAvailable = !deliverables.site || (
       packageId === 'baslangic'
@@ -381,6 +392,7 @@ export function NewProjectWizard() {
             {billingError && <p role="alert" className="mb-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{billingError}</p>}
             {!billingSnapshot && !billingError && <p role="status" className="mb-4 text-center text-sm text-muted-foreground">Paket hakları yükleniyor…</p>}
             {billingSnapshot && !BILLING_PLANS[selectedPackage] && <p role="alert" className="mb-4 text-center text-sm text-destructive">Bilinmeyen paket seçimi. Lütfen paket ekranından yeniden başlayın.</p>}
+            {billingSnapshot && selectedPackage === 'baslangic' && !availablePackageIds?.includes('baslangic') && <p role="alert" className="mb-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">Başlangıç paketi yeni etkinlikler için şu anda kullanılamıyor.</p>}
 
             {billingSnapshot && (
                <section className="mb-6 rounded-3xl border border-border bg-white p-5 sm:p-6" aria-labelledby="project-package-heading">
@@ -390,7 +402,7 @@ export function NewProjectWizard() {
                  </div>
                  <div className="grid gap-3 sm:grid-cols-3">
                    {Object.values(BILLING_PLANS)
-                     .filter((plan) => plan.id === 'baslangic' || billingSnapshot.grants.some((grant) => grant.package_id === plan.id))
+                     .filter((plan) => (plan.id === 'baslangic' && availablePackageIds?.includes(plan.id)) || billingSnapshot.grants.some((grant) => grant.package_id === plan.id))
                      .map((plan) => {
                        const credits = plan.id === 'baslangic'
                          ? null
@@ -468,7 +480,7 @@ export function NewProjectWizard() {
                 </DialogHeader>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {Object.values(BILLING_PLANS).filter((plan) => plan.price > 0).map((plan) => {
+                  {Object.values(BILLING_PLANS).filter((plan) => plan.price > 0 && (availablePackageIds?.includes(plan.id) || billingSnapshot?.grants.some((grant) => grant.package_id === plan.id))).map((plan) => {
                     const credits = billingSnapshot?.grants
                       .filter((grant) => grant.package_id === plan.id)
                       .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0) || 0
@@ -491,7 +503,7 @@ export function NewProjectWizard() {
                         <Button
                           type="button"
                           className="h-10 rounded-xl bg-[#172033] text-xs text-white hover:bg-[#25314a]"
-                          disabled={Boolean(busyPackage) || (!canUseCredit && !billingSnapshot?.mockPaymentAvailable)}
+                          disabled={Boolean(busyPackage) || (!canUseCredit && (!billingSnapshot?.mockPaymentAvailable || !availablePackageIds?.includes(plan.id)))}
                           onClick={() => {
                             if (canUseCredit) {
                               setSelectedPackage(plan.id)
@@ -503,7 +515,7 @@ export function NewProjectWizard() {
                             }
                           }}
                         >
-                          {isBusy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor</> : canUseCredit ? `${credits} krediyi kullan` : billingSnapshot?.mockPaymentAvailable ? 'Test satın alımı' : 'Ödeme kullanılamıyor'}
+                          {isBusy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> İşleniyor</> : canUseCredit ? `${credits} krediyi kullan` : availablePackageIds?.includes(plan.id) && billingSnapshot?.mockPaymentAvailable ? 'Test satın alımı' : 'Ödeme kullanılamıyor'}
                         </Button>
                       </article>
                     )

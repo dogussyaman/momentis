@@ -16,6 +16,7 @@ export function BillingDashboard() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [snapshot, setSnapshot] = useState(null)
+  const [availablePackages, setAvailablePackages] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyPackage, setBusyPackage] = useState('')
@@ -24,10 +25,18 @@ export function BillingDashboard() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' })
-      const data = await response.json().catch(() => ({}))
+      const [response, packageResponse] = await Promise.all([
+        fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/packages', { cache: 'no-store' }),
+      ])
+      const [data, packageData] = await Promise.all([
+        response.json().catch(() => ({})),
+        packageResponse.json().catch(() => ({})),
+      ])
       if (!response.ok) throw new Error(data.error || 'Paket bilgileri alınamadı')
+      if (!packageResponse.ok) throw new Error(packageData.error || 'Satışa açık paketler alınamadı')
       setSnapshot(data)
+      setAvailablePackages(packageData.items || [])
     } catch (loadError) {
       setError(loadError.message)
     } finally {
@@ -120,7 +129,7 @@ export function BillingDashboard() {
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
-        {Object.values(BILLING_PLANS).filter((plan) => plan.price > 0).map((plan) => (
+        {availablePackages.filter((plan) => plan.price > 0).map((plan) => (
           <article key={plan.id} className="flex flex-col rounded-3xl border border-border bg-white p-7 shadow-sm">
             <p className="text-xs uppercase tracking-[0.2em] text-champagne-dark">{plan.tagline}</p>
             <div className="mt-3 flex items-baseline gap-2">
@@ -140,6 +149,9 @@ export function BillingDashboard() {
           </article>
         ))}
       </section>
+      <p className="text-center text-xs leading-relaxed text-muted-foreground">
+        Davetiye dışa aktarma kotası, etkinlik başına 1 ayrı dışa aktarma isteğidir. Aynı istek anahtarıyla yapılan teknik tekrarlar yeniden sayılmaz; yeni istekler kota kullanır. Dosya türüne göre ayrı bir kota tanımlı değildir.
+      </p>
       <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <ShieldCheck className="h-4 w-4 shrink-0" />
         Mock ödeme yalnızca geliştirme ve test ortamlarında çalışır. Üretimde herhangi bir ödeme veya hak tanımlama yapılmaz.

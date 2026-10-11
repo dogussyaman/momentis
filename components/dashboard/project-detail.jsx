@@ -61,7 +61,18 @@ export function ProjectDetail() {
   }
 
   const togglePublish = async () => {
-    const res = await fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ published: !project.published }) })
+    const nextPublished = !project.published
+    const nextDeliverables = {
+      ...project.deliverables,
+      site: { ...(project.deliverables?.site || {}), enabled: Boolean(project.deliverables?.site?.enabled ?? Boolean(project.site_data)), status: nextPublished ? 'published' : 'draft' },
+      invitation: { ...(project.deliverables?.invitation || {}), enabled: Boolean(project.deliverables?.invitation?.enabled ?? Boolean(project.canvas_design)), status: nextPublished ? 'published' : 'draft' },
+    }
+    const res = await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ published: nextPublished, deliverables: nextDeliverables }),
+    })
     const data = await res.json().catch(() => ({}))
     if (res.ok) { setProject(data.project); setNormProject(normalizeEventProject(data.project)); toast.success(data.project.published ? 'Davetiye yayınlandı' : 'Davetiye yayından kaldırıldı') } else toast.error(data?.error || 'Hata')
   }
