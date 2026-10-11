@@ -1,10 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type, AudioLines } from 'lucide-react'
+import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type, AudioLines, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createStarterSite, normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
 import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
@@ -30,12 +30,19 @@ interface SiteEditorProps {
   saveButtonLabel?: string;
   showSwitchToCard?: boolean;
   autoSaveEnabled?: boolean;
+  onOpenHelp?: () => void;
+  canUsePremiumTemplates?: boolean;
 }
 
-export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, initialSite, eventData, saveButtonLabel, showSwitchToCard = true, autoSaveEnabled = true }: SiteEditorProps) {
+export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, initialSite, eventData, saveButtonLabel, showSwitchToCard = true, autoSaveEnabled = true, onOpenHelp, canUsePremiumTemplates = false }: SiteEditorProps) {
   const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
   const [previewTextScale, setPreviewTextScale] = useState(100);
+  const canvasViewportRef = useRef<HTMLDivElement>(null)
+  const canvasFrameRef = useRef<HTMLDivElement>(null)
+  const [canvasScale, setCanvasScale] = useState(1)
+  const [canvasFrameHeight, setCanvasFrameHeight] = useState(600)
+  const canvasWidth = device === 'mobile' ? 390 : device === 'tablet' ? 768 : 1200
 
   const handleSave = async () => {
     if (onSave && site) {
@@ -86,6 +93,24 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
     if (autoSaveEnabled && site) autosaveSite()
   }, [site, autoSaveEnabled]);
 
+  useEffect(() => {
+    const viewport = canvasViewportRef.current
+    const frame = canvasFrameRef.current
+    if (!viewport || !frame) return
+
+    const updateSize = () => {
+      const availableWidth = viewport.clientWidth
+      setCanvasScale(availableWidth > 0 ? Math.min(1, availableWidth / canvasWidth) : 1)
+      setCanvasFrameHeight(frame.offsetHeight)
+    }
+
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(viewport)
+    observer.observe(frame)
+    return () => observer.disconnect()
+  }, [canvasWidth])
+
   if (!site) return <div className="flex items-center justify-center h-full">Yükleniyor...</div>;
 
   return (
@@ -114,6 +139,19 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
           {onSaveDraft && <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={isSaving || localSaving} aria-label="Taslak olarak kaydet" className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{localSaving ? 'Kaydediliyor…' : 'Taslak'}</span></Button>}
           <Button variant="outline" size="sm" onClick={handleSave} aria-label={saveButtonLabel || (isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet')} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? 'Kaydediliyor…' : (saveButtonLabel || (isUpdate ? 'Güncelle' : 'Kaydet'))}</span></Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreview(!isPreview)} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{isPreview ? 'Düzenle' : 'Önizle'}</span></Button>
+          {onOpenHelp && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenHelp}
+              title="Kullanım Rehberi & Onboarding"
+              aria-label="Kullanım rehberini aç"
+              className="h-8 gap-1.5 rounded-full border-border bg-white px-2.5 text-[10px] sm:px-3 text-midnight hover:bg-champagne/20"
+            >
+              <HelpCircle className="h-3.5 w-3.5 text-champagne-dark" />
+              <span className="hidden sm:inline">Rehber</span>
+            </Button>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-ivory-50 p-0.5 sm:gap-1 sm:p-1">
           <Button variant="ghost" size="sm" onClick={() => setDevice('mobile')} aria-label="Mobil önizleme" title="Mobil önizleme" className={cn('h-7 w-7 rounded-full p-0 sm:h-8 sm:w-8', device === 'mobile' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
@@ -199,7 +237,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
           </div>
           <div className="min-w-0 flex-1 overflow-hidden">
              {leftTab === 'add' && <SectionsPanel />}
-             {leftTab === 'templates' && <TemplatesPanel eventData={eventData} />}
+             {leftTab === 'templates' && <TemplatesPanel eventData={eventData} canUsePremiumTemplates={canUsePremiumTemplates} />}
              {leftTab === 'music' && site && (
                <div className="h-full space-y-4 overflow-y-auto p-4">
                  <div>
@@ -230,16 +268,27 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
         </ResizableSidebar>
 
         {/* Canvas / Preview */}
-        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-4 sm:p-8">
-          <div className="flex min-h-full flex-col items-center">
-          <div className={cn(
-            'my-auto flex flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_16px_50px_-20px_rgba(16,24,39,0.28)] transition-all duration-300',
-            device === 'mobile' ? 'w-[390px] min-h-[844px]' :
-            device === 'tablet' ? 'w-[768px] min-h-[1024px]' :
-            'w-full max-w-[1200px] min-h-[600px]'
-          )} style={{ '--sb-screen': device === 'mobile' ? '844px' : device === 'tablet' ? '1024px' : '100vh' } as CSSProperties}>
-            <SiteCanvas />
-          </div>
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-4 sm:p-8">
+          <div ref={canvasViewportRef} className="flex min-h-full min-w-0 items-center justify-center">
+            <div
+              className="relative shrink-0 overflow-hidden rounded-xl"
+              style={{ width: canvasWidth * canvasScale, height: canvasFrameHeight * canvasScale }}
+              data-testid={`site-editor-frame-${device}`}
+            >
+              <div
+                ref={canvasFrameRef}
+                className="absolute left-0 top-0 flex flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_16px_50px_-20px_rgba(16,24,39,0.28)]"
+                style={{
+                  width: canvasWidth,
+                  minHeight: device === 'mobile' ? 844 : device === 'tablet' ? 1024 : 600,
+                  transform: `scale(${canvasScale})`,
+                  transformOrigin: 'top left',
+                  '--sb-screen': device === 'mobile' ? '844px' : device === 'tablet' ? '1024px' : '100vh',
+                } as CSSProperties}
+              >
+                <SiteCanvas />
+              </div>
+            </div>
           </div>
         </div>
 

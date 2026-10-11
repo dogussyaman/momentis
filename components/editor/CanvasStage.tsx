@@ -1,17 +1,22 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Stage, Layer, Group, Rect, Text, Circle, Line } from 'react-konva'
 import { useEditorStore } from '@/store/editor-store'
 import { SelectionTransformer } from './SelectionTransformer'
 import { fontStack } from '@/lib/editor-fonts'
 import { SEMBOLLER, GRADYANLAR } from '@/lib/davetiye-svg'
 import { applyPaletteToDesign } from '@/lib/themes/color-palettes'
+import type { Stage as KonvaStage } from 'konva/lib/Stage'
 
-export default function CanvasStage() {
+export default function CanvasStage({ onStageChange }: { onStageChange?: (stage: KonvaStage | null) => void }) {
   const { design, palettePreview, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor, toolStrokeWidth } = useEditorStore()
   const displayDesign = palettePreview ? applyPaletteToDesign(design, palettePreview) : design
-  const stageRef = useRef<any>(null)
+  const stageRef = useRef<KonvaStage | null>(null)
+  const handleStageRef = useCallback((stage: KonvaStage | null) => {
+    stageRef.current = stage
+    onStageChange?.(stage)
+  }, [onStageChange])
   const [stageSize, setStageSize] = useState({ width: 1000, height: 800 })
   const containerRef = useRef<HTMLDivElement>(null)
   const drawingRef = useRef<any>(null)
@@ -477,7 +482,7 @@ export default function CanvasStage() {
   return (
     <div ref={containerRef} className="relative flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden bg-[#f5f5f5]" style={{ cursor: activeTool === 'select' ? 'default' : 'crosshair' }}>
       <Stage
-        ref={stageRef}
+        ref={handleStageRef}
         width={stageSize.width}
         height={stageSize.height}
         pixelRatio={typeof window !== 'undefined' ? Math.max(window.devicePixelRatio || 1, 2) : 2}

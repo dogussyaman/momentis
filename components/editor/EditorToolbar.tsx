@@ -3,21 +3,31 @@ import { ZoomIn, ZoomOut, Maximize, Undo2, Redo2, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEditorStore } from '@/store/editor-store'
 import { toast } from 'sonner'
+import type { Stage as KonvaStage } from 'konva/lib/Stage'
+import { getCanvasExportOptions } from '@/lib/editor/canvas-export'
 
-export function EditorToolbar({ topbarLeft, topbarRight, projectId }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null }) {
+export function EditorToolbar({ topbarLeft, topbarRight, projectId, stage }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null, stage: KonvaStage | null }) {
   const { zoom, setZoom, design } = useEditorStore()
 
   const handleDownload = async () => {
-    // Find the Konva canvas wrapper
-    const canvas = document.querySelector('.konvajs-content canvas') as HTMLCanvasElement
-    if (!canvas) { toast.error('Davetiye dışa aktarılamadı'); return }
     if (!projectId) { toast.error('Dışa aktarmadan önce etkinliği kaydedin'); return }
+    const layer = stage?.getLayers()[0]
+    if (!stage || !layer) { toast.error('Davetiye dışa aktarılamadı'); return }
     let dataURL: string
+    const transformer = stage.findOne('Transformer')
+    const transformerWasVisible = transformer?.visible() ?? false
     try {
-      dataURL = canvas.toDataURL('image/png')
+      transformer?.visible(false)
+      layer.batchDraw()
+      dataURL = stage.toDataURL(getCanvasExportOptions(design, layer))
     } catch {
       toast.error('Davetiye görseli oluşturulamadı')
       return
+    } finally {
+      if (transformer) {
+        transformer.visible(transformerWasVisible)
+        layer.batchDraw()
+      }
     }
     try {
       const response = await fetch(`/api/projects/${projectId}/exports`, {

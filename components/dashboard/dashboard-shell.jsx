@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, CalendarDays, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft, ShieldCheck, Gift } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -23,6 +23,7 @@ const NAV_GROUPS = [
       { href: '/panel/taslaklar', label: 'Taslaklar', icon: FileEdit },
       { href: '/panel/arsiv', label: 'Arşiv', icon: Archive },
       { href: '/panel/yeni', label: 'Yeni Etkinlik', icon: Plus },
+      { href: '/panel/vip-taleplerim', label: 'VIP Taleplerim', icon: Gift },
     ],
   },
   {
@@ -60,11 +61,19 @@ const ADMIN_NAV_GROUPS = [
       { href: '/panel/admin', label: 'Yönetim Özeti', icon: ShieldCheck, exact: true },
       { href: '/panel/admin/templates', label: 'Şablon Yönetimi', icon: PanelsTopLeft },
       { href: '/panel/admin/users', label: 'Kullanıcılar ve Kotalar', icon: User },
+      { href: '/panel/admin/vip-talepler', label: 'VIP Tasarım Talepleri', icon: Gift },
+    ],
+  },
+  {
+    label: 'Kampanyalar',
+    items: [
+      { href: '/panel/hediye-davetiye', label: 'Hediye Davetiye', icon: Gift },
     ],
   },
   {
     label: 'Uygulama',
     items: [
+      { href: '/panel/vip-taleplerim', label: 'VIP Taleplerim', icon: Gift },
       { href: '/panel', label: 'Kullanıcı Paneline Dön', icon: LayoutDashboard, exact: true },
     ],
   },

@@ -122,19 +122,25 @@ export function Nav(): ReactNode {
   const activeIndex = pathname === "/portfolio-preview" ? 0 : -1;
 
   useLayoutEffect(() => {
-    const list = listRef.current;
-    const activeEl =
-      activeIndex >= 0 ? itemRefs.current[activeIndex] : null;
-    if (!list || !activeEl) {
-      setPillRect(null);
-      return;
-    }
-    const listRect = list.getBoundingClientRect();
-    const itemRect = activeEl.getBoundingClientRect();
-    setPillRect({
-      x: itemRect.left - listRect.left,
-      width: itemRect.width,
-    });
+    const measure = () => {
+      const list = listRef.current;
+      const activeEl =
+        activeIndex >= 0 ? itemRefs.current[activeIndex] : null;
+      if (!list || !activeEl) {
+        setPillRect(null);
+        return;
+      }
+      const listRect = list.getBoundingClientRect();
+      const itemRect = activeEl.getBoundingClientRect();
+      setPillRect({
+        x: itemRect.left - listRect.left,
+        width: itemRect.width,
+      });
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, [activeIndex, pathname]);
 
   useEffect(() => {
@@ -146,10 +152,10 @@ export function Nav(): ReactNode {
   return (
     <nav
       aria-label="Primary"
-      className="fixed left-1/2 top-6 z-50 -translate-x-1/2"
+      className="fixed left-1/2 top-3 sm:top-6 z-50 -translate-x-1/2 w-max max-w-[calc(100vw-1.5rem)]"
     >
-      <div className="flex items-center gap-1 rounded-full bg-background p-1.5 shadow-sm border border-foreground/8">
-        <ul ref={listRef} className="relative flex items-center gap-1">
+      <div className="flex items-center gap-1 rounded-full bg-background p-1 sm:p-1.5 shadow-sm border border-foreground/8">
+        <ul ref={listRef} className="relative flex items-center gap-0.5 sm:gap-1">
           {pillRect && (
             <motion.span
               aria-hidden="true"
@@ -177,7 +183,7 @@ export function Nav(): ReactNode {
                 <Link
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
-                  className="focus-ring relative inline-flex cursor-pointer items-center justify-center rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-300"
+                  className="focus-ring relative inline-flex cursor-pointer items-center justify-center rounded-full px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-medium transition-colors duration-300"
                 >
                   <span
                     className={

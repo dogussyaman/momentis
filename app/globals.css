@@ -164,13 +164,16 @@ body {
 .sb-script { font-family: var(--sb-script-font); line-height: 1.15; letter-spacing: 0; }
 .sb-body { font-family: var(--sb-body-font); }
 .sb-eyebrow { font-family: var(--sb-body-font); letter-spacing: 0.32em; text-transform: uppercase; font-size: 11px; font-weight: 500; }
+.sb-primary { color: var(--sb-primary); }
+.sb-bg-primary { background-color: var(--sb-primary); }
+.sb-secondary { color: var(--sb-secondary); }
 .sb-accent { color: var(--sb-accent); }
 .sb-bg-accent { background-color: var(--sb-accent); }
 .sb-surface { background-color: var(--sb-surface); }
 .sb-muted { opacity: 0.72; }
 .sb-radius { border-radius: var(--sb-radius); }
 .sb-card {
-  background-color: color-mix(in srgb, var(--sb-surface) 92%, transparent);
+  background-color: color-mix(in srgb, var(--sb-surface) 88%, var(--sb-secondary) 12%);
   border: 1px solid var(--sb-line);
   border-radius: var(--sb-radius);
 }

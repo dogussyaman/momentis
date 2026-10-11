@@ -2,6 +2,8 @@
 
 import React from 'react'
 import dynamic from 'next/dynamic'
+import { useState } from 'react'
+import type { Stage as KonvaStage } from 'konva/lib/Stage'
 import { LeftSidebar } from './LeftSidebar'
 import { RightSidebar } from './RightSidebar'
 import { EditorToolbar } from './EditorToolbar'
@@ -13,15 +15,17 @@ import { ResizableSidebar } from '@/components/shared/ResizableSidebar'
 const CanvasStage = dynamic(() => import('./CanvasStage'), { ssr: false })
 
 export function CanvasEditor({ topbarLeft, topbarRight, projectId }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null }) {
+  const [stage, setStage] = useState<KonvaStage | null>(null)
+
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-b border-border bg-ivory">
-      <EditorToolbar topbarLeft={topbarLeft} topbarRight={topbarRight} projectId={projectId} />
+      <EditorToolbar topbarLeft={topbarLeft} topbarRight={topbarRight} projectId={projectId} stage={stage} />
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <ResizableSidebar id="invitation-left" label="Davetiye araç paneli" side="left" initialWidth={340} minWidth={260} maxWidth={520} className="border-r border-border bg-white shadow-[2px_0_18px_-16px_rgba(16,24,39,0.35)]">
           <LeftSidebar />
         </ResizableSidebar>
         <div className="relative min-h-0 min-w-0 flex-1 bg-white">
-          <CanvasStage />
+          <CanvasStage onStageChange={setStage} />
           <div className="pointer-events-none absolute left-1/2 top-2 z-30 w-max max-w-[calc(100%-24px)] -translate-x-1/2">
             <CanvasContextToolbar />
           </div>

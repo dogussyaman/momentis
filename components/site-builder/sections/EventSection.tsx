@@ -110,7 +110,7 @@ export function EventSection({ section, props }: SectionComponentProps) {
                 <p {...editable(i, 'address')} className="text-sm sb-muted" style={inlineStyle(i, 'address')}>{ev.address}</p>
                 {ev.note && <p {...editable(i, 'note')} className="text-sm italic sb-accent mt-1" style={inlineStyle(i, 'note')}>{ev.note}</p>}
               </div>
-              <div className="flex @2xl:flex-col gap-2 shrink-0 w-full @2xl:w-32 mt-4 @2xl:mt-0">
+              <div className="flex flex-wrap items-center justify-center @2xl:flex-col gap-2 shrink-0 w-full @2xl:w-32 mt-4 @2xl:mt-0">
                 {props.showMap && (
                      <SiteButton button={{ id: `map-${ev.id}`, action: 'map', target: ev.address || ev.venue, label: 'Harita', variant: 'outline', icon: 'MapPin' }} size="sm" />
                 )}

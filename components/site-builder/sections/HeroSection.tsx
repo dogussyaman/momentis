@@ -22,7 +22,7 @@ function MiniCountdown() {
     [c.seconds, 'Sn'],
   ] as const
   return (
-    <Reveal className="flex gap-5 @3xl:gap-8" style={{ justifyContent: 'inherit' }}>
+    <Reveal className="flex flex-wrap items-center justify-center gap-4 @3xl:gap-8">
       {items.map(([v, l]) => (
         <div key={l} className="flex flex-col items-center">
           <span className="sb-heading text-2xl @3xl:text-3xl tabular-nums">{String(v).padStart(2, '0')}</span>
@@ -44,7 +44,7 @@ export function HeroSection({ section, props }: SectionComponentProps) {
   const justify = alignToJustify(align)
   const scale = (props.titleSize ?? 100) / 100
   const isScript = props.titleFont === 'script'
-  const titleSize = `calc(clamp(${isScript ? '3.4rem' : '2.6rem'}, ${isScript ? '11cqi' : '8cqi'}, ${isScript ? '8rem' : '6rem'}) * ${scale} * var(--sb-heading-scale))`
+  const titleSize = `calc(clamp(${isScript ? '2.5rem' : '1.85rem'}, ${isScript ? '10cqi' : '7.5cqi'}, ${isScript ? '8rem' : '6rem'}) * ${scale} * var(--sb-heading-scale))`
   const rays = props.showSideRays ? (
     <SideRays
       className="pointer-events-none absolute inset-y-0 left-1/2 z-0 w-screen max-w-none -translate-x-1/2"
@@ -57,21 +57,25 @@ export function HeroSection({ section, props }: SectionComponentProps) {
     />
   ) : null
 
+  const alignClass = align === 'left'
+    ? 'items-center @3xl:items-start text-center @3xl:text-left'
+    : align === 'right'
+    ? 'items-center @3xl:items-end text-center @3xl:text-right'
+    : 'items-center text-center'
+
   const content = (
     <div
       className={cn(
         'relative flex flex-col',
-        props.contentBox === 'glass' && 'backdrop-blur-md bg-white/10 border border-white/25 px-8 py-12 @3xl:px-16 @3xl:py-16 shadow-2xl',
-        props.contentBox === 'solid' && 'sb-surface px-8 py-12 @3xl:px-16 @3xl:py-16 shadow-xl',
-        layout === 'frame' && props.contentBox === 'none' && 'px-8 py-14 @3xl:px-16 @3xl:py-20',
+        alignClass,
+        props.contentBox === 'glass' && 'backdrop-blur-md bg-white/10 border border-white/25 px-6 py-10 sm:px-8 sm:py-12 @3xl:px-16 @3xl:py-16 shadow-2xl',
+        props.contentBox === 'solid' && 'sb-surface px-6 py-10 sm:px-8 sm:py-12 @3xl:px-16 @3xl:py-16 shadow-xl',
+        layout === 'frame' && props.contentBox === 'none' && 'px-6 py-10 sm:px-8 sm:py-14 @3xl:px-16 @3xl:py-20',
       )}
       style={{
         gap: section.style.elementGap ?? 20,
-        alignItems: justify,
-        textAlign: align,
         borderRadius: props.contentBox !== 'none' ? 'var(--sb-radius)' : undefined,
         color: props.contentBox === 'solid' ? 'var(--sb-text)' : undefined,
-        justifyContent: justify,
       }}
     >
       {layout === 'frame' && (
@@ -90,7 +94,7 @@ export function HeroSection({ section, props }: SectionComponentProps) {
         </h1>
       </Reveal>
       {props.showDivider && (
-        <Reveal className="flex items-center gap-3 opacity-80" style={{ justifyContent: justify }}>
+        <Reveal className={cn("flex items-center gap-3 opacity-80", align === 'left' ? 'justify-center @3xl:justify-start' : align === 'right' ? 'justify-center @3xl:justify-end' : 'justify-center')}>
           <span className="h-px w-12 bg-current" />
           <span className="text-xs">✦</span>
           <span className="h-px w-12 bg-current" />
@@ -106,7 +110,7 @@ export function HeroSection({ section, props }: SectionComponentProps) {
           <p {...editableTextAttributes(section, 'subtitle', mode)} className="max-w-lg text-[15px] @3xl:text-base leading-relaxed opacity-85 whitespace-pre-line" style={editableTextStyle(props, 'subtitle')}>{props.subtitle}</p>
         </Reveal>
       )}
-      {props.showCountdown && <MiniCountdown />}
+      {props.showCountdown && site.settings.showCountdown !== false && <MiniCountdown />}
       <SiteButtons buttons={props.buttons} style={{ marginTop: section.style.buttonMarginTop ?? 12 }} />
     </div>
   )

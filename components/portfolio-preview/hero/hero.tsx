@@ -10,10 +10,10 @@ const PORTRAIT_HOVER_SRC = "/portfolio-preview/josh_wave.webp";
 export function Hero(): ReactNode {
   return (
     <section className="relative w-full">
-      <div className="mx-auto w-full max-w-275 px-6 pt-44 pb-24 sm:px-10 sm:pt-56 sm:pb-32">
+      <div className="mx-auto w-full max-w-275 px-6 pt-28 pb-16 sm:px-10 sm:pt-48 sm:pb-32">
         <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-8">
-          <FadeIn className="flex flex-col gap-4">
-            <p className="text-[20px] leading-tight tracking-tight font-medium text-foreground">
+          <FadeIn className="flex flex-col gap-4 text-center md:text-left items-center md:items-start">
+            <p className="text-[18px] sm:text-[20px] leading-tight tracking-tight font-medium text-foreground">
               Hey
               <span aria-hidden="true" className="mx-0.5">
                 👋
@@ -21,14 +21,14 @@ export function Hero(): ReactNode {
               , I&rsquo;m Josh
             </p>
 
-            <h1 className="text-[2.75rem] font-medium leading-[1.05] tracking-tight text-foreground md:text-[2.5rem] lg:text-[3.65rem]">
-              <span className="block whitespace-nowrap">
+            <h1 className="text-[2.25rem] font-medium leading-[1.08] tracking-tight text-foreground sm:text-[2.75rem] md:text-[2.5rem] lg:text-[3.65rem]">
+              <span className="block sm:whitespace-nowrap">
                 Design engineer &
               </span>
-              <span className="block whitespace-nowrap">AI enthusiast</span>
+              <span className="block sm:whitespace-nowrap">AI enthusiast</span>
             </h1>
 
-            <p className="max-w-[34ch] text-[22px] leading-[1.4] tracking-tight text-foreground/65">
+            <p className="max-w-[34ch] text-[18px] sm:text-[22px] leading-[1.4] tracking-tight text-foreground/65 mx-auto md:mx-0">
               Independent engineer focused on interfaces that feel calm,
               considered, and quietly fast.
             </p>
@@ -36,8 +36,8 @@ export function Hero(): ReactNode {
             <HeroCtas />
           </FadeIn>
 
-          <ScaleUnblur className="flex justify-stretch md:justify-end">
-            <div className="relative aspect-square w-full md:max-w-105 overflow-hidden rounded-4xl border border-foreground/8 bg-background p-1.5 shadow-sm">
+          <ScaleUnblur className="flex justify-center md:justify-end w-full max-w-[340px] sm:max-w-105 mx-auto md:mx-0">
+            <div className="relative aspect-square w-full overflow-hidden rounded-4xl border border-foreground/8 bg-background p-1.5 shadow-sm">
               <div className="relative h-full w-full overflow-hidden rounded-[1.6rem]">
                 <PortraitMorph
                   srcA={PORTRAIT_SRC}

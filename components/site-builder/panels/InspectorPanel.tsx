@@ -14,6 +14,7 @@ import { BODY_FONTS, HEADING_FONTS, SCRIPT_FONTS } from '@/lib/site-builder/font
 import { SiteImageField } from './SiteImageField'
 import { SiteAudioField } from './SiteAudioField'
 import type { SiteOverlayElement, SiteSection } from '@/lib/site-builder/schema'
+import { slugify } from '@/lib/projects'
 
 export function InspectorPanel(){
  const {site,selectedSectionId,selectedOverlayId,selectOverlay,updateSectionProps,updateSectionStyle,updateSectionAnimation,updateTheme,updateSettings,inspectorTab,setInspectorTab,toggleVisibility,toggleLock}=useSiteEditorStore()
@@ -192,8 +193,9 @@ function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){
   <Group title="Site">
    <Label className="text-[9px]">Başlık</Label>
    <Input value={site.title} onChange={e=>updateSite({title:e.target.value})} className="h-8 text-[11px]"/>
-   <Label className="text-[9px]">Slug</Label>
-   <Input value={site.slug} onChange={e=>updateSite({slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')})} className="h-8 text-[11px]"/>
+   <Label className="text-[9px]">Davet bağlantısı</Label>
+   <Input aria-label="Davet bağlantısı" value={site.slug} onChange={e=>updateSite({slug:slugify(e.target.value)})} className="h-8 text-[11px]"/>
+   <p className="text-[9px] text-muted-foreground">Kaydedince site ve davetiye bağlantısı bu adla güncellenir.</p>
   </Group>
   <Group title="Renkler">
    <Color label="Ana renk" value={site.theme.primaryColor} set={v=>updateTheme({primaryColor:v})}/>

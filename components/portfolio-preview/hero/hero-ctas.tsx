@@ -15,7 +15,7 @@ export function HeroCtas(): ReactNode {
       <motion.div
         layout
         transition={{ layout: { duration: 0.55, ease: EASE } }}
-        className="mt-2 flex flex-wrap items-center gap-3"
+        className="mt-2 flex flex-wrap items-center justify-center md:justify-start gap-3"
       >
         <ContactButton />
 

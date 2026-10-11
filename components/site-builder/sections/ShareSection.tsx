@@ -80,7 +80,7 @@ export function ShareSection({ section, props }: SectionComponentProps) {
               <p className="mt-1 text-xs sb-muted">Sevdikleriniz davet ve etkinlik bilgilerine kolayca ulaşsın.</p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <Button type="button" onClick={share} className="h-11 rounded-full sb-bg-accent px-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:opacity-90">
               <Share2 className="mr-2 h-4 w-4" /> Paylaş
             </Button>

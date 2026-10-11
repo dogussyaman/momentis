@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, RotateCcw, Save, ExternalLink, Smartphone, Tablet, Monitor } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, RotateCcw, Save, ExternalLink, Smartphone, Tablet, Monitor, HelpCircle, Lock, Crown } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,14 +33,19 @@ import { useEditorStore } from '@/store/editor-store'
 import { useSiteEditorStore } from '@/store/site-editor-store'
 import { SiteEditor } from '@/components/site-builder/SiteEditor'
 import { SiteStartFlow } from '@/components/site-builder/SiteStartFlow'
+import { EditorOnboardingModal } from './EditorOnboardingModal'
 import { buildSiteFromTemplate } from '@/lib/site-builder/templates'
 import { normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
 import { resolveTokens, syncEventTokens, syncSiteEventData } from '@/lib/events/event-tokens'
 import { createProjectDraft, NEW_PROJECT_DRAFT_KEY } from '@/lib/events/event-draft'
 import { syncEventDataFromForm } from '@/lib/events/event-normalize'
 import { BILLING_PLANS } from '@/lib/billing/plans'
+import { acquireDemoSiteEntitlement, getSelectedTemplate } from '@/lib/site-gift-campaign/mock-service.mjs'
+import { buildGiftInvitationDesign } from '@/lib/site-gift-campaign/build-editor-design'
+import { PremiumUpgradeModal } from '@/components/ui/PremiumUpgradeModal'
 
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
+const siteGiftCampaignMockEnabled = process.env.NEXT_PUBLIC_SITE_GIFT_CAMPAIGN_MOCK === 'true'
 const PALETTE_KEYS = [['bg', 'Zemin'], ['accent', 'Vurgu'], ['text', 'Metin'], ['muted', 'İkincil']]
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
 
@@ -103,6 +108,7 @@ export function ProjectEditor() {
   const [menuInput, setMenuInput] = useState('')
   const [device, setDevice] = useState('mobile') // mobile, tablet, desktop
   const pendingMutationKey = useRef(null)
+  const appliedGiftTemplateId = useRef(null)
   const searchParams = useSearchParams()
   const initialMode = searchParams.get('mode') === 'card' ? 'card' : 'site'
   const isNewFlow = searchParams.get('new') === '1' || isUnsavedProject
@@ -113,7 +119,14 @@ export function ProjectEditor() {
   const [previewMode, setPreviewMode] = useState(initialMode)
   const [designTarget, setDesignTarget] = useState(initialMode)
   const [openSection, setOpenSection] = useState('details')
+  // Premium template access: check current project's billing plan
+  const canUsePremiumTemplates = Boolean(
+    project?.billing_package_id &&
+    project.billing_package_id !== 'baslangic' &&
+    BILLING_PLANS[project.billing_package_id]?.entitlements?.premiumTemplates
+  )
   const iframeRef = useRef(null)
+  const [upgradeModal, setUpgradeModal] = useState({ open: false, templateName: '' })
 
   const { design: canvasDesign, setDesign } = useEditorStore()
   const initSite = useSiteEditorStore((state) => state.initSite)
@@ -180,6 +193,10 @@ export function ProjectEditor() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const changeDesignTarget = (target) => { setDesignTarget(target); setPreviewMode(target === 'site' ? 'site' : 'card'); setOpenSection('design') }
   const chooseSiteTemplate = (template) => {
+    if (template?.tier === 'premium' && !canUsePremiumTemplates) {
+      setUpgradeModal({ open: true, templateName: template.name })
+      return
+    }
     const starter = buildSiteFromTemplate(template.id)
     const hydrated = eventData
       ? syncSiteEventData(
@@ -192,6 +209,40 @@ export function ProjectEditor() {
     setShowOnboarding(false)
     setSiteStartStage('editor')
   }
+  const openDemoGiftCampaign = async () => {
+    try {
+      const siteEntitlementId = `demo-site-${project?.creation_request_id || id}`
+      await acquireDemoSiteEntitlement(siteEntitlementId)
+      const returnTo = `${window.location.pathname}${window.location.search}`
+      router.push(`/panel/hediye-davetiye?siteEntitlementId=${encodeURIComponent(siteEntitlementId)}&returnTo=${encodeURIComponent(returnTo)}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Demo kampanya açılamadı.')
+    }
+  }
+
+  useEffect(() => {
+    const templateId = searchParams.get('giftTemplateId')
+    const siteEntitlementId = searchParams.get('siteEntitlementId')
+    if (!isUnsavedProject || !templateId || !siteEntitlementId || !project || project.id !== 'new') return
+    if (project.canvas_design || appliedGiftTemplateId.current === templateId) return
+
+    let active = true
+    getSelectedTemplate(templateId, siteEntitlementId)
+      .then((template) => {
+        if (!active) return
+        if (!template) {
+          toast.error('Seçilen demo davetiye bu hak için onaylanmamış.')
+          return
+        }
+        appliedGiftTemplateId.current = templateId
+        setDesign(buildGiftInvitationDesign(template, eventData))
+        toast.success(`${template.title} düzenleyiciye aktarıldı.`)
+      })
+      .catch((error) => {
+        if (active) toast.error(error instanceof Error ? error.message : 'Demo davetiye yüklenemedi.')
+      })
+    return () => { active = false }
+  }, [eventData, isUnsavedProject, project, searchParams, setDesign])
   const handleHeroImage = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -371,6 +422,7 @@ export function ProjectEditor() {
         host_a: form.host_a,
         date: form.date,
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
+        slug: siteData?.slug || form.slug,
         site_data: siteData,
         ...(isUnsavedProject || project?.id === 'new' ? { billing_package_id: project?.billing_package_id || 'baslangic' } : {}),
       }
@@ -406,34 +458,35 @@ export function ProjectEditor() {
   if (!form) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-96 rounded-2xl" /></div>
 
   const onboardingDialog = (
-    <Dialog open={showOnboarding} onOpenChange={setShowOnboarding}>
-      <DialogContent className="sm:max-w-md bg-ivory rounded-2xl border-0">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl text-midnight">Stüdyoya Hoş Geldiniz!</DialogTitle>
-          <DialogDescription className="text-muted-foreground mt-2">
-            Bilgileriniz tasarıma eklendi. İçeriği düzenleyin; etkinliğiniz ancak ilk kez Kaydet'e bastığınızda oluşturulup kaydedilir.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="mt-6">
-          <Button onClick={() => setShowOnboarding(false)} className="w-full rounded-xl bg-midnight text-ivory">Harika, Başlayalım</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <EditorOnboardingModal open={showOnboarding} onOpenChange={setShowOnboarding} />
+  )
+
+  const upgradeDialog = (
+    <PremiumUpgradeModal
+      open={upgradeModal.open}
+      templateName={upgradeModal.templateName}
+      onClose={() => setUpgradeModal({ open: false, templateName: '' })}
+    />
   )
 
   if (designTarget === 'site') {
     if (isNewFlow && siteStartStage !== 'editor') {
       return (
-        <SiteStartFlow
-          eventTitle={form.title || [form.host_a, form.host_b].filter(Boolean).join(' & ')}
-          stage={siteStartStage}
-          onBack={() => {
-            if (siteStartStage === 'templates') setSiteStartStage('intro')
-            else router.back()
-          }}
-          onContinue={() => setSiteStartStage('templates')}
-          onChooseTemplate={chooseSiteTemplate}
-        />
+        <>
+          <SiteStartFlow
+            eventTitle={form.title || [form.host_a, form.host_b].filter(Boolean).join(' & ')}
+            stage={siteStartStage}
+            canUsePremiumTemplates={canUsePremiumTemplates}
+            onBack={() => {
+              if (siteStartStage === 'templates') setSiteStartStage('intro')
+              else router.back()
+            }}
+            onContinue={() => setSiteStartStage('templates')}
+            onChooseTemplate={chooseSiteTemplate}
+            onOpenGiftCampaign={siteGiftCampaignMockEnabled ? openDemoGiftCampaign : undefined}
+          />
+          {upgradeDialog}
+        </>
       )
     }
 
@@ -450,8 +503,11 @@ export function ProjectEditor() {
           onSaveDraft={(siteData) => handleSiteSave(siteData, true)}
           saveButtonLabel={saveLabel}
           autoSaveEnabled={project?.id !== 'new'}
+          onOpenHelp={() => setShowOnboarding(true)}
+          canUsePremiumTemplates={canUsePremiumTemplates}
         />
         {onboardingDialog}
+        {upgradeDialog}
       </div>
     )
   }
@@ -474,6 +530,9 @@ export function ProjectEditor() {
             }
             topbarRight={
               <div className="flex gap-2">
+                <Button onClick={() => setShowOnboarding(true)} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.14em] gap-1 hover:bg-champagne/20">
+                  <HelpCircle className="h-3.5 w-3.5 text-champagne-dark" /> <span className="hidden sm:inline">Nasıl Kullanılır?</span>
+                </Button>
                 <Button onClick={applyEventDataToInvitation} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.12em]">
                   Bilgileri davetiyeye uygula
                 </Button>
@@ -490,6 +549,7 @@ export function ProjectEditor() {
             }
           />
           {onboardingDialog}
+          {upgradeDialog}
         </div>
       </div>
     )
@@ -505,6 +565,9 @@ export function ProjectEditor() {
               <ArrowLeft className="h-3.5 w-3.5" /> Geri
             </Link>
             <div className="flex gap-2">
+              <Button onClick={() => setShowOnboarding(true)} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.14em] gap-1 hover:bg-champagne/20">
+                <HelpCircle className="h-3.5 w-3.5 text-champagne-dark" /> <span className="hidden sm:inline">Rehber</span>
+              </Button>
               <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
                 <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
               </Button>
@@ -573,9 +636,39 @@ export function ProjectEditor() {
                   </div>
                   <div className="mb-4 space-y-2">
                     <Label className="text-[10px] uppercase tracking-[0.2em]">Site şablonu</Label>
-                    <Select value={form.template_slug} onValueChange={(value) => setForm((f) => ({ ...f, template_slug: value }))}>
+                    <Select
+                      value={form.template_slug}
+                      onValueChange={(value) => {
+                        const tpl = TEMPLATES.find((t) => t.slug === value)
+                        if (tpl?.tier === 'premium' && !canUsePremiumTemplates) {
+                          setUpgradeModal({ open: true, templateName: tpl.name })
+                          return
+                        }
+                        setForm((f) => ({ ...f, template_slug: value }))
+                      }}
+                    >
                       <SelectTrigger className={cn(inputCls, 'w-full')} aria-label="Davet sitesi şablonu"><SelectValue placeholder="Şablon seçin" /></SelectTrigger>
-                      <SelectContent>{TEMPLATES.map((item) => <SelectItem key={item.slug} value={item.slug}>{item.name}</SelectItem>)}</SelectContent>
+                      <SelectContent>
+                        {TEMPLATES.map((item) => {
+                          const isPremiumLocked = item.tier === 'premium' && !canUsePremiumTemplates
+                          return (
+                            <SelectItem
+                              key={item.slug}
+                              value={item.slug}
+                              className="cursor-pointer"
+                            >
+                              <span className="flex items-center gap-1.5">
+                                {item.name}
+                                {isPremiumLocked && (
+                                  <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-[#f0e8d8] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#8f744b]">
+                                    <Crown className="h-2.5 w-2.5" /> Premium
+                                  </span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div className="mb-4 space-y-2">
@@ -828,6 +921,7 @@ export function ProjectEditor() {
 
       </div>
       {onboardingDialog}
+      {upgradeDialog}
     </div>
   )
 }

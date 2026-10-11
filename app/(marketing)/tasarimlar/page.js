@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { ArrowUpRight, Eye } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { TemplateGallery } from '@/components/templates/template-gallery'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TEMPLATES as SITE_TEMPLATES } from '@/lib/site-builder/templates'
@@ -23,6 +24,18 @@ export default function TemplatesPage() {
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground">Her tasarım, renkleri ve bloklarıyla tamamen özelleştirilebilir. Etkinlik türünüze göre filtreleyin.</p>
         </div>
+        <section className="mt-10 overflow-hidden rounded-[28px] border border-champagne-dark/20 bg-midnight text-ivory shadow-[0_24px_80px_-46px_rgba(16,24,39,0.55)]" aria-labelledby="vip-design-heading">
+          <div className="grid gap-8 p-6 sm:p-9 md:grid-cols-[1fr_auto] md:items-center md:p-12">
+            <div>
+              <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.24em] text-champagne"><Sparkles className="h-4 w-4" /> Kişiye özel tasarım hizmeti</p>
+              <h2 id="vip-design-heading" className="mt-4 max-w-2xl font-serif text-3xl leading-tight sm:text-4xl">VIP tasarım deneyimiyle hikâyenize özel bir site.</h2>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-ivory/70">Özel site konseptleri, fotoğraf albümü ve beş hediye davetiye tasarımından birini talebinize ekleyin. Talepler admin tarafından incelenir; tasarım kişiye özel hazırlanır. Fiyat ve teslimat bu demo kapsamında belirlenmez.</p>
+            </div>
+            <Link href="/tasarimlar/vip" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-champagne px-6 text-[10px] font-medium uppercase tracking-[0.16em] text-midnight transition hover:bg-ivory focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ivory">
+              VIP Tasarımları Keşfet <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
         <div className="mt-14">
           <Suspense fallback={
             <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

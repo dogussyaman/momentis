@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowDown, AudioLines, Heart, Pause, Play, Volume2 } from 'lucide-react'
+import { ArrowDown, AudioLines, Heart, Menu, Pause, Play, Volume2, X } from 'lucide-react'
 import { SITE_AUDIO_LIBRARY } from '@/lib/site-builder/media'
 import type { WeddingSite } from '@/lib/site-builder/schema'
 import { sectionRegistry } from './sections'
@@ -14,6 +14,7 @@ import Lenis from 'lenis'
 export function SiteNavigation({ site }: { site: WeddingSite }) {
   const { mode } = useSiteRender()
   const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   useEffect(() => {
     let scrollTarget: Window | HTMLElement = window
@@ -58,69 +59,146 @@ export function SiteNavigation({ site }: { site: WeddingSite }) {
     <a key={section.id} href={`#section-${section.id}`} onClick={(event) => { if (mode === 'editor') event.preventDefault() }} className="shrink-0 rounded-full px-3.5 py-2 text-[11px] uppercase tracking-[0.16em] opacity-70 transition hover:bg-current/[0.07] hover:opacity-100">{labelOf(section)}</a>
   ))
   const cta = rsvp && (
-    <a href={`#section-${rsvp.id}`} onClick={(event) => { if (mode === 'editor') event.preventDefault() }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full sb-bg-accent px-5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--sb-on-accent)] shadow-sm transition hover:-translate-y-0.5 hover:opacity-90">Katılım <ArrowDown className="h-3 w-3" /></a>
+    <a href={`#section-${rsvp.id}`} onClick={(event) => { if (mode === 'editor') event.preventDefault(); setMobileOpen(false) }} className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full sb-bg-primary px-5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--sb-on-primary)] shadow-sm transition hover:-translate-y-0.5 hover:opacity-90">Katılım <ArrowDown className="h-3 w-3" /></a>
   )
   const brand = (
-    <a href="#site-start" onClick={(event) => { if (mode === 'editor') event.preventDefault() }} className="flex min-w-0 items-center gap-2.5" aria-label="Sayfa başına dön">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current/20 sb-accent"><Heart className="h-3.5 w-3.5" /></span>
+    <a href="#site-start" onClick={(event) => { if (mode === 'editor') event.preventDefault(); setMobileOpen(false) }} className="flex min-w-0 items-center gap-2.5" aria-label="Sayfa başına dön">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current/20 sb-primary"><Heart className="h-3.5 w-3.5" /></span>
       <span className="truncate text-sm sb-heading">{name}</span>
     </a>
   )
 
+  const mobileToggle = links.length > 0 && (
+    <button
+      type="button"
+      onClick={() => setMobileOpen(!mobileOpen)}
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current/15 text-current/80 transition hover:bg-current/10 hover:text-current @3xl:hidden"
+      aria-label={mobileOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+      aria-expanded={mobileOpen}
+    >
+      {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+    </button>
+  )
+
+  const mobileDrawer = (
+    <AnimatePresence>
+      {mobileOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="fixed inset-x-4 top-20 z-50 rounded-3xl border border-current/10 bg-[color-mix(in_srgb,var(--sb-bg)_96%,transparent)] p-6 shadow-2xl backdrop-blur-2xl @3xl:hidden"
+        >
+          <div className="flex flex-col items-center gap-5 text-center">
+            <span className="sb-script sb-primary text-3xl">{initials || name}</span>
+            <div className="flex w-full flex-col items-center gap-1.5">
+              {links.map((section) => (
+                <a
+                  key={section.id}
+                  href={`#section-${section.id}`}
+                  onClick={(event) => {
+                    if (mode === 'editor') event.preventDefault()
+                    setMobileOpen(false)
+                  }}
+                  className="w-full rounded-2xl py-2.5 text-xs font-medium uppercase tracking-[0.2em] opacity-80 transition hover:bg-current/[0.06] hover:opacity-100"
+                >
+                  {labelOf(section)}
+                </a>
+              ))}
+            </div>
+            {cta && (
+              <div className="flex w-full justify-center pt-2">
+                {cta}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
   if (navStyle === 'centered') {
     return (
-      <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-0 z-40 border-b border-current/10 bg-[color-mix(in_srgb,var(--sb-bg)_90%,transparent)] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-1 px-4 py-3">
-          <a href="#site-start" onClick={(event) => { if (mode === 'editor') event.preventDefault() }} className="sb-script sb-accent text-3xl leading-none">{initials || name}</a>
-          <div className="sb-no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto">{linkEls}{cta}</div>
-        </div>
-      </nav>
+      <>
+        <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-0 z-40 border-b border-current/10 bg-[color-mix(in_srgb,var(--sb-bg)_90%,transparent)] backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-2 px-4 py-3">
+            <a href="#site-start" onClick={(event) => { if (mode === 'editor') event.preventDefault() }} className="sb-script sb-accent text-3xl leading-none">{initials || name}</a>
+            <div className="sb-no-scrollbar flex max-w-full items-center justify-center gap-1.5 overflow-x-auto px-2 py-0.5">{linkEls}{cta}</div>
+          </div>
+        </nav>
+      </>
     )
   }
 
   if (navStyle === 'floating') {
     if (site.templateId === 'portfolio') {
       return (
-        <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-4 z-40 mx-auto -mb-16 w-fit max-w-[calc(100%-1.5rem)]">
-          <div className={`flex min-h-12 max-w-full items-center gap-1 rounded-full border border-current/10 px-1.5 shadow-sm backdrop-blur-2xl transition-colors duration-300 ${scrolled ? 'bg-[color-mix(in_srgb,var(--sb-bg)_94%,transparent)]' : 'bg-[color-mix(in_srgb,var(--sb-bg)_82%,transparent)]'}`}>
-            {brand}
-            <div className="sb-no-scrollbar hidden max-w-[min(44vw,32rem)] items-center gap-0.5 overflow-x-auto sm:flex">{linkEls}</div>
-            {cta}
-          </div>
-        </nav>
+        <>
+          <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-4 z-40 mx-auto -mb-16 w-fit max-w-[calc(100%-1.5rem)]">
+            <div className={`flex min-h-12 max-w-full items-center justify-center gap-2 rounded-full border border-current/10 px-2.5 shadow-sm backdrop-blur-2xl transition-colors duration-300 ${scrolled ? 'bg-[color-mix(in_srgb,var(--sb-bg)_94%,transparent)]' : 'bg-[color-mix(in_srgb,var(--sb-bg)_82%,transparent)]'}`}>
+              {brand}
+              <div className="sb-no-scrollbar hidden max-w-[min(44vw,32rem)] items-center gap-0.5 overflow-x-auto @3xl:flex">{linkEls}</div>
+              <div className="flex items-center gap-1.5">
+                {cta}
+                {mobileToggle}
+              </div>
+            </div>
+          </nav>
+          {mobileDrawer}
+        </>
       )
     }
 
     return (
-      <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-3 z-40 mx-auto -mb-16 w-[calc(100%-1.5rem)] max-w-5xl">
-        <div className={`flex min-h-14 items-center justify-between gap-3 rounded-full border border-current/10 px-3 pl-4 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-colors duration-300 ${scrolled ? 'bg-[color-mix(in_srgb,var(--sb-bg)_92%,transparent)]' : 'bg-[color-mix(in_srgb,var(--sb-bg)_70%,transparent)]'}`}>
-          {brand}
-          <div className="sb-no-scrollbar hidden items-center gap-0.5 overflow-x-auto md:flex">{linkEls}</div>
-          {cta}
-        </div>
-      </nav>
+      <>
+        <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-3 z-40 mx-auto -mb-16 w-[calc(100%-1.5rem)] max-w-5xl">
+          <div className={`flex min-h-14 items-center justify-between gap-3 rounded-full border border-current/10 px-3 pl-4 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-colors duration-300 ${scrolled ? 'bg-[color-mix(in_srgb,var(--sb-bg)_92%,transparent)]' : 'bg-[color-mix(in_srgb,var(--sb-bg)_70%,transparent)]'}`}>
+            {brand}
+            <div className="sb-no-scrollbar hidden items-center gap-0.5 overflow-x-auto @3xl:flex">{linkEls}</div>
+            <div className="flex items-center gap-2">
+              {cta}
+              {mobileToggle}
+            </div>
+          </div>
+        </nav>
+        {mobileDrawer}
+      </>
     )
   }
 
   if (navStyle === 'transparent') {
     return (
-      <nav ref={navRef} aria-label="Davet sitesi gezinme" className={`sticky top-0 z-40 -mb-[72px] transition-all duration-300 ${scrolled ? 'border-b border-current/10 bg-[color-mix(in_srgb,var(--sb-bg)_88%,transparent)] shadow-[0_8px_30px_-22px_rgba(0,0,0,0.45)] backdrop-blur-xl' : 'border-b border-transparent bg-transparent'}`}>
-        <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-10">
-          <a href="#site-start" onClick={(event) => { if (mode === 'editor') event.preventDefault() }} className={`sb-script text-3xl leading-none transition-colors ${scrolled ? 'sb-accent' : 'text-white'}`}>{initials || name}</a>
-          <div className={`sb-no-scrollbar hidden items-center gap-1 overflow-x-auto md:flex ${scrolled ? '' : 'text-white'}`}>{linkEls}</div>
-          {cta}
-        </div>
-      </nav>
+      <>
+        <nav ref={navRef} aria-label="Davet sitesi gezinme" className={`sticky top-0 z-40 -mb-[72px] transition-all duration-300 ${scrolled ? 'border-b border-current/10 bg-[color-mix(in_srgb,var(--sb-bg)_88%,transparent)] shadow-[0_8px_30px_-22px_rgba(0,0,0,0.45)] backdrop-blur-xl' : 'border-b border-transparent bg-transparent'}`}>
+          <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-10">
+            <a href="#site-start" onClick={(event) => { if (mode === 'editor') event.preventDefault() }} className={`sb-script text-3xl leading-none transition-colors ${scrolled ? 'sb-primary' : 'text-white'}`}>{initials || name}</a>
+            <div className={`sb-no-scrollbar hidden items-center gap-1 overflow-x-auto @3xl:flex ${scrolled ? '' : 'text-white'}`}>{linkEls}</div>
+            <div className="flex items-center gap-2">
+              {cta}
+              {mobileToggle}
+            </div>
+          </div>
+        </nav>
+        {mobileDrawer}
+      </>
     )
   }
 
   return (
-    <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-0 z-40 border-b border-current/[0.08] bg-[color-mix(in_srgb,var(--sb-bg)_86%,transparent)] shadow-[0_8px_30px_-22px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-      <div className="mx-auto flex min-h-16 max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-8">
-        {brand}
-        <div className="sb-no-scrollbar flex items-center gap-1 overflow-x-auto">{linkEls}{cta}</div>
-      </div>
-    </nav>
+    <>
+      <nav ref={navRef} aria-label="Davet sitesi gezinme" className="sticky top-0 z-40 border-b border-current/[0.08] bg-[color-mix(in_srgb,var(--sb-bg)_86%,transparent)] shadow-[0_8px_30px_-22px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-8">
+          {brand}
+          <div className="sb-no-scrollbar hidden items-center gap-1 overflow-x-auto @3xl:flex">{linkEls}{cta}</div>
+          <div className="flex items-center gap-2 @3xl:hidden">
+            {cta}
+            {mobileToggle}
+          </div>
+        </div>
+      </nav>
+      {mobileDrawer}
+    </>
   )
 }
 

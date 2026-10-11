@@ -527,7 +527,7 @@ export function SiteButton({ button, size = 'md', className, section, buttonInde
         runButtonAction(button, site)
       }}
       className={cn(
-        'group/btn inline-flex items-center justify-center gap-2 font-medium uppercase tracking-[0.18em] transition-all duration-300',
+        'group/btn inline-flex max-w-full items-center justify-center gap-2 text-center font-medium uppercase tracking-[0.18em] transition-all duration-300',
         v !== 'link' && 'border',
         v === 'link' ? 'h-auto px-1 underline underline-offset-8 decoration-1 hover:decoration-2' : sizeCls,
         v === 'solid' && 'hover:brightness-110 hover:-translate-y-0.5 hover:shadow-lg',
@@ -559,8 +559,11 @@ export function SiteButtons({ buttons, size, className, style }: { buttons?: But
   const section = useContext(EditableSectionCtx)
   if (!buttons?.length) return null
 
+  const align = section?.style?.align ?? 'center'
+  const justifyClass = align === 'left' ? 'justify-center sm:justify-start' : align === 'right' ? 'justify-center sm:justify-end' : 'justify-center'
+
   return (
-    <Reveal className={cn('flex flex-wrap items-center gap-3', className)} style={{ justifyContent: 'inherit', ...style }}>
+    <Reveal className={cn('flex flex-wrap items-center gap-3', justifyClass, className)} style={style}>
       {buttons.map((b, index) => (
         <SiteButton key={b.id} button={b} size={size} section={section} buttonIndex={index} />
       ))}

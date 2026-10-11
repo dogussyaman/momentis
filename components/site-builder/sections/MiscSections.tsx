@@ -131,21 +131,21 @@ export function FooterSection({ section, props }: SectionComponentProps) {
     return (
       <SectionShell section={section} noContainer>
         <footer className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-14 sm:px-10">
-          <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
-            <div className="flex flex-col gap-3">
+          <div className="flex flex-col items-center text-center justify-between gap-8 md:flex-row md:items-end md:text-left">
+            <div className="flex flex-col items-center md:items-start gap-3">
               {props.monogram && <p className="sb-script sb-accent text-5xl">{props.monogram}</p>}
               {props.title && <h2 className="sb-heading max-w-xl text-3xl leading-tight md:text-4xl">{props.title}</h2>}
               {props.text && <p className="max-w-md whitespace-pre-line text-sm sb-muted">{props.text}</p>}
             </div>
-            <div className="flex flex-col gap-3 md:items-end md:text-right">
+            <div className="flex flex-col items-center gap-3 md:items-end md:text-right">
               {props.date && <p className="sb-eyebrow">{props.date}</p>}
               {props.hashtag && <p className="sb-accent text-lg sb-heading">{props.hashtag}</p>}
               {social}
               <SiteButtons buttons={props.buttons} />
             </div>
           </div>
-          <div className="flex flex-col items-start justify-between gap-4 border-t border-current/10 pt-6 md:flex-row md:items-center">
-            {linkRow()}
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-current/10 pt-6 text-center md:flex-row md:items-center md:text-left">
+            {linkRow('justify-center md:justify-start')}
             {credit}
           </div>
         </footer>
