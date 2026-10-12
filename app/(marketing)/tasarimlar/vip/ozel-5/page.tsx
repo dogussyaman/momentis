@@ -1,21 +1,11 @@
-import Link from 'next/link'
+import { Ozel5Client } from './ozel-5-client'
 
 export const metadata = {
-  title: 'Özel-5 | MOMENTIS VIP',
+  title: 'Özel-5 · Botanical Sage | MOMENTIS VIP',
+  description: 'Adaçayı yeşili, doğal dokular ve botanik detaylarla dingin ve lüks düğün sitesi konsepti.',
   robots: { index: false },
 }
 
 export default function Ozel5Page() {
-  return (
-    <main className="min-h-dvh bg-ivory px-5 py-24 text-midnight" data-vip-site="ozel-5">
-      <div className="mx-auto max-w-5xl">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">VIP site konsepti · Demo</p>
-        <h1 className="mt-4 font-serif text-4xl">Özel-5</h1>
-        <p className="mt-3 text-sm text-muted-foreground">Bu sayfanın tasarımı henüz hazırlanmadı.</p>
-        <Link href="/tasarimlar/vip/talep/yeni?site=ozel-5" className="mt-8 inline-flex min-h-11 items-center rounded-xl bg-midnight px-5 text-sm text-white">
-          Bu konseptle talep sihirbazını aç
-        </Link>
-      </div>
-    </main>
-  )
+  return <Ozel5Client />
 }

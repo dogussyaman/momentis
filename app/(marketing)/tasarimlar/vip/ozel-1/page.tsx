@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -10,13 +11,16 @@ import {
   Heart,
   MapPin,
   Music2,
-  QrCode,
   Sparkles,
 } from 'lucide-react'
 import { Ozel1Hero } from './components/hero'
 import { Ozel1Nav } from './components/nav'
 import { Ozel1DemoBanner } from './components/demo-banner'
 import { Ozel1FooterActions } from './components/footer-actions'
+import { Ozel1Countdown } from './components/countdown'
+import { Ozel1GallerySlider } from './components/gallery-slider'
+import { Ozel1MapLocation } from './components/map-location'
+import { Ozel1GuestUploadCard } from './components/guest-upload-card'
 
 export const metadata = {
   title: 'Özel-1 · Ivory Atelier | MOMENTIS VIP',
@@ -56,10 +60,10 @@ function DemoTag({ light = false }: { light?: boolean }) {
   )
 }
 
-/** Rounded card wrapper for white-bg sections */
+/** Rounded card wrapper for white-bg sections with smooth luxury shadow & border */
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`overflow-hidden rounded-3xl ${className}`}>
+    <div className={`overflow-hidden rounded-3xl border border-[#ece4d8]/60 transition-all duration-300 hover:shadow-xl ${className}`}>
       {children}
     </div>
   )
@@ -91,24 +95,44 @@ export default function Ozel1Page() {
                   title="İki ayrı hikâye, şimdi tek bir yol."
                   description="Hayatımıza neşe katan küçük anları ve birbirimizde bulduğumuz güzelliği sizlerle paylaşmak istedik."
                 />
-                <div className="mx-auto mt-9 grid max-w-4xl gap-4 sm:grid-cols-2">
+                <div className="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-2">
                   {[
-                    { name: 'Lal', detail: 'Her anı güzelleştiren bir gülümseme ve yeni yerler keşfetme tutkusu.' },
-                    { name: 'Emir', detail: 'Küçük mutlulukların kıymetini bilen, sevdikleriyle olmayı seven biri.' },
-                  ].map((person, index) => (
-                    <article key={person.name} className="overflow-hidden rounded-2xl bg-[#f8f5ef]">
-                      <div
-                        className={`flex aspect-[5/3] items-end bg-gradient-to-br ${
-                          index === 0 ? 'from-[#d9cabb] to-[#a98756]' : 'from-[#c8c7b9] to-[#707565]'
-                        } p-5`}
-                      >
-                        <span className="rounded-full bg-white/85 px-3 py-1.5 text-[9px] uppercase tracking-wider text-midnight/65">
-                          Portre fotoğrafı demo alanı
+                    {
+                      name: 'Lal Demir',
+                      role: 'Gelin',
+                      image: 'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=800&q=80',
+                      detail: 'Her anı güzelleştiren bir gülümseme ve yeni yerler keşfetme tutkusu.',
+                    },
+                    {
+                      name: 'Emir Yıldız',
+                      role: 'Damat',
+                      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
+                      detail: 'Küçük mutlulukların kıymetini bilen, sevdikleriyle olmayı seven biri.',
+                    },
+                  ].map((person) => (
+                    <article
+                      key={person.name}
+                      className="group overflow-hidden rounded-2xl bg-[#f8f5ef] border border-[#e9dfd0] transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:border-[#a98756]/40"
+                    >
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#eee8de]">
+                        <Image
+                          src={person.image}
+                          alt={person.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 450px"
+                          className="object-cover object-top transition-transform duration-700 ease-out group-hover:scale-108"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 transition-opacity group-hover:opacity-60" />
+                        <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-midnight shadow-sm backdrop-blur-sm">
+                          {person.role}
                         </span>
                       </div>
                       <div className="p-5 sm:p-6">
-                        <h3 className="font-serif text-2xl">{person.name}</h3>
-                        <p className="mt-2 text-xs leading-6 text-midnight/60">{person.detail}</p>
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-serif text-2xl text-midnight group-hover:text-[#a98756] transition-colors">{person.name}</h3>
+                          <Heart className="h-4 w-4 text-[#a98756] opacity-0 transition-opacity group-hover:opacity-100" />
+                        </div>
+                        <p className="mt-2 text-xs leading-6 text-midnight/65">{person.detail}</p>
                       </div>
                     </article>
                   ))}
@@ -117,27 +141,17 @@ export default function Ozel1Page() {
               </section>
             </Card>
 
-            {/* ── 4. GERİ SAYIM ── dark */}
+            {/* ── 4. GERİ SAYIM ── dark luxury */}
             <Card className="bg-[#2c302b] text-white">
               <section id="countdown" className="scroll-mt-20 px-6 py-14 sm:px-10 sm:py-16">
                 <SectionHeading
                   eyebrow="Birlikte geçireceğimiz güne"
                   title="Geri sayım"
-                  description="Düğün gününe kalan süre için örnek sayaç görünümü."
+                  description="Düğün gününe kalan süre için anlık çalışan özel sayaç."
                   light
                 />
-                <div className="mx-auto mt-8 grid max-w-xl grid-cols-4 gap-2 sm:gap-4">
-                  {[
-                    ['128', 'Gün'],
-                    ['06', 'Saat'],
-                    ['42', 'Dakika'],
-                    ['18', 'Saniye'],
-                  ].map(([value, label]) => (
-                    <div key={label} className="rounded-2xl border border-white/15 bg-white/5 px-2 py-5 text-center sm:px-4 sm:py-6">
-                      <p className="font-serif text-3xl text-[#e7c98f] sm:text-4xl">{value}</p>
-                      <p className="mt-2 text-[8px] uppercase tracking-[0.18em] text-white/60">{label}</p>
-                    </div>
-                  ))}
+                <div className="mt-8">
+                  <Ozel1Countdown />
                 </div>
                 <DemoTag light />
               </section>
@@ -151,56 +165,42 @@ export default function Ozel1Page() {
                   title="Takvimlerinize not edin"
                   description="Bu özel günü beraber karşılamak için ihtiyacınız olan bilgiler."
                 />
-                <div className="mx-auto mt-9 grid max-w-4xl gap-3 sm:grid-cols-3">
+                <div className="mx-auto mt-9 grid max-w-4xl gap-4 sm:grid-cols-3">
                   {[
-                    { icon: CalendarDays, title: 'Tarih', text: '12 Eylül 2027, Pazar' },
-                    { icon: Clock3, title: 'Saat', text: '18.30 · Karşılama' },
-                    { icon: MapPin, title: 'Mekân', text: 'Sarnıç Köşk · İstanbul' },
-                  ].map(({ icon: Icon, title, text }) => (
-                    <div key={title} className="rounded-2xl border border-[#e9e1d5] p-6 text-center">
-                      <Icon className="mx-auto h-5 w-5 text-[#a98756]" />
-                      <p className="mt-3 text-[9px] uppercase tracking-[0.18em] text-midnight/45">{title}</p>
-                      <p className="mt-2 text-sm font-medium">{text}</p>
+                    { icon: CalendarDays, title: 'Tarih', text: '12 Eylül 2027, Pazar', sub: 'Hafta sonu' },
+                    { icon: Clock3, title: 'Saat', text: '18.30 · Karşılama', sub: '19.15 Nikâh töreni' },
+                    { icon: MapPin, title: 'Mekân', text: 'Sarnıç Köşk · İstanbul', sub: 'Sarıyer sahili' },
+                  ].map(({ icon: Icon, title, text, sub }) => (
+                    <div
+                      key={title}
+                      className="group rounded-2xl border border-[#e9e1d5] p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-[#a98756]/50 hover:bg-[#faf7f2] cursor-pointer"
+                    >
+                      <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#f8f5ef] text-[#a98756] transition-all duration-300 group-hover:bg-[#a98756] group-hover:text-white group-hover:scale-110 shadow-xs">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <p className="mt-3 text-[9px] uppercase tracking-[0.2em] text-midnight/45">{title}</p>
+                      <p className="mt-2 text-sm font-semibold text-midnight">{text}</p>
+                      <p className="mt-1 text-[10px] text-midnight/50">{sub}</p>
                     </div>
                   ))}
                 </div>
-                <div className="mx-auto mt-4 max-w-4xl rounded-2xl bg-[#f8f5ef] px-5 py-4 text-center text-xs text-midnight/65">
-                  <span className="font-medium text-midnight">Kıyafet kodu:</span> Bahçe şıklığı ·{' '}
+                <div className="mx-auto mt-5 max-w-4xl rounded-2xl bg-[#f8f5ef] border border-[#e9dfd0] px-5 py-4 text-center text-xs text-midnight/70 transition-colors hover:bg-[#f3ede1]">
+                  <span className="font-semibold text-midnight">Kıyafet kodu:</span> Bahçe şıklığı & Kokteyl kıyafetleri ·{' '}
                   {demoNote.toLocaleLowerCase('tr-TR')}
                 </div>
               </section>
             </Card>
 
-            {/* ── 6. KONUM ── */}
+            {/* ── 6. KONUM (GOOGLE HARİTALAR MODEREN UI) ── */}
             <Card className="bg-[#f8f5ef]">
               <section id="location" className="scroll-mt-20 px-6 py-14 sm:px-10 sm:py-16 lg:px-16">
                 <SectionHeading
                   eyebrow="Konum ve yol tarifi · 06"
                   title="Sarnıç Köşk'te buluşalım"
-                  description="Harita bağlantısı örnek mekân adını arar; kesin adres ve otopark notları çift tarafından eklenebilir."
+                  description="Modern harita arayüzü, canlı navigasyon bağlantıları ve ulaşım rehberi."
                 />
-                <div className="mx-auto mt-8 grid max-w-4xl overflow-hidden rounded-2xl bg-white shadow-sm md:grid-cols-[1.2fr_0.8fr]">
-                  <div className="flex min-h-56 items-center justify-center bg-[radial-gradient(circle_at_50%_45%,#d9cdb9_0_4%,transparent_4.5%),linear-gradient(135deg,#ece7de,#d7ded1)] p-6">
-                    <div className="rounded-xl bg-white/90 px-4 py-3 text-center shadow-sm">
-                      <MapPin className="mx-auto h-5 w-5 text-[#a98756]" />
-                      <p className="mt-2 text-xs font-medium">Harita önizleme alanı</p>
-                      <p className="mt-1 text-[9px] text-midnight/50">Örnek konum · İstanbul</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col justify-center p-6 sm:p-8">
-                    <h3 className="font-serif text-xl">Ulaşım notları</h3>
-                    <p className="mt-3 text-xs leading-6 text-midnight/60">
-                      Otopark ve servis detayları gerçek davetiye hazırlanırken buraya eklenebilir.
-                    </p>
-                    <Link
-                      href="https://www.google.com/maps/search/?api=1&query=Sarn%C4%B1%C3%A7+K%C3%B6%C5%9Fk+%C4%B0stanbul"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-5 inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-[#d9cbb6] px-4 text-[9px] uppercase tracking-wider transition hover:bg-[#f8f5ef]"
-                    >
-                      Haritada ara <MapPin className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
+                <div className="mt-8">
+                  <Ozel1MapLocation />
                 </div>
                 <DemoTag />
               </section>
@@ -220,9 +220,9 @@ export default function Ozel1Page() {
                     ['İlk yolculuk', 'Birlikte keşfettiğimiz sahil kasabasında unutulmaz bir hafta sonu.'],
                     ['Bugün', 'En sevdiğimiz insanlarla yeni bir başlangıcı kutlamaya hazırlanıyoruz.'],
                   ].map(([title, text]) => (
-                    <div key={title} className="relative pb-8 last:pb-0">
-                      <span className="absolute -left-[33px] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-[#a98756] ring-1 ring-[#d9cbb6] sm:-left-[43px]" />
-                      <p className="text-[9px] uppercase tracking-[0.18em] text-[#a98756]">{title}</p>
+                    <div key={title} className="group relative pb-8 last:pb-0">
+                      <span className="absolute -left-[33px] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-[#a98756] ring-1 ring-[#d9cbb6] transition-transform duration-300 group-hover:scale-150 sm:-left-[43px]" />
+                      <p className="text-[9px] uppercase tracking-[0.18em] text-[#a98756] font-semibold">{title}</p>
                       <p className="mt-2 text-sm leading-7 text-midnight/65">{text}</p>
                     </div>
                   ))}
@@ -238,19 +238,23 @@ export default function Ozel1Page() {
                   title="Günün akışı"
                   description="Kutlamanın her anında bize katılın."
                 />
-                <div className="mx-auto mt-8 max-w-2xl divide-y divide-[#e9e1d5] overflow-hidden rounded-2xl bg-white shadow-sm">
+                <div className="mx-auto mt-8 max-w-2xl divide-y divide-[#e9e1d5] overflow-hidden rounded-2xl bg-white shadow-sm border border-[#e9dfd0]">
                   {[
                     ['18.30', 'Karşılama kokteyli', 'Bahçe terası'],
                     ['19.15', 'Nikâh töreni', 'Tören alanı'],
                     ['20.00', 'Yemek ve kutlama', 'Sarnıç salonu'],
                     ['22.30', 'Dans ve after party', 'Bahçe terası'],
                   ].map(([time, title, venue]) => (
-                    <div key={time} className="flex items-center gap-5 px-6 py-4">
-                      <span className="min-w-14 font-serif text-xl text-[#a98756]">{time}</span>
-                      <div>
-                        <p className="text-sm font-medium">{title}</p>
-                        <p className="mt-0.5 text-[9px] text-midnight/45">{venue}</p>
+                    <div
+                      key={time}
+                      className="group flex items-center gap-5 px-6 py-4 transition-colors hover:bg-[#faf6ee] cursor-pointer"
+                    >
+                      <span className="min-w-16 font-serif text-xl text-[#a98756] font-medium transition-transform group-hover:scale-105">{time}</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-midnight group-hover:text-[#a98756] transition-colors">{title}</p>
+                        <p className="mt-0.5 text-[10px] text-midnight/45">{venue}</p>
                       </div>
+                      <Sparkles className="h-4 w-4 text-[#e7c98f] opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
                   ))}
                 </div>
@@ -258,53 +262,33 @@ export default function Ozel1Page() {
               </section>
             </Card>
 
-            {/* ── 9. FOTOĞRAF GALERİSİ ── */}
+            {/* ── 9. FOTOĞRAF GALERİSİ (OTOMATİK AKAN LUXURY SLIDER) ── */}
             <Card className="bg-white">
               <section id="gallery" className="scroll-mt-20 px-6 py-14 sm:px-10 sm:py-16 lg:px-16">
                 <SectionHeading
                   eyebrow="Fotoğraf galerisi · 09"
                   title="Güzel günlerden küçük kareler"
-                  description="Fotoğraf ve videolarınız için örnek galeri düzeni."
+                  description="Birlikte biriktirdiğimiz anılardan oluşan dinamik galeri. Fotoğrafları kaydırabilir ve büyütebilirsiniz."
                 />
-                <div className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-3">
-                  {[
-                    { color: '#e8dfd2', label: '1' },
-                    { color: '#d5c9b8', label: '2' },
-                    { color: '#eee8de', label: '3' },
-                  ].map(({ color, label }) => (
-                    <div
-                      key={color}
-                      className="flex aspect-[4/3] items-end overflow-hidden rounded-2xl p-4"
-                      style={{ background: `linear-gradient(145deg, ${color}, #a9875633)` }}
-                    >
-                      <span className="rounded-full bg-white/85 px-3 py-1.5 text-[9px] uppercase tracking-wider text-midnight/65">
-                        Fotoğraf alanı {label}
-                      </span>
-                    </div>
-                  ))}
+                <div className="mt-8">
+                  <Ozel1GallerySlider />
                 </div>
                 <DemoTag />
               </section>
             </Card>
 
-            {/* ── 10. QR ALBÜM ── */}
+            {/* ── 10. QR FOTOĞRAF ALBÜMÜ & CANLI YÜKLEME ── */}
             <Card className="bg-[#f8f5ef]">
               <section id="album" className="scroll-mt-20 px-6 py-14 sm:px-10 sm:py-16 lg:px-16">
                 <SectionHeading
-                  eyebrow="QR fotoğraf albümü · 10"
+                  eyebrow="QR fotoğraf albümü & Anı Paylaşımı · 10"
                   title="Sizin gözünüzden bu günü görelim"
-                  description="Misafir fotoğraf yükleme ve ortak albüm paylaşımı bu konseptte tasarım alanı olarak gösterilir."
+                  description="Masalardaki QR kodu kameranızla okutarak veya doğrudan aşağıdaki alandan bu güne ait fotoğraflarınızı ekleyebilirsiniz."
                 />
-                <div className="mx-auto mt-8 flex max-w-md flex-col items-center rounded-2xl border border-dashed border-[#cbbb9f] bg-white p-8 text-center shadow-sm">
-                  <QrCode className="h-14 w-14 text-[#a98756]" />
-                  <p className="mt-5 font-serif text-xl">QR kod alanı</p>
-                  <p className="mt-2 text-xs leading-6 text-midnight/55">
-                    Gerçek albüm adresi tanımlandığında misafirler fotoğraflarını paylaşabilir.
-                  </p>
-                  <span className="mt-4 rounded-full bg-[#f8f5ef] px-3 py-1.5 text-[9px] uppercase tracking-wider text-midnight/50">
-                    Demo · Aktif QR değil
-                  </span>
+                <div className="mt-8">
+                  <Ozel1GuestUploadCard />
                 </div>
+                <DemoTag />
               </section>
             </Card>
 
@@ -316,14 +300,14 @@ export default function Ozel1Page() {
                   title="Bu mutlu günümüze davetlisiniz"
                   description="Dijital davetiye kartı önizlemesi. Paylaşma ve indirme demo kapsamında etkin değildir."
                 />
-                <div className="mx-auto mt-8 max-w-md rounded-[28px] border border-[#dfd2be] bg-[#fbf8f2] p-10 text-center shadow-[0_18px_60px_-40px_rgba(38,31,23,0.55)]">
+                <div className="mx-auto mt-8 max-w-md rounded-[28px] border border-[#dfd2be] bg-[#fbf8f2] p-10 text-center shadow-[0_18px_60px_-40px_rgba(38,31,23,0.55)] transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
                   <Sparkles className="mx-auto h-5 w-5 text-[#a98756]" />
                   <p className="mt-5 text-[9px] uppercase tracking-[0.28em] text-[#a98756]">Bir ömür, aynı hikâye</p>
                   <p className="mt-5 font-serif text-5xl leading-none">
                     Lal <i className="text-[#a98756]">&</i> Emir
                   </p>
                   <div className="my-5 h-px w-12 bg-[#d9cbb6] mx-auto" />
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-midnight/60">12 Eylül 2027 · 18.30</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-midnight/60 font-medium">12 Eylül 2027 · 18.30</p>
                   <p className="mt-1 text-xs text-midnight/55">Sarnıç Köşk · İstanbul</p>
                 </div>
                 <DemoTag />
@@ -339,7 +323,7 @@ export default function Ozel1Page() {
                   description="Yanıt formu tasarım örneğidir. Bu demoda yanıtlar kaydedilmez ve gönderilemez."
                   light
                 />
-                <div className="mx-auto mt-8 grid max-w-2xl gap-3 rounded-2xl border border-white/15 bg-white/5 p-6 sm:grid-cols-2 sm:p-8">
+                <div className="mx-auto mt-8 grid max-w-2xl gap-3 rounded-2xl border border-white/15 bg-white/5 p-6 sm:grid-cols-2 sm:p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/30">
                   <label className="text-[9px] uppercase tracking-wider text-white/60">
                     Adınız
                     <input
@@ -389,10 +373,13 @@ export default function Ozel1Page() {
                     { name: "Lal\u2019in ailesi", members: 'Selma & Kemal Demir' },
                     { name: "Emir\u2019in ailesi", members: 'Neslihan & Tar\u0131k Y\u0131ld\u0131z' },
                   ].map((family) => (
-                    <div key={family.name} className="rounded-2xl bg-[#f8f5ef] p-7 text-center">
-                      <Heart className="mx-auto h-5 w-5 text-[#a98756]" />
+                    <div
+                      key={family.name}
+                      className="group rounded-2xl bg-[#f8f5ef] p-7 text-center border border-[#e9dfd0] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-[#a98756]/40"
+                    >
+                      <Heart className="mx-auto h-5 w-5 text-[#a98756] transition-transform duration-300 group-hover:scale-125" />
                       <p className="mt-4 font-serif text-xl">{family.name}</p>
-                      <p className="mt-2 text-sm text-midnight/70">{family.members}</p>
+                      <p className="mt-2 text-sm font-medium text-midnight/80">{family.members}</p>
                       <p className="mt-2 text-xs text-midnight/45">Anne ve baba isimleri burada yer alacak.</p>
                     </div>
                   ))}
@@ -418,9 +405,9 @@ export default function Ozel1Page() {
             {/* ── 15. MÜZİK ── */}
             <Card className="bg-white">
               <section id="music" className="scroll-mt-20 px-6 py-10 sm:px-10 sm:py-12">
-                <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 rounded-2xl border border-[#e9e1d5] bg-[#fbf8f2] p-6 text-center sm:flex-row sm:text-left">
-                  <span className="shrink-0 rounded-full bg-white p-3.5 shadow-sm">
-                    <Music2 className="h-5 w-5 text-[#a98756]" />
+                <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 rounded-2xl border border-[#e9e1d5] bg-[#fbf8f2] p-6 text-center sm:flex-row sm:text-left transition-all duration-300 hover:shadow-md hover:border-[#a98756]/30">
+                  <span className="shrink-0 rounded-full bg-white p-3.5 shadow-sm text-[#a98756]">
+                    <Music2 className="h-5 w-5" />
                   </span>
                   <div className="flex-1">
                     <h2 className="font-serif text-xl">Bizim şarkımız</h2>
@@ -448,16 +435,19 @@ export default function Ozel1Page() {
                     {
                       icon: BedDouble,
                       title: 'Konaklama',
-                      text: 'Yakın çevredeki otel önerileri ve iletişim bilgileri burada paylaşılabilir.',
+                      text: 'Yakın çevredeki otel önerileri ve anlaşmalı konaklama detayları burada paylaşılabilir.',
                     },
                     {
                       icon: Car,
-                      title: 'Ulaşım',
-                      text: 'Servis saati, buluşma noktası ve transfer detayları buraya eklenebilir.',
+                      title: 'Ulaşım & Transfer',
+                      text: 'Servis saatleri, buluşma noktaları ve transfer güzergâhı buraya eklenebilir.',
                     },
                   ].map(({ icon: Icon, title, text }) => (
-                    <article key={title} className="rounded-2xl bg-white p-6 shadow-sm">
-                      <Icon className="h-5 w-5 text-[#a98756]" />
+                    <article
+                      key={title}
+                      className="group rounded-2xl bg-white p-6 shadow-sm border border-[#e9dfd0] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-[#a98756]/40"
+                    >
+                      <Icon className="h-5 w-5 text-[#a98756] transition-transform duration-300 group-hover:scale-110" />
                       <h3 className="mt-4 font-serif text-xl">{title}</h3>
                       <p className="mt-2 text-xs leading-6 text-midnight/55">{text}</p>
                     </article>
@@ -470,7 +460,7 @@ export default function Ozel1Page() {
             {/* ── 17. HEDİYE / DİLEKLER ── */}
             <Card className="bg-white">
               <section id="gift" className="scroll-mt-20 px-6 py-14 sm:px-10 sm:py-16">
-                <div className="mx-auto max-w-3xl rounded-2xl border border-[#e9e1d5] p-8 text-center sm:p-10">
+                <div className="mx-auto max-w-3xl rounded-2xl border border-[#e9e1d5] p-8 text-center sm:p-10 transition-all duration-300 hover:shadow-md hover:border-[#a98756]/30">
                   <Gift className="mx-auto h-6 w-6 text-[#a98756]" />
                   <p className="mt-4 text-[9px] uppercase tracking-[0.28em] text-[#a98756]">Hediye / Dilekler · 17</p>
                   <h2 className="mt-3 font-serif text-3xl">Güzel dilekleriniz yeter</h2>

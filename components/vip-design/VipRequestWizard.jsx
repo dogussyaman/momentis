@@ -3,10 +3,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Check, ExternalLink, LoaderCircle, LockKeyhole, Upload, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink, LoaderCircle, LockKeyhole, Upload, X, Calendar as CalendarIcon, MapPin, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { DatePickerField } from '@/components/ui/date-picker-field'
 import { useAuth } from '@/components/auth/auth-provider'
 import { VipInvitationCard } from './VipInvitationCard'
 import { createVipDesignRequest } from '@/lib/vip-design/mock-service.mjs'
@@ -60,6 +69,16 @@ export function VipRequestWizard() {
       setRestored(true)
     }
   }, [])
+
+  // If redirected from demo page with ?site= query param, update form siteId
+  useEffect(() => {
+    if (!siteSlug) return
+    const match = VIP_SITE_TEMPLATES.find((item) => item.slug === siteSlug || item.id === siteSlug)
+    if (match) {
+      setForm((current) => ({ ...current, siteId: match.id }))
+      setNotification(`${match.title} konsepti başarıyla seçildi!`)
+    }
+  }, [siteSlug])
 
   useEffect(() => {
     if (!restored || success) return
@@ -315,17 +334,15 @@ export function VipRequestWizard() {
 
                       {/* Live Demo Link Button */}
                       {site.hasLiveDemo && (
-                        <a
+                        <Link
                           href={`/tasarimlar/vip/${site.slug}`}
-                          target="_blank"
-                          rel="opener"
                           onClick={(e) => e.stopPropagation()}
-                          title="Canlı demoyu yeni sekmede aç"
+                          title="Demoyu incele"
                           className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-lg bg-midnight/90 px-2 py-1 text-[10px] font-medium text-white shadow-sm backdrop-blur-md transition hover:bg-midnight hover:shadow"
                         >
                           <span>Siteyi Gör</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
                       )}
                     </div>
 
@@ -363,34 +380,284 @@ export function VipRequestWizard() {
 
         {step === 1 && (
           <div>
-            <h2 className="font-serif text-2xl">Etkinlik ve çift bilgileri</h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div><Label htmlFor="bride">Gelin adı *</Label><Input id="bride" autoComplete="given-name" maxLength={80} value={form.event.brideName} onChange={(e) => updateEvent('brideName', e.target.value)} className={inputClass} required /></div>
-              <div><Label htmlFor="groom">Damat adı *</Label><Input id="groom" autoComplete="off" maxLength={80} value={form.event.groomName} onChange={(e) => updateEvent('groomName', e.target.value)} className={inputClass} required /></div>
-              <div><Label htmlFor="event-type">Etkinlik türü</Label><select id="event-type" value={form.event.eventType} onChange={(e) => updateEvent('eventType', e.target.value)} className={`${inputClass} w-full rounded-xl border px-3 text-sm`}>{VIP_FORM_OPTIONS.eventTypes.map((type) => <option key={type}>{type}</option>)}</select></div>
-              <div><Label htmlFor="date">Etkinlik tarihi *</Label><Input id="date" type="date" value={form.event.date} onChange={(e) => updateEvent('date', e.target.value)} className={inputClass} required /></div>
-              <div><Label htmlFor="time">Saat</Label><Input id="time" type="time" value={form.event.time} onChange={(e) => updateEvent('time', e.target.value)} className={inputClass} /></div>
-              <div><Label htmlFor="venue">Mekân *</Label><Input id="venue" maxLength={160} value={form.event.venue} onChange={(e) => updateEvent('venue', e.target.value)} className={inputClass} required /></div>
-              <div className="sm:col-span-2"><Label htmlFor="address">Adres</Label><Input id="address" maxLength={300} value={form.event.address} onChange={(e) => updateEvent('address', e.target.value)} className={inputClass} /></div>
-              <div><Label htmlFor="family">Aile bilgileri (isteğe bağlı)</Label><textarea id="family" maxLength={500} value={form.event.familyInfo} onChange={(e) => updateEvent('familyInfo', e.target.value)} className="mt-1 min-h-24 w-full rounded-xl border border-midnight/15 p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" /></div>
-              <div><Label htmlFor="invitation-text">Davet metni / özel not</Label><textarea id="invitation-text" maxLength={1000} value={form.event.invitationText} onChange={(e) => updateEvent('invitationText', e.target.value)} className="mt-1 min-h-24 w-full rounded-xl border border-midnight/15 p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" /></div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-midnight/10 pb-4">
+              <div>
+                <h2 className="font-serif text-2xl text-midnight">Etkinlik ve çift bilgileri</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Davetiye ve sitenizde yer alacak temel kutlama ve lokasyon detayları.</p>
+              </div>
+              <span className="rounded-full bg-champagne/20 px-3 py-1 text-[11px] font-semibold text-champagne-dark">
+                Adım 2 / 6
+              </span>
+            </div>
+
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="bride" className="text-xs font-semibold text-midnight/80">
+                  Gelin adı <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="bride"
+                  autoComplete="given-name"
+                  placeholder="Örn. Lal"
+                  maxLength={80}
+                  value={form.event.brideName}
+                  onChange={(e) => updateEvent('brideName', e.target.value)}
+                  className="mt-1.5 h-11 rounded-xl border-midnight/20 bg-white shadow-xs focus-visible:ring-champagne"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="groom" className="text-xs font-semibold text-midnight/80">
+                  Damat adı <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="groom"
+                  autoComplete="off"
+                  placeholder="Örn. Emir"
+                  maxLength={80}
+                  value={form.event.groomName}
+                  onChange={(e) => updateEvent('groomName', e.target.value)}
+                  className="mt-1.5 h-11 rounded-xl border-midnight/20 bg-white shadow-xs focus-visible:ring-champagne"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="event-type" className="text-xs font-semibold text-midnight/80">
+                  Etkinlik türü
+                </Label>
+                <div className="mt-1.5">
+                  <Select
+                    value={form.event.eventType || 'Düğün'}
+                    onValueChange={(val) => updateEvent('eventType', val)}
+                  >
+                    <SelectTrigger id="event-type" className="h-11 rounded-xl border-midnight/20 bg-white shadow-xs focus:ring-champagne">
+                      <SelectValue placeholder="Etkinlik türü seçin" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-midnight/15 shadow-xl">
+                      {VIP_FORM_OPTIONS.eventTypes.map((type) => (
+                        <SelectItem key={type} value={type} className="rounded-lg py-2 text-xs">
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="date" className="text-xs font-semibold text-midnight/80">
+                  Etkinlik tarihi <span className="text-red-500">*</span>
+                </Label>
+                <div className="mt-1.5">
+                  <DatePickerField
+                    value={form.event.date}
+                    onChange={(val) => updateEvent('date', val)}
+                    placeholder="Tarih seçin (Takvim)"
+                    className="h-11 rounded-xl border-midnight/20 bg-white shadow-xs hover:border-midnight/40 focus:ring-champagne"
+                    testid="vip-date-picker"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="time" className="text-xs font-semibold text-midnight/80">
+                  Başlangıç Saati
+                </Label>
+                <div className="relative mt-1.5">
+                  <Input
+                    id="time"
+                    type="time"
+                    value={form.event.time}
+                    onChange={(e) => updateEvent('time', e.target.value)}
+                    className="h-11 rounded-xl border-midnight/20 bg-white pl-10 shadow-xs focus-visible:ring-champagne"
+                  />
+                  <Clock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-champagne-dark" />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="venue" className="text-xs font-semibold text-midnight/80">
+                  Mekân Adı <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative mt-1.5">
+                  <Input
+                    id="venue"
+                    placeholder="Örn. Sarnıç Köşk, Boğaz Terası"
+                    maxLength={160}
+                    value={form.event.venue}
+                    onChange={(e) => updateEvent('venue', e.target.value)}
+                    className="h-11 rounded-xl border-midnight/20 bg-white pl-10 shadow-xs focus-visible:ring-champagne"
+                    required
+                  />
+                  <MapPin className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-champagne-dark" />
+                </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <Label htmlFor="address" className="text-xs font-semibold text-midnight/80">
+                  Açık Adres & Yol Tarifi Notu
+                </Label>
+                <Input
+                  id="address"
+                  placeholder="Örn. Sarıyer Sahil Yolu No: 42, Sarıyer / İstanbul"
+                  maxLength={300}
+                  value={form.event.address}
+                  onChange={(e) => updateEvent('address', e.target.value)}
+                  className="mt-1.5 h-11 rounded-xl border-midnight/20 bg-white shadow-xs focus-visible:ring-champagne"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="family" className="text-xs font-semibold text-midnight/80">
+                  Aile Bilgileri (İsteğe bağlı)
+                </Label>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">Anne ve baba isimleri davetiyede görünecek şekilde</p>
+                <Textarea
+                  id="family"
+                  placeholder="Örn. Demir Ailesi & Yıldız Ailesi"
+                  maxLength={500}
+                  value={form.event.familyInfo}
+                  onChange={(e) => updateEvent('familyInfo', e.target.value)}
+                  className="mt-1.5 min-h-[96px] rounded-xl border-midnight/20 bg-white p-3 text-xs shadow-xs focus-visible:ring-champagne"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="invitation-text" className="text-xs font-semibold text-midnight/80">
+                  Davet Metni / Özel Söz
+                </Label>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">Davetiyenizde veya ana ekranda yer alacak özel mesaj</p>
+                <Textarea
+                  id="invitation-text"
+                  placeholder="Örn. Hayatımızın bu en anlamlı gününde mutluluğumuzu sizinle paylaşmaktan onur duyarız."
+                  maxLength={1000}
+                  value={form.event.invitationText}
+                  onChange={(e) => updateEvent('invitationText', e.target.value)}
+                  className="mt-1.5 min-h-[96px] rounded-xl border-midnight/20 bg-white p-3 text-xs shadow-xs focus-visible:ring-champagne"
+                />
+              </div>
             </div>
           </div>
         )}
 
         {step === 2 && (
           <div>
-            <h2 className="font-serif text-2xl">Görsel ve tasarım tercihleri</h2>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">Görsel seçimi yalnızca dosya adlarını ve temel metadata’yı mock talep özetine ekler. Dosyalar yüklenmez veya saklanmaz.</p>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <div><Label htmlFor="photo-input">Fotoğraf seçimi (en fazla 8, her biri 10 MB)</Label><label htmlFor="photo-input" className="mt-2 flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-midnight/25 bg-ivory/50 px-4 text-center text-xs hover:bg-ivory"><Upload className="mb-2 h-5 w-5 text-champagne-dark" />Dosyaları seçin · demo metadata</label><input id="photo-input" type="file" accept="image/*" multiple className="sr-only" onChange={onPhotoChange} /><ul className="mt-3 space-y-1 text-[10px] text-muted-foreground">{form.photos.map((photo, index) => <li key={`${photo.name}-${index}`} className="flex items-center justify-between gap-2"><span className="truncate">{photo.name} · {(photo.size / 1024).toFixed(0)} KB</span><button type="button" aria-label={`${photo.name} kaldır`} onClick={() => setForm((current) => ({ ...current, photos: current.photos.filter((_, i) => i !== index) }))}><X className="h-3.5 w-3.5" /></button></li>)}</ul></div>
-              <div className="space-y-4">
-                <div><Label htmlFor="colors">Tercih edilen renkler</Label><Input id="colors" maxLength={160} placeholder="Örn. adaçayı, fildişi" value={form.preferences.colors} onChange={(e) => updatePreference('colors', e.target.value)} className={inputClass} /></div>
-                <div><Label htmlFor="style">Stil</Label><select id="style" value={form.preferences.style} onChange={(e) => updatePreference('style', e.target.value)} className={`${inputClass} w-full rounded-xl border px-3 text-sm`}>{VIP_FORM_OPTIONS.styles.map((style) => <option key={style}>{style}</option>)}</select></div>
-                <div><Label htmlFor="references">Referans notları</Label><textarea id="references" maxLength={800} value={form.preferences.referenceNotes} onChange={(e) => updatePreference('referenceNotes', e.target.value)} className="mt-1 min-h-20 w-full rounded-xl border border-midnight/15 p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" /></div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-midnight/10 pb-4">
+              <div>
+                <h2 className="font-serif text-2xl text-midnight">Görsel ve tasarım tercihleri</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Kişiye özel tasarımınız için stil, renk ve bölüm tercihlerinizi belirleyin.</p>
               </div>
-              <fieldset className="sm:col-span-2"><legend className="text-xs font-medium">İstenen site bölümleri</legend><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{VIP_FORM_OPTIONS.sections.map((section) => <label key={section} className="flex items-center gap-2 rounded-xl border border-midnight/10 p-3 text-xs"><input type="checkbox" checked={form.preferences.sections.includes(section)} onChange={(e) => updatePreference('sections', e.target.checked ? [...form.preferences.sections, section] : form.preferences.sections.filter((item) => item !== section))} className="accent-midnight" />{section}</label>)}</div></fieldset>
-              <div className="sm:col-span-2"><Label htmlFor="description">Ek açıklama / istekler</Label><textarea id="description" maxLength={2000} value={form.preferences.description} onChange={(e) => updatePreference('description', e.target.value)} className="mt-1 min-h-28 w-full rounded-xl border border-midnight/15 p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" /></div>
+              <span className="rounded-full bg-champagne/20 px-3 py-1 text-[11px] font-semibold text-champagne-dark">
+                Adım 3 / 6
+              </span>
+            </div>
+
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="photo-input" className="text-xs font-semibold text-midnight/80">
+                  Fotoğraf Seçimi (En fazla 8 dosya, her biri 10 MB)
+                </Label>
+                <label
+                  htmlFor="photo-input"
+                  className="mt-2 flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-midnight/20 bg-ivory/40 px-4 text-center text-xs transition hover:border-champagne-dark hover:bg-ivory"
+                >
+                  <Upload className="mb-2 h-6 w-6 text-champagne-dark" />
+                  <span className="font-medium text-midnight">Fotoğrafları seçin veya sürükleyin</span>
+                  <span className="mt-1 text-[10px] text-muted-foreground">JPG, PNG, WEBP · Demo metadata kaydı</span>
+                </label>
+                <input id="photo-input" type="file" accept="image/*" multiple className="sr-only" onChange={onPhotoChange} />
+
+                {form.photos.length > 0 && (
+                  <ul className="mt-3 space-y-1.5 text-[11px] text-muted-foreground">
+                    {form.photos.map((photo, index) => (
+                      <li key={`${photo.name}-${index}`} className="flex items-center justify-between gap-2 rounded-lg bg-stone-50 px-3 py-1.5 border border-midnight/5">
+                        <span className="truncate font-medium text-midnight">{photo.name} · {(photo.size / 1024).toFixed(0)} KB</span>
+                        <button type="button" aria-label={`${photo.name} kaldır`} onClick={() => setForm((current) => ({ ...current, photos: current.photos.filter((_, i) => i !== index) }))} className="text-stone-400 hover:text-red-600 transition">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="colors" className="text-xs font-semibold text-midnight/80">Tercih Edilen Renk Paleti</Label>
+                  <Input
+                    id="colors"
+                    maxLength={160}
+                    placeholder="Örn. Fildişi, şampanya, adaçayı yeşili"
+                    value={form.preferences.colors}
+                    onChange={(e) => updatePreference('colors', e.target.value)}
+                    className="mt-1.5 h-11 rounded-xl border-midnight/20 bg-white shadow-xs focus-visible:ring-champagne"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="style" className="text-xs font-semibold text-midnight/80">Tasarım Stili</Label>
+                  <div className="mt-1.5">
+                    <Select
+                      value={form.preferences.style || 'Romantik'}
+                      onValueChange={(val) => updatePreference('style', val)}
+                    >
+                      <SelectTrigger id="style" className="h-11 rounded-xl border-midnight/20 bg-white shadow-xs focus:ring-champagne">
+                        <SelectValue placeholder="Tasarım stili seçin" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-midnight/15 shadow-xl">
+                        {VIP_FORM_OPTIONS.styles.map((style) => (
+                          <SelectItem key={style} value={style} className="rounded-lg py-2 text-xs">
+                            {style}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="references" className="text-xs font-semibold text-midnight/80">Referans Notları</Label>
+                  <Textarea
+                    id="references"
+                    placeholder="Örn. Sade, abartısız bir karşılama hissi ve zarif altın çizgiler."
+                    maxLength={800}
+                    value={form.preferences.referenceNotes}
+                    onChange={(e) => updatePreference('references', e.target.value)}
+                    className="mt-1.5 min-h-[80px] rounded-xl border-midnight/20 bg-white p-3 text-xs shadow-xs focus-visible:ring-champagne"
+                  />
+                </div>
+              </div>
+
+              <fieldset className="sm:col-span-2">
+                <legend className="text-xs font-semibold text-midnight/80">İstenen Site Bölümleri</legend>
+                <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {VIP_FORM_OPTIONS.sections.map((section) => (
+                    <label key={section} className="flex items-center gap-2.5 rounded-xl border border-midnight/15 bg-white p-3 text-xs transition hover:border-midnight/30 hover:bg-stone-50 cursor-pointer shadow-2xs">
+                      <input
+                        type="checkbox"
+                        checked={form.preferences.sections.includes(section)}
+                        onChange={(e) => updatePreference('sections', e.target.checked ? [...form.preferences.sections, section] : form.preferences.sections.filter((item) => item !== section))}
+                        className="h-4 w-4 rounded accent-midnight"
+                      />
+                      <span className="font-medium text-midnight">{section}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="sm:col-span-2">
+                <Label htmlFor="description" className="text-xs font-semibold text-midnight/80">Ek Açıklama & Özel İstekler</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Eklemek istediğiniz özel detaylar, müzik tercihleri veya tasarım yönlendirmeleri..."
+                  maxLength={2000}
+                  value={form.preferences.description}
+                  onChange={(e) => updatePreference('description', e.target.value)}
+                  className="mt-1.5 min-h-[96px] rounded-xl border-midnight/20 bg-white p-3 text-xs shadow-xs focus-visible:ring-champagne"
+                />
+              </div>
             </div>
           </div>
         )}
