@@ -196,24 +196,78 @@ export function AdminEmailTemplateManager() {
                     : <Input maxLength={field.maxLength} value={fields[field.key] || ''} onChange={(event) => updateField(field.key, event.target.value)} />}
                 </label>
               ))}
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-midnight">E-posta görseli</p>
-                <p className="text-xs text-muted-foreground">JPEG, PNG, WebP veya GIF · En fazla 4 MB</p>
-                {fields.imageUrl
-                  ? <div className="flex items-start gap-3 rounded-xl border border-border bg-ivory-50 p-3">
-                    <img src={fields.imageUrl} alt="E-posta başlık görseli" className="h-20 w-32 rounded-lg border border-border object-cover" />
-                    <div className="flex flex-wrap gap-2">
-                      {canManage && <label className="inline-flex cursor-pointer items-center rounded-lg border border-border bg-white px-3 py-2 text-xs font-medium text-midnight hover:bg-ivory-50">
-                        <ImagePlus className="mr-2 h-4 w-4" /> Görseli değiştir
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-midnight">E-posta görseli (URL veya Dosya)</p>
+                  <p className="text-xs text-muted-foreground">HTTPS URL veya 4 MB dosya</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Input
+                    type="url"
+                    value={fields.imageUrl || ''}
+                    onChange={(event) => updateField('imageUrl', event.target.value)}
+                    placeholder="https://... görsel bağlantısı"
+                    className="h-10 text-xs font-mono"
+                    disabled={!canManage || busy !== ''}
+                  />
+                  {canManage && (
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        onClick={() => updateField('imageUrl', 'https://momentis-mu.vercel.app/home-hero/davetiye.png')}
+                        disabled={busy !== ''}
+                      >
+                        Davetiye Görseli URL
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        onClick={() => updateField('imageUrl', 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80')}
+                        disabled={busy !== ''}
+                      >
+                        Site Görseli URL (İnternet)
+                      </Button>
+                      <label className="inline-flex cursor-pointer items-center rounded-md border border-border bg-white px-2.5 py-1 text-[11px] font-medium text-midnight hover:bg-ivory-50">
+                        {busy === 'image' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="mr-1.5 h-3.5 w-3.5" />}
+                        Dosya Yükle
                         <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={uploadImage} disabled={busy !== ''} />
-                      </label>}
-                      {canManage && <Button type="button" variant="outline" size="sm" onClick={() => updateField('imageUrl', '')} disabled={busy !== ''}><X className="mr-1 h-4 w-4" /> Kaldır</Button>}
+                      </label>
+                      {fields.imageUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[11px] text-destructive hover:text-destructive"
+                          onClick={() => updateField('imageUrl', '')}
+                          disabled={busy !== ''}
+                        >
+                          <X className="mr-1 h-3.5 w-3.5" /> Kaldır
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {fields.imageUrl && (
+                  <div className="flex items-center gap-3 rounded-xl border border-border bg-ivory-50 p-2.5">
+                    <img
+                      src={fields.imageUrl}
+                      alt="E-posta görsel önizlemesi"
+                      className="h-16 w-28 rounded-lg border border-border object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                    <div className="min-w-0 flex-1 text-xs text-muted-foreground">
+                      <p className="truncate font-mono text-[11px] text-midnight">{fields.imageUrl}</p>
+                      <p className="mt-0.5 text-[10px]">Önizlemeyi yenileyerek e-posta içindeki görünümü kontrol edin.</p>
                     </div>
                   </div>
-                  : canManage && <label className="inline-flex cursor-pointer items-center rounded-xl border border-dashed border-border bg-ivory-50 px-4 py-3 text-sm font-medium text-midnight hover:bg-ivory-100">
-                    {busy === 'image' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />} Görsel seç ve yükle
-                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={uploadImage} disabled={busy !== ''} />
-                  </label>}
+                )}
               </div>
               <label className={`flex items-start gap-3 rounded-xl border border-border bg-ivory-50 p-3 ${canManage ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}>
                 <input
