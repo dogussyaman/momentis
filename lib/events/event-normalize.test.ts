@@ -31,6 +31,20 @@ test('syncEventDataFromForm updates the canonical event details', () => {
   assert.equal(next.venue, 'Sahil Bahçesi')
 })
 
+test('syncEventDataFromForm clears explicitly emptied family fields and preserves omitted fields', () => {
+  const next = syncEventDataFromForm({
+    event_type: 'dugun',
+    bride_mother: '',
+  }, {
+    family: {
+      brideMother: 'Aylin Yılmaz',
+      brideFather: 'Cem Yılmaz',
+    },
+  })
+
+  assert.deepEqual(next.family, { brideFather: 'Cem Yılmaz' })
+})
+
 test('missing deliverable metadata is inferred from saved output instead of enabling everything', () => {
   const normalized = normalizeEventProject({
     event_data: { couple: { bride: 'Deniz', groom: 'Mert' } },

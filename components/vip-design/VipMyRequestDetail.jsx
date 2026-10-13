@@ -10,6 +10,7 @@ import { VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES, VIP_WORKFLOW_STATUSES } f
 export function VipMyRequestDetail({ requestId }) {
   const { user, status: authStatus } = useAuth()
   const [request, setRequest] = useState(null)
+  const [vipCreditBalance, setVipCreditBalance] = useState(null)
   const [state, setState] = useState('loading')
   const [error, setError] = useState('')
 
@@ -20,6 +21,7 @@ export function VipMyRequestDetail({ requestId }) {
       .then((result) => {
         if (!active) return
         setRequest(result.request)
+        setVipCreditBalance(result.vipCreditBalance)
         setState(result.request ? 'ready' : 'empty')
       })
       .catch((cause) => {
@@ -47,8 +49,21 @@ export function VipMyRequestDetail({ requestId }) {
           <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-champagne">MOMENTIS VIP · {request.id}</p><h1 className="mt-3 font-serif text-3xl sm:text-4xl">Talep özeti</h1><p className="mt-3 text-sm text-ivory/65">Oluşturulma {new Date(request.createdAt).toLocaleString('tr-TR')}</p></div>
           <div className="rounded-2xl border border-ivory/10 bg-ivory/5 px-4 py-3"><p className="text-[9px] uppercase tracking-wider text-ivory/50">Güncel aşama</p><span className="mt-1.5 inline-flex rounded-full bg-champagne/20 px-3 py-1.5 text-xs font-semibold text-champagne">{statusLabel}</span></div>
         </div>
-        <p className="relative mt-5 max-w-3xl text-[11px] leading-5 text-ivory/55">Talep gönderimi standart etkinlik kredisi kullanmaz. Talebin gönderilmiş olması özel tasarım hizmetinin ücretsiz veya satın alınmış olduğu anlamına gelmez.</p>
+        <p className="relative mt-5 max-w-3xl text-[11px] leading-5 text-ivory/55">Bu talepte 2 VIP kredisi kullanıldı. Ücretsiz proje hakkı VIP kredisi değildir. Talebin gönderilmiş olması özel tasarım hizmetinin satın alınmış olduğu anlamına gelmez.</p>
       </header>
+
+      <section className="grid gap-4 sm:grid-cols-2">
+        <Info title="Mevcut VIP kredi bakiyesi" value={vipCreditBalance === null ? 'Yükleniyor…' : `${vipCreditBalance} kredi`} detail="Yalnızca kullanılabilir etkinlik kredileri VIP talebinde harcanabilir." />
+        <Info
+          title="Bu talebin kredi / iade durumu"
+          value={request.creditStatus?.refundStatus === 'refunded'
+            ? `${request.creditStatus.refunded} kredi iade edildi`
+            : request.creditStatus?.refundStatus === 'not_refunded_after_production'
+              ? `${request.creditStatus.charged} kredi kullanıldı · üretim sonrası iptal nedeniyle iade yok`
+              : `${request.creditStatus?.charged || 0} kredi kullanıldı`}
+          detail={request.creditStatus?.refundReason || 'Talep başına 2 kredi kullanılır. Ret veya üretim öncesi iptal durumunda kredi iade edilir.'}
+        />
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Summary icon={Gift} label="VIP site konsepti" value={site?.title || 'Seçilmedi'} />
@@ -58,6 +73,19 @@ export function VipMyRequestDetail({ requestId }) {
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-champagne/50 bg-white p-5 shadow-sm">
           <div><h2 className="font-serif text-xl text-midnight">VIP sayfanız yayında</h2><p className="mt-1 text-xs text-muted-foreground">{request.publishedSite.title}</p></div>
           <a href={`/d/${request.publishedSite.slug}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center rounded-full bg-midnight px-5 text-xs font-medium text-white transition hover:bg-midnight/90">Sayfamı görüntüle</a>
+        </section>
+      )}
+      {request.status === 'delivered' && request.giftInvitationOutput && (
+        <section className="rounded-3xl border border-champagne/50 bg-white p-5 shadow-sm">
+          <h2 className="font-serif text-xl text-midnight">Hediye davetiye çıktınız</h2>
+          <p className="mt-1 text-xs text-muted-foreground">{request.giftInvitationOutput.name}</p>
+          <a
+            href={`/api/vip/requests/${encodeURIComponent(request.id)}/delivery/invitation`}
+            className="mt-4 inline-flex min-h-10 items-center rounded-full bg-midnight px-5 text-xs font-medium text-white transition hover:bg-midnight/90"
+            download
+          >
+            Çıktıyı indir
+          </a>
         </section>
       )}
       <section className="grid gap-4 md:grid-cols-2">

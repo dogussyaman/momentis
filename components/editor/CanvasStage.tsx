@@ -509,6 +509,7 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
 
           <Group clipX={0} clipY={0} clipWidth={design.width} clipHeight={design.height}>
             {displayDesign.elements.map((el: any) => {
+            if (el.visible === false) return null
             if (el.type === 'text') {
               return (
                 <Text

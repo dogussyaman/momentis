@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, RotateCcw, Save, ExternalLink, Smartphone, Tablet, Monitor, HelpCircle, Lock, Crown } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, RotateCcw, Save, ExternalLink, Smartphone, Tablet, Monitor, HelpCircle, Lock, Crown, MoreHorizontal, WandSparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,12 @@ import { compressImageFile } from '@/lib/compress-image'
 import { DatePickerField } from '@/components/ui/date-picker-field'
 import { CardMessageTemplates } from './card-message-templates'
 import { CanvasEditor } from '@/components/editor/CanvasEditor'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useEditorStore } from '@/store/editor-store'
 import { useSiteEditorStore } from '@/store/site-editor-store'
 import { SiteEditor } from '@/components/site-builder/SiteEditor'
@@ -104,6 +110,8 @@ export function ProjectEditor() {
   const router = useRouter()
   const [project, setProject] = useState(null)
   const [form, setForm] = useState(null)
+  const [projectLoadError, setProjectLoadError] = useState(null)
+  const [projectLoadAttempt, setProjectLoadAttempt] = useState(0)
   const [saving, setSaving] = useState(false)
   const [menuInput, setMenuInput] = useState('')
   const [device, setDevice] = useState('mobile') // mobile, tablet, desktop
@@ -136,6 +144,12 @@ export function ProjectEditor() {
   )
 
   useEffect(() => {
+    const controller = new AbortController()
+    useEditorStore.getState().resetDesign()
+    useEditorStore.temporal.getState().clear()
+    useSiteEditorStore.getState().reset()
+    setProjectLoadError(null)
+
     if (isUnsavedProject) {
       try {
         const rawDraft = window.sessionStorage.getItem(NEW_PROJECT_DRAFT_KEY)
@@ -161,28 +175,41 @@ export function ProjectEditor() {
           const hydrated = JSON.parse(resolveTokens(JSON.stringify(currentDesign), draft.event_data))
           setDesign(hydrated)
         }
+        useEditorStore.temporal.getState().clear()
       } catch (error) {
         toast.error(error.message || 'Etkinlik taslağı açılamadı.')
         router.replace('/panel/yeni')
       }
-      return
+      return () => controller.abort()
     }
 
-    fetch(`/api/projects/${id}`, { credentials: 'include', cache: 'no-store' }).then((r) => r.json()).then((d) => { 
-      if (d.project) { 
-        setProject(d.project); 
-        setForm(pick(d.project));
+    setProject(null)
+    setForm(null)
+    fetch(`/api/projects/${id}`, { credentials: 'include', cache: 'no-store', signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('Etkinlik bilgileri yüklenemedi.')
+        return response.json()
+      })
+      .then((d) => {
+        if (!d.project) throw new Error('Etkinlik bulunamadı veya erişim izniniz yok.')
+        setProject(d.project)
+        setForm(pick(d.project))
         if (d.project.canvas_design) {
-          setDesign(d.project.canvas_design);
+          setDesign(d.project.canvas_design)
         } else if (d.project.event_data) {
-          // Hydrate the default design with event data
-          const currentDesign = useEditorStore.getState().design;
-          const hydrated = JSON.parse(resolveTokens(JSON.stringify(currentDesign), d.project.event_data));
-          setDesign(hydrated);
+          const currentDesign = useEditorStore.getState().design
+          const hydrated = JSON.parse(resolveTokens(JSON.stringify(currentDesign), d.project.event_data))
+          setDesign(hydrated)
         }
-      } 
-    }).catch(() => {})
-  }, [id, isUnsavedProject, router, setDesign])
+        useEditorStore.temporal.getState().clear()
+      })
+      .catch((error) => {
+        if (error.name !== 'AbortError') {
+          setProjectLoadError(error.message || 'Etkinlik bilgileri yüklenemedi.')
+        }
+      })
+    return () => controller.abort()
+  }, [id, isUnsavedProject, router, setDesign, projectLoadAttempt])
 
   // Davetiye-svg temalarını Next.js'in beklediği palet yapısına uyarlama
   const activeTemaIndex = form?.card_theme ?? (SABLONLAR[form?.card_template || 'Klasik Altın']?.tema || 0)
@@ -343,6 +370,11 @@ export function ProjectEditor() {
   }
 
   const save = async (asDraft = false) => {
+    if (saving) return
+    if (!isUnsavedProject && project?.id !== id) {
+      toast.error('Etkinlik bilgileri yüklenmeden kaydedilemez.')
+      return
+    }
     const isManual = designTarget === 'card'
     const missingField = missingRequiredProjectField(form, eventData)
     if (missingField) { toast.error(`${missingField} zorunludur`); return }
@@ -455,7 +487,23 @@ export function ProjectEditor() {
     toast.success('Etkinlik bilgileri davetiyeye aktarıldı.')
   }
 
-  if (!form) return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-96 rounded-2xl" /></div>
+  if (!form) {
+    if (projectLoadError) {
+      return (
+        <div role="alert" className="mx-auto flex max-w-lg flex-col items-center gap-4 py-16 text-center">
+          <p className="text-sm text-muted-foreground">{projectLoadError}</p>
+          <button
+            type="button"
+            onClick={() => setProjectLoadAttempt((attempt) => attempt + 1)}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Yeniden dene
+          </button>
+        </div>
+      )
+    }
+    return <div className="space-y-6"><Skeleton className="h-12 w-1/2 rounded-2xl" /><Skeleton className="h-96 rounded-2xl" /></div>
+  }
 
   const onboardingDialog = (
     <EditorOnboardingModal open={showOnboarding} onOpenChange={setShowOnboarding} />
@@ -519,31 +567,79 @@ export function ProjectEditor() {
           <CanvasEditor 
             projectId={project?.id !== 'new' ? project?.id : null}
             topbarLeft={
-              <div className="pl-6 lg:pl-10">
-                <Button variant="default" onClick={() => {
+              <div>
+                <Button
+                  type="button"
+                  variant="default"
+                  title={project?.deliverables?.site?.enabled ? 'Site tasarımına dön' : 'Ürün seçimine dön'}
+                  aria-label={project?.deliverables?.site?.enabled ? 'Site tasarımına dön' : 'Ürün seçimine dön'}
+                  onClick={() => {
                   if (project?.deliverables?.site?.enabled) changeDesignTarget('site')
                   else router.back()
-                }} className="h-8 rounded-full bg-champagne text-midnight hover:bg-champagne-light px-4 text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                  <ArrowLeft className="w-3.5 h-3.5 mr-2" /> {project?.deliverables?.site?.enabled ? 'Site Tasarımına Dön' : 'Ürün Seçimine Dön'}
+                }} className="h-8 w-8 shrink-0 rounded-full bg-champagne px-0 text-midnight shadow-sm hover:bg-champagne-light sm:w-auto sm:px-3">
+                  <ArrowLeft className="h-4 w-4 sm:mr-1.5 sm:h-3.5 sm:w-3.5" />
+                  <span className="hidden text-[10px] font-bold uppercase tracking-wider sm:inline">
+                    {project?.deliverables?.site?.enabled ? 'Site Tasarımına Dön' : 'Ürün Seçimine Dön'}
+                  </span>
                 </Button>
               </div>
             }
             topbarRight={
-              <div className="flex gap-2">
-                <Button onClick={() => setShowOnboarding(true)} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.14em] gap-1 hover:bg-champagne/20">
-                  <HelpCircle className="h-3.5 w-3.5 text-champagne-dark" /> <span className="hidden sm:inline">Nasıl Kullanılır?</span>
-                </Button>
-                <Button onClick={applyEventDataToInvitation} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.12em]">
-                  Bilgileri davetiyeye uygula
-                </Button>
-                <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
-                   <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
-                </Button>
-                <Button onClick={() => save(true)} disabled={saving} size="sm" variant="outline" className="h-8 rounded-full border-midnight/20 px-4 text-[10px] uppercase tracking-[0.18em] text-midnight">
-                  <Save className="mr-1.5 h-3 w-3" /> Taslak
-                </Button>
-                <Button onClick={() => save(false)} disabled={saving} size="sm" className="h-8 rounded-full bg-champagne px-5 text-[10px] uppercase tracking-[0.18em] text-midnight hover:bg-champagne-light">
-                  <Save className="mr-1.5 h-3 w-3" /> {saveLabel}
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      title="Diğer davetiye işlemleri"
+                      aria-label="Diğer davetiye işlemleri"
+                      className="h-8 w-8 xl:hidden"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuItem onSelect={() => setShowOnboarding(true)}>
+                      <HelpCircle className="text-champagne-dark" /> Nasıl kullanılır?
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={applyEventDataToInvitation}>
+                      <WandSparkles /> Etkinlik bilgilerini davetiyeye uygula
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer">
+                        <ExternalLink /> Yayında görüntüle
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled={saving} onSelect={() => save(true)}>
+                      <Save /> Taslak olarak kaydet
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="hidden items-center gap-1 xl:flex">
+                  <Button onClick={() => setShowOnboarding(true)} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.14em] gap-1 hover:bg-champagne/20">
+                    <HelpCircle className="h-3.5 w-3.5 text-champagne-dark" /> Nasıl Kullanılır?
+                  </Button>
+                  <Button onClick={applyEventDataToInvitation} variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.12em]">
+                    <WandSparkles className="mr-1.5 h-3.5 w-3.5" /> Bilgileri uygula
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="h-8 rounded-full border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
+                    <a href={`/d/${project?.slug || form.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3 w-3" /> Yayında Gör</a>
+                  </Button>
+                  <Button onClick={() => save(true)} disabled={saving} size="sm" variant="outline" className="h-8 rounded-full border-midnight/20 px-3 text-[10px] uppercase tracking-[0.18em] text-midnight">
+                    <Save className="mr-1.5 h-3 w-3" /> Taslak
+                  </Button>
+                </div>
+                <Button
+                  onClick={() => save(false)}
+                  disabled={saving}
+                  size="sm"
+                  title={saveLabel}
+                  aria-label={saveLabel}
+                  className="h-8 w-8 rounded-full bg-champagne p-0 text-midnight hover:bg-champagne-light sm:w-auto sm:px-3"
+                >
+                  <Save className="h-4 w-4 sm:mr-1.5 sm:h-3 sm:w-3" />
+                  <span className="hidden text-[10px] uppercase tracking-wider sm:inline">{saveLabel}</span>
                 </Button>
               </div>
             }

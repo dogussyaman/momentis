@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, CalendarDays, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft, ShieldCheck, Gift, Bell } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Plus, PanelsTopLeft, Send, LogOut, Menu, ChevronRight, FileEdit, Archive, User, CreditCard, ChevronLeft, ShieldCheck, Gift, Bell, TicketPercent, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -62,7 +62,9 @@ const ADMIN_NAV_GROUPS = [
     items: [
       { href: '/panel/admin', label: 'Yönetim Özeti', icon: ShieldCheck, exact: true },
       { href: '/panel/admin/templates', label: 'Şablon Yönetimi', icon: PanelsTopLeft },
+      { href: '/panel/admin/email-templates', label: 'E-posta Şablonları', icon: Mail },
       { href: '/panel/admin/users', label: 'Kullanıcılar ve Kotalar', icon: User },
+      { href: '/panel/admin/campaigns', label: 'Kredi Kampanyaları', icon: TicketPercent },
       { href: '/panel/admin/vip-talepler', label: 'VIP Tasarım Talepleri', icon: Gift },
       { href: '/panel/bildirimler', label: 'Bildirim Merkezi', icon: Bell },
     ],
@@ -85,7 +87,9 @@ const ADMIN_NAV_GROUPS = [
 function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed }) {
   const isAdmin = ['super_admin', 'admin', 'support'].includes(user?.role)
   const navGroups = isAdmin
-    ? ADMIN_NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => item.href !== '/panel/admin/users' || canManageSuperAdmin(user)) }))
+    ? ADMIN_NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) =>
+      !['/panel/admin/users', '/panel/admin/campaigns'].includes(item.href) || canManageSuperAdmin(user),
+    ) }))
     : NAV_GROUPS.filter((group) => !group.adminOnly)
   return (
     <TooltipProvider delayDuration={100}>

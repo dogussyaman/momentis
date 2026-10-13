@@ -107,12 +107,16 @@ export function syncEventDataFromForm(form: any, current: any = {}) {
   const babyShower = eventType === 'baby-shower'
   const corporate = eventType === 'kurumsal'
 
-  const family = {
-    ...(current.family || {}),
-    ...(form.bride_mother ? { brideMother: form.bride_mother } : {}),
-    ...(form.bride_father ? { brideFather: form.bride_father } : {}),
-    ...(form.groom_mother ? { groomMother: form.groom_mother } : {}),
-    ...(form.groom_father ? { groomFather: form.groom_father } : {}),
+  const family = { ...(current.family || {}) }
+  for (const [target, source] of [
+    ['brideMother', 'bride_mother'],
+    ['brideFather', 'bride_father'],
+    ['groomMother', 'groom_mother'],
+    ['groomFather', 'groom_father'],
+  ]) {
+    if (Object.prototype.hasOwnProperty.call(form, source)) {
+      family[target] = form[source] || ''
+    }
   }
 
   const next = {

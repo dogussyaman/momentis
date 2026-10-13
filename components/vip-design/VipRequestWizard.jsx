@@ -52,7 +52,29 @@ export function VipRequestWizard() {
   const [success, setSuccess] = useState(null)
   const [submissionAttempt, setSubmissionAttempt] = useState(null)
   const [notification, setNotification] = useState('')
+  const [vipCreditBalance, setVipCreditBalance] = useState(null)
   const pendingPhotoFiles = useRef(new Map())
+
+  useEffect(() => {
+    if (!user) {
+      setVipCreditBalance(null)
+      return
+    }
+    let active = true
+    fetch('/api/billing/account', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (response) => {
+        const result = await response.json().catch(() => null)
+        if (!response.ok) throw new Error(result?.error || 'VIP kredi bakiyesi alınamadı.')
+        return result
+      })
+      .then((result) => {
+        if (active) setVipCreditBalance(result.quotas?.vipCreditsRemaining ?? result.quotas?.eventCreditsRemaining ?? 0)
+      })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : 'VIP kredi bakiyesi alınamadı.')
+      })
+    return () => { active = false }
+  }, [user?.id])
 
   useEffect(() => {
     try {
@@ -145,6 +167,10 @@ export function VipRequestWizard() {
       router.push(`/giris?next=${encodeURIComponent(nextUrl)}`)
       return
     }
+    if (vipCreditBalance !== null && vipCreditBalance < 2) {
+      setError('VIP talebi göndermek için en az 2 kullanılabilir etkinlik krediniz olmalı. Ücretsiz proje hakkı kredi sayılmaz.')
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -189,6 +215,7 @@ export function VipRequestWizard() {
       window.sessionStorage.removeItem(DRAFT_KEY)
       pendingPhotoFiles.current.clear()
       setSuccess(result.request)
+      setVipCreditBalance((balance) => balance === null ? null : balance - 2)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'VIP talebi gönderilemedi.')
     } finally {
@@ -246,12 +273,12 @@ export function VipRequestWizard() {
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><Check className="h-6 w-6" /></span>
         <p className="mt-5 text-[10px] uppercase tracking-[0.24em] text-champagne-dark">VIP talep kaydı</p>
         <h1 className="mt-3 font-serif text-3xl">Talebiniz alındı</h1>
-        <p className="mt-3 text-sm text-muted-foreground">Talebiniz admin onayı için kuyruğa eklendi. Onay üretim sürecini başlatır; özel tasarım hizmetinin ücretsiz veya satın alınmış olduğu anlamına gelmez.</p>
+        <p className="mt-3 text-sm text-muted-foreground">Talebiniz admin incelemesi için kuyruğa eklendi. Admin reddeder veya üretim başlamadan iptal ederse kredileriniz iade edilir; üretim başladıktan sonraki iptallerde iade yapılmaz.</p>
         <div className="mt-6 rounded-2xl bg-ivory p-5 text-left text-sm">
           <p><strong>Talep no:</strong> {success.id}</p>
           <p className="mt-2"><strong>Site:</strong> {selectedSite?.title}</p>
           <p className="mt-2"><strong>Hediye davetiye:</strong> {selectedInvitation?.title}</p>
-          <p className="mt-2"><strong>Durum:</strong> Yeni talep · Ücretsiz gönderim</p>
+          <p className="mt-2"><strong>Durum:</strong> Yeni talep · 2 VIP kredisi kullanıldı</p>
         </div>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <Button onClick={() => router.push('/panel/vip-taleplerim')} className="rounded-xl bg-midnight text-white">VIP Taleplerim</Button>
@@ -267,7 +294,13 @@ export function VipRequestWizard() {
       <header className="mt-7">
         <p className="text-[10px] uppercase tracking-[0.24em] text-champagne-dark">MOMENTIS VIP · Talep sihirbazı</p>
         <h1 className="mt-2 font-serif text-3xl sm:text-4xl">Kişiye özel tasarım talebi</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">VIP talep gönderimi ücretsizdir ve standart proje kredisi tüketmez. Talep admin onayından sonra üretim değerlendirmesine alınır; özel tasarım hizmeti bu talep ile satın alınmış olmaz.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Talep başına 2 kullanılabilir etkinlik kredisi harcanır. Ücretsiz proje hakkı VIP kredisi değildir; VIP talebi ayrıca standart etkinlik projesi oluşturmaz. Talebin gönderilmiş olması özel tasarım hizmetinin satın alınmış olduğu anlamına gelmez.</p>
+        {user && (
+          <p className={`mt-3 inline-flex rounded-xl px-4 py-2 text-xs font-medium ${vipCreditBalance !== null && vipCreditBalance < 2 ? 'bg-amber-50 text-amber-900' : 'bg-white text-midnight'}`}>
+            Mevcut kullanılabilir VIP kredisi: {vipCreditBalance === null ? 'yükleniyor…' : vipCreditBalance}
+            {vipCreditBalance !== null && vipCreditBalance < 2 && ' · Talep için en az 2 kredi gerekir.'}
+          </p>
+        )}
       </header>
 
       <nav className="mt-7 overflow-x-auto pb-2" aria-label="Talep adımları">
@@ -752,7 +785,7 @@ export function VipRequestWizard() {
         {step === 5 && (
           <div>
             <h2 className="font-serif text-2xl">Talep özeti ve gönderim</h2>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">Geri dönerek istediğiniz adımı düzenleyebilirsiniz. Gönderim ücretsizdir; bu form standart proje kredisi düşürmez ve hizmet satın alımı başlatmaz.</p>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">Geri dönerek istediğiniz adımı düzenleyebilirsiniz. Gönderimde 2 kullanılabilir etkinlik kredisi düşer. Ücretsiz proje hakkı kullanılamaz ve bu işlem standart bir etkinlik projesi oluşturmaz.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Summary title="VIP site konsepti" value={selectedSite?.title || 'Seçilmedi'} detail={selectedSite?.description} />
               <Summary title="Hediye davetiye" value={selectedInvitation?.title || 'Seçilmedi'} detail={selectedInvitation?.description} />
@@ -768,7 +801,7 @@ export function VipRequestWizard() {
         {error && <p className="mt-5 rounded-xl bg-red-50 p-3 text-xs text-red-700" role="alert">{error}</p>}
         <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-midnight/10 pt-5 sm:flex-row">
           <Button type="button" variant="outline" disabled={step === 0 || submitting} onClick={() => { setError(''); setStep((value) => Math.max(value - 1, 0)) }} className="rounded-xl"><ArrowLeft className="mr-2 h-4 w-4" /> Geri</Button>
-          {step < STEPS.length - 1 ? <Button type="button" onClick={next} className="rounded-xl bg-midnight text-white">Devam et <ArrowRight className="ml-2 h-4 w-4" /></Button> : <Button type="button" onClick={() => void submit()} disabled={submitting || authStatus === 'error'} className="rounded-xl bg-midnight text-white">{submitting ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Talep gönderiliyor</> : user ? 'Ücretsiz talep gönder' : 'Giriş yap ve devam et'}</Button>}
+          {step < STEPS.length - 1 ? <Button type="button" onClick={next} className="rounded-xl bg-midnight text-white">Devam et <ArrowRight className="ml-2 h-4 w-4" /></Button> : <Button type="button" onClick={() => void submit()} disabled={submitting || authStatus === 'error' || Boolean(user && vipCreditBalance !== null && vipCreditBalance < 2)} className="rounded-xl bg-midnight text-white">{submitting ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Talep gönderiliyor</> : user ? '2 krediyle talep gönder' : 'Giriş yap ve devam et'}</Button>}
         </div>
       </section>
     </div>

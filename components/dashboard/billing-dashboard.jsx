@@ -20,23 +20,30 @@ export function BillingDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyPackage, setBusyPackage] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [couponHistory, setCouponHistory] = useState([])
+  const [couponBusy, setCouponBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const [response, packageResponse] = await Promise.all([
+      const [response, packageResponse, couponResponse] = await Promise.all([
         fetch('/api/billing/account', { credentials: 'include', cache: 'no-store' }),
         fetch('/api/packages', { cache: 'no-store' }),
+        fetch('/api/billing/coupons/history', { credentials: 'include', cache: 'no-store' }),
       ])
-      const [data, packageData] = await Promise.all([
+      const [data, packageData, couponData] = await Promise.all([
         response.json().catch(() => ({})),
         packageResponse.json().catch(() => ({})),
+        couponResponse.json().catch(() => ({})),
       ])
       if (!response.ok) throw new Error(data.error || 'Paket bilgileri alınamadı')
       if (!packageResponse.ok) throw new Error(packageData.error || 'Satışa açık paketler alınamadı')
+      if (!couponResponse.ok) throw new Error(couponData.error || 'Kupon geçmişi alınamadı')
       setSnapshot(data)
       setAvailablePackages(packageData.items || [])
+      setCouponHistory(couponData.items || [])
     } catch (loadError) {
       setError(loadError.message)
     } finally {
@@ -45,6 +52,30 @@ export function BillingDashboard() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  const redeemCoupon = async (event) => {
+    event.preventDefault()
+    const code = couponCode.trim().toUpperCase()
+    if (!code) return
+    setCouponBusy(true)
+    try {
+      const response = await fetch('/api/billing/coupons/redeem', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': window.crypto.randomUUID() },
+        body: JSON.stringify({ code }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Kupon kullanılamadı')
+      toast.success(`${data.credits} etkinlik kredisi hesabınıza eklendi`)
+      setCouponCode('')
+      await load()
+    } catch (couponError) {
+      toast.error(couponError.message)
+    } finally {
+      setCouponBusy(false)
+    }
+  }
 
   const startMockPurchase = async (plan) => {
     setBusyPackage(plan.id)
@@ -126,6 +157,22 @@ export function BillingDashboard() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="grid gap-5 rounded-3xl border border-border bg-white p-6 sm:grid-cols-[1fr_auto] sm:items-start">
+        <div>
+          <h2 className="font-serif text-2xl text-midnight">Kredi kuponu</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Geçerli bir kredi hediyesi kodu etkinlik kredisi ekler. Bu alanda ödeme indirimi uygulanmaz.</p>
+          {couponHistory.length > 0 && (
+            <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
+              {couponHistory.slice(0, 5).map((item) => <li key={item.id}>{item.code} · {item.credits} kredi · {new Date(item.created_at).toLocaleDateString('tr-TR')}</li>)}
+            </ul>
+          )}
+        </div>
+        <form onSubmit={redeemCoupon} className="flex gap-2">
+          <input value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} maxLength={32} required aria-label="Kupon kodu" placeholder="Kupon kodu" className="h-10 min-w-0 rounded-xl border border-border px-3 text-sm outline-none focus:border-champagne" />
+          <Button type="submit" disabled={couponBusy || !couponCode.trim()}>{couponBusy ? 'Uygulanıyor…' : 'Kullan'}</Button>
+        </form>
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">

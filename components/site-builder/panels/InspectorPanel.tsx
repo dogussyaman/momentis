@@ -46,7 +46,7 @@ export function InspectorPanel(){
    <div className="border-b bg-ivory-50/60 p-3"><div className="flex items-center justify-between"><div><h3 className="text-xs font-semibold uppercase tracking-wider">{section?def?.name:'Site Ayarları'}</h3><p className="mt-1 text-[10px] text-muted-foreground">{section?def?.description:'Genel site ve yayın ayarları'}</p></div>{section&&<div className="flex gap-1"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleVisibility(section.id)}>{section.visible?<Eye className="h-3.5 w-3.5"/>:<EyeOff className="h-3.5 w-3.5"/>}</Button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleLock(section.id)}>{section.locked?<Lock className="h-3.5 w-3.5"/>:<Unlock className="h-3.5 w-3.5"/>}</Button></div>}</div>
    {section&&<div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-white p-1"><button onClick={()=>setInspectorTab('content')} className={tab(inspectorTab==='content')}>İçerik</button><button onClick={()=>setInspectorTab('style')} className={tab(inspectorTab==='style')}>Tasarım</button><button onClick={()=>setInspectorTab('animation')} className={tab(inspectorTab==='animation')}>Anim.</button></div>}</div>
    <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3">
-   {!section?<SiteSettings site={site} updateSite={useSiteEditorStore.getState().updateSite} updateTheme={updateTheme} updateSettings={updateSettings}/>:inspectorTab==='content'?<div className="space-y-5"><FreeformOverlayControls section={section} selectedOverlayId={selectedOverlayId} selectOverlay={selectOverlay} updateSectionProps={updateSectionProps}/>{Object.entries(groups).map(([g,fs]:any)=><div key={g} className="space-y-3"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{g}</h4>{fs.map((f:FieldDef)=>field(f))}</div>)}</div>:inspectorTab==='style'?<StylePanel style={style} update={p=>updateSectionStyle(section.id,p)}/>:<AnimationPanel animation={section.animation||{type:'fade',duration:.8,delay:0}} update={p=>updateSectionAnimation(section.id,p)}/>}
+   {!section?<SiteSettings site={site} updateSite={useSiteEditorStore.getState().updateSite} updateTheme={updateTheme} updateSettings={updateSettings} applyFontToAll={useSiteEditorStore.getState().applyFontToAll}/>:inspectorTab==='content'?<div className="space-y-5"><FreeformOverlayControls section={section} selectedOverlayId={selectedOverlayId} selectOverlay={selectOverlay} updateSectionProps={updateSectionProps}/>{Object.entries(groups).map(([g,fs]:any)=><div key={g} className="space-y-3"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{g}</h4>{fs.map((f:FieldDef)=>field(f))}</div>)}</div>:inspectorTab==='style'?<StylePanel style={style} update={p=>updateSectionStyle(section.id,p)}/>:<AnimationPanel animation={section.animation||{type:'fade',duration:.8,delay:0}} update={p=>updateSectionAnimation(section.id,p)}/>}
    </div>
  </div>
 }
@@ -188,7 +188,9 @@ function StylePanel({style:s,update}:any){
  </div>
 }
 function AnimationPanel({animation:a,update}:any){return <div className="space-y-4"><Group title="Giriş animasyonu"><select value={a.type||'none'} onChange={e=>update({type:e.target.value})} className="h-8 w-full rounded-md border px-2 text-[10px]">{['none','fade','slide-up','slide-left','slide-right','zoom','blur'].map(x=><option key={x} value={x}>{x}</option>)}</select><Num label="Süre (sn)" value={a.duration??.8} set={v=>update({duration:v})}/><Num label="Gecikme (sn)" value={a.delay??0} set={v=>update({delay:v})}/><SwitchRow label="Kademeli giriş" value={!!a.stagger} set={v=>update({stagger:v})}/></Group></div>}
-function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){
+function SiteSettings({site,updateSite,updateTheme,updateSettings,applyFontToAll}:any){
+ const [globalFont,setGlobalFont]=useState(site.theme.bodyFont)
+ const allFonts=[...new Set([...HEADING_FONTS,...BODY_FONTS,...SCRIPT_FONTS])]
  return <div className="space-y-5">
   <Group title="Site">
    <Label className="text-[9px]">Başlık</Label>
@@ -217,6 +219,14 @@ function SiteSettings({site,updateSite,updateTheme,updateSettings}:any){
    </select>
   </Group>
   <Group title="Yazı tipleri">
+   <div className="space-y-2 rounded-lg border border-[#e8e1d5] bg-[#fbfaf7] p-3">
+    <Label htmlFor="site-global-font" className="text-[9px]">Genel yazı tipi</Label>
+    <select id="site-global-font" value={globalFont} onChange={e=>setGlobalFont(e.target.value)} className="h-8 w-full rounded-md border bg-white px-2 text-[10px]">
+     {allFonts.map(font=><option key={font} value={font} style={{fontFamily:font}}>{font}</option>)}
+    </select>
+    <Button type="button" variant="outline" size="sm" className="h-8 w-full text-[10px]" onClick={()=>applyFontToAll(globalFont)}>Tüm siteye uygula</Button>
+    <p className="text-[9px] leading-relaxed text-muted-foreground">Başlık, metin ve el yazısı fontlarını; özel biçimlendirilmiş metinler dahil, bu fontla değiştirir. Geri al ile önceki tasarıma dönebilirsiniz.</p>
+   </div>
    <FontSelect label="Başlık fontu" value={site.theme.headingFont} options={HEADING_FONTS} set={v=>updateTheme({headingFont:v})}/>
    <FontSelect label="Metin fontu" value={site.theme.bodyFont} options={BODY_FONTS} set={v=>updateTheme({bodyFont:v})}/>
    <FontSelect label="El yazısı fontu" value={site.theme.scriptFont} options={SCRIPT_FONTS} set={v=>updateTheme({scriptFont:v})}/>

@@ -10,13 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/components/auth/auth-provider'
 import { canManageAdmin, canReadAdmin } from '@/lib/admin/authorization'
 import { fetchVipApi } from '@/lib/vip-design/api-client.mjs'
-import { VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES, VIP_STATUS_TRANSITIONS, VIP_WORKFLOW_STATUSES } from '@/lib/vip-design/mock-data.mjs'
+import { VIP_CANCELLATION_REASONS, VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES, VIP_STATUS_TRANSITIONS, VIP_WORKFLOW_STATUSES } from '@/lib/vip-design/mock-data.mjs'
 
 export function VipAdminRequestDetail({ requestId }) {
   const router = useRouter()
   const { user, status: authStatus } = useAuth()
   const [request, setRequest] = useState(null)
   const [status, setStatus] = useState('')
+  const [cancellationReason, setCancellationReason] = useState('')
+  const [invitationFile, setInvitationFile] = useState(null)
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -24,6 +26,8 @@ export function VipAdminRequestDetail({ requestId }) {
   const [saved, setSaved] = useState(false)
   const [creatingSiteDraft, setCreatingSiteDraft] = useState(false)
   const [siteDraftError, setSiteDraftError] = useState('')
+  const [uploadingInvitation, setUploadingInvitation] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   useEffect(() => {
     if (!canReadAdmin(user)) return
@@ -47,7 +51,9 @@ export function VipAdminRequestDetail({ requestId }) {
     if (!request) return []
     const allowed = new Set([request.status, ...(VIP_STATUS_TRANSITIONS[request.status] || [])])
     return VIP_WORKFLOW_STATUSES.filter((item) =>
-      allowed.has(item.id) && !(item.id === 'delivered' && request.site_draft?.status === 'draft')
+      allowed.has(item.id) && !(item.id === 'delivered' && (
+        request.site_draft?.status !== 'published' || !request.gift_invitation_output
+      ))
     )
   }, [request])
 
@@ -60,12 +66,14 @@ export function VipAdminRequestDetail({ requestId }) {
       const body = {}
       if (status !== request.status) body.status = status
       if (note.trim()) body.note = note.trim()
+      if (status === 'cancelled') body.cancellationReason = cancellationReason
       const result = await fetchVipApi(`/api/admin/vip-requests/${encodeURIComponent(requestId)}`, {
         method: 'PATCH',
         body: JSON.stringify(body),
       })
-      setRequest(result.request)
-      setStatus(result.request.status)
+      const refreshed = await fetchVipApi(`/api/admin/vip-requests/${encodeURIComponent(requestId)}`)
+      setRequest(refreshed.request)
+      setStatus(refreshed.request.status)
       setNote('')
       setSaved(true)
       window.dispatchEvent(new Event('vip-request-updated'))
@@ -92,13 +100,38 @@ export function VipAdminRequestDetail({ requestId }) {
     }
   }
 
+  const uploadInvitation = async () => {
+    if (!invitationFile) {
+      setUploadError('Yüklemek için tamamlanmış hediye davetiye çıktısını seçin.')
+      return
+    }
+    setUploadingInvitation(true)
+    setUploadError('')
+    try {
+      const form = new FormData()
+      form.set('file', invitationFile)
+      const result = await fetchVipApi(`/api/admin/vip-requests/${encodeURIComponent(requestId)}/delivery/invitation`, {
+        method: 'POST',
+        body: form,
+      })
+      setRequest(result.request)
+      setInvitationFile(null)
+      window.dispatchEvent(new Event('vip-request-updated'))
+    } catch (cause) {
+      setUploadError(cause instanceof Error ? cause.message : 'Hediye davetiye çıktısı yüklenemedi.')
+    } finally {
+      setUploadingInvitation(false)
+    }
+  }
+
   if (authStatus === 'loading' || loading) return <p className="py-16 text-center text-sm text-muted-foreground">Talep yükleniyor…</p>
   if (!canReadAdmin(user)) return <div className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-white p-8 text-center"><ShieldAlert className="mx-auto h-7 w-7 text-red-700" /><h1 className="mt-3 font-serif text-2xl">Erişim izni gerekli</h1><p className="mt-2 text-sm text-muted-foreground">Bu sayfa mevcut admin/support rolü gerektirir.</p></div>
   if (!request) return <div className="rounded-2xl border border-midnight/10 bg-white p-8 text-center"><p className="font-serif text-2xl">VIP talep bulunamadı</p><p className="mt-2 text-xs text-muted-foreground">{error}</p><Link href="/panel/admin/vip-talepler" className="mt-4 inline-block text-xs underline">Talep listesine dön</Link></div>
 
   const site = VIP_SITE_TEMPLATES.find((item) => item.id === request.selectedSiteTemplateId)
   const invitation = VIP_INVITATION_TEMPLATES.find((item) => item.id === request.selectedInvitationTemplateId)
-  const hasChanges = status !== request.status || Boolean(note.trim())
+  const hasChanges = status !== request.status || Boolean(note.trim()) ||
+    (status === 'cancelled' && cancellationReason !== request.cancellation_decision?.reason)
   return (
     <article className="mx-auto max-w-6xl space-y-6">
       <Link href="/panel/admin/vip-talepler" className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition hover:text-midnight">← VIP talep kuyruğuna dön</Link>
@@ -145,12 +178,56 @@ export function VipAdminRequestDetail({ requestId }) {
           <p className="w-full text-xs text-muted-foreground">Taslak oluşturmak için önce talebi onaylayın.</p>
         )}
       </section>
+      <section className="rounded-3xl border border-midnight/10 bg-white p-5 shadow-sm sm:p-7">
+        <h2 className="font-serif text-2xl text-midnight">Hediye davetiye teslimat çıktısı</h2>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">Teslim durumuna geçmek için VIP sitenin yayınlanmış ve kişiye özel hazırlanmış hediye davetiye çıktısının PDF veya görsel olarak yüklenmiş olması gerekir.</p>
+        {request.gift_invitation_output ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-ivory p-4 text-xs">
+            <span>{request.gift_invitation_output.name} · {request.gift_invitation_output.type} · {Math.ceil(request.gift_invitation_output.size / 1024)} KB</span>
+            <a href={`/api/admin/vip-requests/${encodeURIComponent(request.id)}/delivery/invitation`} className="font-medium underline" download>Çıktıyı indir</a>
+          </div>
+        ) : canManageAdmin(user) && request.status === 'in_progress' ? (
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <div className="min-w-0 flex-1"><Label htmlFor="vip-invitation-output">Tamamlanmış çıktı (PDF veya görsel, en fazla 10 MB)</Label><input id="vip-invitation-output" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif" onChange={(event) => setInvitationFile(event.target.files?.[0] || null)} className="mt-2 block w-full text-xs" /></div>
+            <Button onClick={() => void uploadInvitation()} disabled={uploadingInvitation || !invitationFile} className="h-11 rounded-xl bg-midnight px-5 text-white">{uploadingInvitation ? 'Yükleniyor…' : 'Davetiye çıktısını kaydet'}</Button>
+          </div>
+        ) : <p className="mt-4 text-xs text-muted-foreground">Hediye davetiye çıktısı henüz yüklenmedi.</p>}
+        {uploadError && <p className="mt-3 text-xs text-red-700" role="alert">{uploadError}</p>}
+      </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-midnight/10 bg-white p-5 shadow-sm sm:p-7">
+          <h2 className="font-serif text-2xl text-midnight">VIP kredi hareketleri</h2>
+          <p className="mt-1 text-xs text-muted-foreground">İşlem, miktar, gerekçe, zaman ve admin bilgileri.</p>
+          {!request.credit_movements?.length ? <p className="mt-4 text-xs text-muted-foreground">Hareket bulunamadı.</p> : (
+            <ol className="mt-4 space-y-3">{request.credit_movements.map((movement, index) => (
+              <li key={`${movement.kind}-${index}`} className="rounded-2xl bg-ivory p-3 text-xs">
+                <p className="font-semibold">{movement.kind === 'debit' ? 'Kredi düşümü' : movement.kind === 'refund' ? 'Kredi iadesi' : 'İade yapılmadı'} · {movement.amount} kredi</p>
+                <p className="mt-1 break-words text-muted-foreground">{movement.reason}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">{new Date(movement.created_at).toLocaleString('tr-TR')} · Admin: {movement.admin_id || 'Sistem / kullanıcı işlemi'} · Talep: {movement.request_id} · Kullanıcı: {movement.user_id}</p>
+              </li>
+            ))}</ol>
+          )}
+        </div>
+        <div className="rounded-3xl border border-midnight/10 bg-white p-5 shadow-sm sm:p-7">
+          <h2 className="font-serif text-2xl text-midnight">Bildirim ve e-posta durumu</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Resend yapılandırılmamışsa uygulama içi bildirimler yine kaydedilir.</p>
+          {!request.email_notifications?.length ? <p className="mt-4 text-xs text-muted-foreground">Bu talep için bildirim kaydı bulunamadı.</p> : (
+            <ol className="mt-4 space-y-3">{request.email_notifications.map((notification) => (
+              <li key={notification.id} className="rounded-2xl bg-ivory p-3 text-xs">
+                <p className="font-semibold">{notification.audience === 'admin' ? 'Admin bildirimi' : 'Kullanıcı bildirimi'} · {notification.title}</p>
+                <p className="mt-1 text-muted-foreground">E-posta: {emailStatusLabel(notification.email?.status)} · {new Date(notification.created_at).toLocaleString('tr-TR')}</p>
+                {notification.email?.last_error && <p className="mt-1 break-words text-red-700">{notification.email.last_error}</p>}
+              </li>
+            ))}</ol>
+          )}
+        </div>
+      </section>
       {request.uploadedPhotoMetadata.some((photo) => photo.uploaded) && <ul className="mt-4 space-y-2">{request.uploadedPhotoMetadata.filter((photo) => photo.uploaded).map((photo) => <li key={photo.photoId}><a href={`/api/admin/vip-requests/${encodeURIComponent(request.id)}/photos/${encodeURIComponent(photo.photoId)}`} className="text-xs underline" download>{photo.name} · Fotoğrafı indir</a></li>)}</ul>}
       <section className="rounded-3xl border border-midnight/10 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage/25 text-midnight"><ShieldAlert className="h-5 w-5" /></span><div><h2 className="font-serif text-2xl text-midnight">İş akışı ve iç notlar</h2>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">Onay üretim sürecini başlatır; özel tasarım hizmetinin ücretsiz veya satın alınmış olduğu anlamına gelmez. VIP talep standart proje kredisi tüketmez.</p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">Talep başına 2 VIP kredisi kullanılır; ücretsiz proje kotası bu bakiyeye dahil değildir. Onay sonrası `Üretimde` durumu üretim başlangıcıdır. Bu aşamadan sonraki iptallerde mevcut politika gereği kredi iadesi yapılmaz.</p>
         </div></div>
-        {canManageAdmin(user) ? <div className="mt-6 grid gap-4 rounded-2xl bg-ivory/60 p-4 sm:p-5 lg:grid-cols-[320px_minmax(0,1fr)_auto] lg:items-end"><div className="min-w-0"><Label htmlFor="vip-status">Talep durumu</Label><Select value={status} onValueChange={setStatus}><SelectTrigger id="vip-status" className="mt-1 h-11 rounded-xl bg-white"><SelectValue placeholder="Durum seçin" /></SelectTrigger><SelectContent>{availableStatuses.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select></div><div className="min-w-0"><Label htmlFor="vip-note">Yalnızca adminlerin görebileceği iç not</Label><textarea id="vip-note" maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-midnight/15 bg-white p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" placeholder="İç not ekleyin (isteğe bağlı)" /></div><Button disabled={saving || !hasChanges} onClick={() => void save()} className="h-11 rounded-xl bg-midnight px-5 text-white">{saving ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}</Button></div> : <p className="mt-4 rounded-2xl bg-ivory px-4 py-3 text-xs text-muted-foreground">Support rolü talepleri görüntüleyebilir ancak durum veya iç not değiştiremez.</p>}
+        {canManageAdmin(user) ? <div className="mt-6 grid gap-4 rounded-2xl bg-ivory/60 p-4 sm:p-5 lg:grid-cols-[280px_260px_minmax(0,1fr)_auto] lg:items-end"><div className="min-w-0"><Label htmlFor="vip-status">Talep durumu</Label><Select value={status} onValueChange={setStatus}><SelectTrigger id="vip-status" className="mt-1 h-11 rounded-xl bg-white"><SelectValue placeholder="Durum seçin" /></SelectTrigger><SelectContent>{availableStatuses.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select></div>{status === 'cancelled' && <div className="min-w-0"><Label htmlFor="vip-cancel-reason">İptal gerekçesi (zorunlu)</Label><Select value={cancellationReason} onValueChange={setCancellationReason}><SelectTrigger id="vip-cancel-reason" className="mt-1 h-11 rounded-xl bg-white"><SelectValue placeholder="Gerekçe seçin" /></SelectTrigger><SelectContent>{VIP_CANCELLATION_REASONS.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select></div>}<div className="min-w-0"><Label htmlFor="vip-note">Yalnızca adminlerin görebileceği iç not {status === 'cancelled' && cancellationReason === 'other' && '(Diğer için zorunlu)'}</Label><textarea id="vip-note" maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-midnight/15 bg-white p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" placeholder="İç not ekleyin (isteğe bağlı)" /></div><Button disabled={saving || !hasChanges || (status === 'cancelled' && (!cancellationReason || (cancellationReason === 'other' && !note.trim())))} onClick={() => void save()} className="h-11 rounded-xl bg-midnight px-5 text-white">{saving ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}</Button></div> : <p className="mt-4 rounded-2xl bg-ivory px-4 py-3 text-xs text-muted-foreground">Support rolü talepleri görüntüleyebilir ancak durum veya iç not değiştiremez.</p>}
         {error && <p className="mt-3 text-xs text-red-700" role="alert">{error}</p>}
         {saved && <p className="mt-3 text-xs text-emerald-700" role="status">Talep güncellendi. Müşteri yalnızca durumu görür; iç notlar gizlidir.</p>}
         {request.internal_notes?.length > 0 && <section className="mt-5 border-t border-midnight/10 pt-4"><h3 className="text-xs font-semibold">Admin iç notları</h3><ol className="mt-3 space-y-2">{request.internal_notes.map((item, index) => <li key={`${item.createdAt}-${index}`} className="rounded-lg bg-ivory p-3 text-xs"><p>{item.note}</p><p className="mt-1 text-[10px] text-muted-foreground">{new Date(item.createdAt).toLocaleString('tr-TR')} · Admin ID: {item.actorId}</p></li>)}</ol></section>}
@@ -162,4 +239,16 @@ export function VipAdminRequestDetail({ requestId }) {
 
 function Info({ title, value, detail, href, linkLabel }) {
   return <section className="rounded-2xl border border-midnight/10 bg-white p-5"><h2 className="text-[9px] uppercase tracking-wider text-muted-foreground">{title}</h2><p className="mt-2 text-sm font-medium">{value || 'Belirtilmedi'}</p>{detail && <p className="mt-2 text-[10px] leading-5 text-muted-foreground">{detail}</p>}{href && <Link href={href} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-midnight underline underline-offset-4">{linkLabel}<ExternalLink className="h-3.5 w-3.5" /></Link>}</section>
+}
+
+function emailStatusLabel(status) {
+  return ({
+    sent: 'Gönderildi',
+    failed: 'Gönderilemedi',
+    not_configured: 'Resend yapılandırılmamış',
+    not_available: 'E-posta adresi yok',
+    not_requested: 'Gönderim istenmedi',
+    pending: 'Bekliyor',
+    sending: 'Gönderiliyor',
+  })[status] || status || 'Bilinmiyor'
 }

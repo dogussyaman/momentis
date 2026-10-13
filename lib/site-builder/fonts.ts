@@ -1,4 +1,5 @@
 import { EDITOR_FONTS } from '@/lib/editor-fonts'
+import type { WeddingSite } from './schema'
 
 export const HEADING_FONTS = [
   ...EDITOR_FONTS.filter((font) => font.category !== 'Script').map((font) => font.name),
@@ -31,4 +32,32 @@ export function loadGoogleFonts(families: (string | undefined)[]) {
 export function fontStack(name: string, fallback: 'serif' | 'sans' | 'script' = 'serif') {
   const fb = fallback === 'sans' ? 'system-ui, sans-serif' : fallback === 'script' ? 'cursive' : 'Georgia, serif'
   return `'${name}', ${fb}`
+}
+
+export function applyFontToSite(site: WeddingSite, fontFamily: string): WeddingSite {
+  return {
+    ...site,
+    theme: {
+      ...site.theme,
+      headingFont: fontFamily,
+      bodyFont: fontFamily,
+      scriptFont: fontFamily,
+    },
+    sections: site.sections.map((section) => {
+      const inlineStyles = section.props?.inlineStyles
+      if (!inlineStyles || typeof inlineStyles !== 'object') return section
+      return {
+        ...section,
+        props: {
+          ...section.props,
+          inlineStyles: Object.fromEntries(Object.entries(inlineStyles).map(([key, style]) => [
+            key,
+            style && typeof style === 'object'
+              ? { ...style, fontFamily: `'${fontFamily}', sans-serif` }
+              : style,
+          ])),
+        },
+      }
+    }),
+  }
 }

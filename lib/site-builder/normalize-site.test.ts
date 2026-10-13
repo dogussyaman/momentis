@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { applyFontToSite } from './fonts'
 
 import { createStarterSite, normalizeSiteForEditor } from './normalize-site'
 import { buildSiteFromTemplate, TEMPLATES } from './templates'
@@ -80,4 +81,23 @@ test('the template catalog includes 20 additional designs with the shared weddin
     assert.equal(site.templateId, template.id)
     for (const sectionType of requiredSections) assert.ok(sectionTypes.has(sectionType), `${template.id} is missing ${sectionType}`)
   }
+})
+
+test('applyFontToSite updates all theme fonts and custom inline text without losing other formatting', () => {
+  const site = createStarterSite()
+  site.sections[0].props.inlineStyles = {
+    title: { fontFamily: "'Old Font', serif", color: '#123456', fontSize: '32px' },
+  }
+
+  const updated = applyFontToSite(site, 'Lato')
+
+  assert.equal(updated.theme.headingFont, 'Lato')
+  assert.equal(updated.theme.bodyFont, 'Lato')
+  assert.equal(updated.theme.scriptFont, 'Lato')
+  assert.deepEqual(updated.sections[0].props.inlineStyles.title, {
+    fontFamily: "'Lato', sans-serif",
+    color: '#123456',
+    fontSize: '32px',
+  })
+  assert.equal(site.theme.bodyFont === 'Lato', false)
 })

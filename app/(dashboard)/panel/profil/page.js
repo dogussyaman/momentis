@@ -1,13 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { AlertTriangle, Loader2, Trash2 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export default function ProfilePage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [passwordState, setPasswordState] = useState({
     currentPassword: '',
     newPassword: '',
@@ -15,6 +28,51 @@ export default function ProfilePage() {
     status: 'idle', // idle, loading, success, error
     message: ''
   })
+  const [deletionPreview, setDeletionPreview] = useState(null)
+  const [deletionEmail, setDeletionEmail] = useState('')
+  const [deletionPassword, setDeletionPassword] = useState('')
+  const [deletionConfirmed, setDeletionConfirmed] = useState(false)
+  const [deletionDialogOpen, setDeletionDialogOpen] = useState(false)
+  const [deletionState, setDeletionState] = useState({ status: 'idle', message: '' })
+  const [googleReauthReady, setGoogleReauthReady] = useState(false)
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetch('/api/auth/account-deletion-preview', { credentials: 'include', cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || 'Hesap silme bilgileri yüklenemedi')
+        setDeletionPreview(data)
+        setGoogleReauthReady(data.googleReauthValid === true)
+      })
+      .catch((error) => setDeletionState({ status: 'error', message: error.message }))
+  }, [user?.id])
+
+  const submitAccountDeletion = async () => {
+    setDeletionState({ status: 'loading', message: '' })
+    try {
+      const response = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmationEmail: deletionEmail,
+          ...(deletionPassword ? { currentPassword: deletionPassword } : {}),
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        if (data.summary) setDeletionPreview(data.summary)
+        throw new Error(data.error || 'Hesap silinemedi')
+      }
+      router.replace('/giris?accountDeleted=1')
+      router.refresh()
+    } catch (error) {
+      setDeletionState({ status: 'error', message: error.message || 'Hesap silinemedi' })
+    } finally {
+      setDeletionDialogOpen(false)
+    }
+  }
 
   const handlePasswordChange = async (e) => {
     e.preventDefault()
@@ -160,7 +218,122 @@ export default function ProfilePage() {
             </Button>
           </form>
         </div>
+
+        <div className="space-y-5 border-t border-border pt-8">
+          <div>
+            <h2 className="text-xl font-serif text-destructive">Hesabımı Sil</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Bu işlem hesabınıza erişimi kalıcı olarak kapatır. Etkinlikleriniz, davetiyeleriniz, konuk/RSVP verileriniz ve kişisel tasarım içerikleriniz silinir. Yasal ve finansal kayıtlar silinmez; kullanılabilir kredileriniz işlem geçmişine kaydedilerek iptal edilir.
+            </p>
+          </div>
+
+          {deletionPreview ? (
+            <div className="grid gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm sm:grid-cols-2">
+              <p>Etkinlik: <strong>{deletionPreview.events}</strong></p>
+              <p>Davetiyeler: <strong>{deletionPreview.invitations}</strong></p>
+              <p>Davetliler: <strong>{deletionPreview.guests}</strong></p>
+              <p>VIP talepleri: <strong>{deletionPreview.vipRequests}</strong></p>
+              <p>Sipariş kayıtları korunacak: <strong>{deletionPreview.orders}</strong></p>
+              <p>İptal edilecek kullanılabilir kredi: <strong>{deletionPreview.remainingCredits}</strong></p>
+              {(deletionPreview.pendingVipRequests > 0 || deletionPreview.pendingOrders > 0) && (
+                <p className="font-medium text-amber-900 sm:col-span-2">
+                  Bekleyen VIP talebi ({deletionPreview.pendingVipRequests}) veya sipariş ({deletionPreview.pendingOrders}) tamamlanmadan hesap silinemez. Önce bu işlemlerin sonuçlanmasını bekleyin.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Hesap silme önizlemesi yükleniyor…</p>
+          )}
+
+          <div className="space-y-4 rounded-2xl border border-destructive/20 bg-destructive/5 p-5">
+            {hasPassword ? (
+              <div className="space-y-2">
+                <label htmlFor="deletion-password" className="text-sm font-medium text-midnight">Yeniden kimlik doğrulama için mevcut şifreniz</label>
+                <input
+                  id="deletion-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={deletionPassword}
+                  onChange={(event) => setDeletionPassword(event.target.value)}
+                  className="flex h-11 w-full rounded-xl border border-border bg-white px-4 text-sm outline-none focus:border-destructive focus:ring-1 focus:ring-destructive"
+                />
+                <a href="/api/auth/google/start?intent=delete-account" className="text-xs text-midnight underline underline-offset-4">
+                  Google hesabımla yeniden doğrula
+                </a>
+                {googleReauthReady && <p className="text-xs font-medium text-emerald-700">Google kimliğiniz doğrulandı. Son onay için e-posta adresinizi girin.</p>}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-midnight">Silme işleminden önce Google hesabınızla yeniden kimlik doğrulamanız gerekir.</p>
+                <a href="/api/auth/google/start?intent=delete-account" className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-white px-4 text-sm font-medium text-midnight hover:bg-ivory-50">
+                  Google ile yeniden doğrula
+                </a>
+                {googleReauthReady && <p className="text-xs font-medium text-emerald-700">Google kimliğiniz doğrulandı. Son onay için e-posta adresinizi girin.</p>}
+              </div>
+            )}
+            <div className="space-y-2">
+              <label htmlFor="deletion-email" className="text-sm font-medium text-midnight">Onaylamak için hesap e-posta adresinizi yazın</label>
+              <input
+                id="deletion-email"
+                type="email"
+                autoComplete="email"
+                value={deletionEmail}
+                onChange={(event) => setDeletionEmail(event.target.value)}
+                className="flex h-11 w-full rounded-xl border border-border bg-white px-4 text-sm outline-none focus:border-destructive focus:ring-1 focus:ring-destructive"
+              />
+            </div>
+            <label className="flex items-start gap-3 text-sm leading-relaxed text-midnight">
+              <input
+                type="checkbox"
+                checked={deletionConfirmed}
+                onChange={(event) => setDeletionConfirmed(event.target.checked)}
+                className="mt-1"
+              />
+              Silinecek içerikleri, korunacak sipariş/finansal kayıtları ve iptal edilecek kredileri anladım.
+            </label>
+            {deletionState.message && (
+              <p role="alert" className={cn('text-sm font-medium', deletionState.status === 'error' ? 'text-destructive' : 'text-emerald-700')}>
+                {deletionState.message}
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={!deletionPreview || deletionState.status === 'loading' || !deletionConfirmed ||
+                deletionEmail.trim().toLowerCase() !== String(user.email || '').toLowerCase() ||
+                (!deletionPassword && !googleReauthReady) ||
+                deletionPreview.pendingVipRequests > 0 || deletionPreview.pendingOrders > 0}
+              onClick={() => setDeletionDialogOpen(true)}
+            >
+              {deletionState.status === 'loading' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Hesabımı kalıcı olarak sil
+            </Button>
+          </div>
+        </div>
       </div>
+      <AlertDialog open={deletionDialogOpen} onOpenChange={setDeletionDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5" /> Hesabınız kalıcı olarak silinsin mi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Kişisel etkinlik içerikleri silinir, kullanılabilir krediler iptal edilir ve yasal/finansal kayıtlar korunur. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletionState.status === 'loading'}
+              onClick={(event) => {
+                event.preventDefault()
+                submitAccountDeletion()
+              }}
+            >
+              Evet, hesabımı sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

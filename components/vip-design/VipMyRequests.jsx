@@ -12,6 +12,7 @@ export function VipMyRequests() {
   const { user, status: authStatus } = useAuth()
   const [requests, setRequests] = useState([])
   const [total, setTotal] = useState(0)
+  const [vipCreditBalance, setVipCreditBalance] = useState(null)
   const [state, setState] = useState('loading')
   const [error, setError] = useState('')
 
@@ -25,6 +26,7 @@ export function VipMyRequests() {
         if (!active) return
         setRequests(result.items)
         setTotal(result.total)
+        setVipCreditBalance(result.vipCreditBalance)
         setState('ready')
       })
       .catch((cause) => {
@@ -46,7 +48,7 @@ export function VipMyRequests() {
           <div>
             <p className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-champagne"><span className="h-px w-8 bg-current" /> MOMENTIS VIP · Hesabınız</p>
             <h1 className="mt-4 font-serif text-3xl sm:text-4xl">VIP tasarım taleplerim</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-ivory/65">Talep sürecinizi ve güncellemeleri tek bir yerden takip edin. Talep göndermek standart etkinlik kredisi kullanmaz; özel tasarım hizmeti ayrıca değerlendirilir.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ivory/65">Talep sürecinizi ve güncellemeleri tek bir yerden takip edin. Her VIP talebinde 2 kullanılabilir etkinlik kredisi kullanılır; ücretsiz proje hakkı bu bakiyeye dahil değildir.</p>
           </div>
           <Button asChild className="h-11 w-fit rounded-2xl bg-champagne px-5 text-xs font-semibold text-midnight hover:bg-champagne-light">
             <Link href="/tasarimlar/vip/talep/yeni"><Plus className="mr-2 h-4 w-4" /> Yeni VIP talebi</Link>
@@ -54,7 +56,8 @@ export function VipMyRequests() {
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <SummaryCard icon={Gift} label="Kullanılabilir VIP kredisi" value={state === 'ready' ? vipCreditBalance : '—'} detail="Yeni bir VIP talebi için en az 2 kredi gerekir" />
         <SummaryCard icon={Gift} label="Gönderilen talepler" value={state === 'ready' ? total : '—'} detail="Hesabınıza bağlı toplam VIP talebi" />
         <SummaryCard icon={Sparkles} label="Hizmet kapsamı" value="Ayrı değerlendirme" detail="Talep gönderimi satın alma veya ücretsiz hizmet onayı değildir" tone="gold" />
       </div>
@@ -91,6 +94,13 @@ export function VipMyRequests() {
                   <p className="mt-5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{new Date(request.createdAt).toLocaleDateString('tr-TR')} <span className="mx-1.5">·</span> {request.id}</p>
                   <h3 className="mt-2 font-serif text-2xl text-midnight">{site?.title || 'VIP site tasarımı'}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">Hediye davetiye: {invite?.title || 'Seçilmedi'}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    VIP kredi durumu: {request.creditStatus?.refunded
+                      ? `${request.creditStatus.refunded} kredi iade edildi`
+                      : request.creditStatus?.refundStatus === 'not_refunded_after_production'
+                        ? 'Üretim sonrası iptal · iade yok'
+                        : `${request.creditStatus?.charged || 0} kredi kullanıldı`}
+                  </p>
                   <Link href={`/panel/vip-taleplerim/${encodeURIComponent(request.id)}`} className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl border border-midnight/15 px-4 text-xs font-medium text-midnight transition hover:border-midnight hover:bg-midnight hover:text-white">
                     Talep detayını gör <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
                   </Link>

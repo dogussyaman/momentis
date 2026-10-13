@@ -35,7 +35,7 @@ interface SiteEditorProps {
 }
 
 export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, initialSite, eventData, saveButtonLabel, showSwitchToCard = true, autoSaveEnabled = true, onOpenHelp, canUsePremiumTemplates = false }: SiteEditorProps) {
-  const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, setIsPreview, isPreview } = useSiteEditorStore();
+  const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, saveError, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
   const [previewTextScale, setPreviewTextScale] = useState(100);
   const canvasViewportRef = useRef<HTMLDivElement>(null)
@@ -53,7 +53,11 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
         setLocalSaving(false);
       }
     } else {
-      await save();
+      try {
+        await save();
+      } catch (error) {
+        console.error('[site-editor] local draft save failed', error);
+      }
     }
   }
 
@@ -92,6 +96,11 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
   useEffect(() => {
     if (autoSaveEnabled && site) autosaveSite()
   }, [site, autoSaveEnabled]);
+
+  useEffect(() => () => {
+    if (autoSaveEnabled) autosaveSite.flush()
+    else autosaveSite.cancel()
+  }, [autoSaveEnabled])
 
   useEffect(() => {
     const viewport = canvasViewportRef.current
@@ -135,7 +144,9 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
         </div>
         
         <div className="flex shrink-0 items-center gap-1">
-          {lastSavedAt && <span className="hidden items-center gap-1 text-[9px] text-muted-foreground xl:flex"><Cloud className="h-3 w-3" /> Taslak kaydedildi</span>}
+          {isSaving && <span aria-live="polite" className="hidden items-center gap-1 text-[9px] text-muted-foreground xl:flex"><Cloud className="h-3 w-3" /> Cihazda kaydediliyor…</span>}
+          {!isSaving && saveError && <span role="alert" className="hidden items-center gap-1 text-[9px] text-destructive xl:flex">{saveError}</span>}
+          {!isSaving && !saveError && lastSavedAt && <span aria-live="polite" title="Bu taslak yalnızca bu cihazın tarayıcısında saklanır." className="hidden items-center gap-1 text-[9px] text-muted-foreground xl:flex"><Cloud className="h-3 w-3" /> Bu cihazda taslak kaydedildi</span>}
           {onSaveDraft && <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={isSaving || localSaving} aria-label="Taslak olarak kaydet" className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{localSaving ? 'Kaydediliyor…' : 'Taslak'}</span></Button>}
           <Button variant="outline" size="sm" onClick={handleSave} aria-label={saveButtonLabel || (isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet')} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? 'Kaydediliyor…' : (saveButtonLabel || (isUpdate ? 'Güncelle' : 'Kaydet'))}</span></Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreview(!isPreview)} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{isPreview ? 'Düzenle' : 'Önizle'}</span></Button>
