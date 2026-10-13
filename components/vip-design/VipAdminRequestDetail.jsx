@@ -1,78 +1,165 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ShieldAlert } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ExternalLink, PencilRuler, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/components/auth/auth-provider'
 import { canManageAdmin, canReadAdmin } from '@/lib/admin/authorization'
-import { getAdminVipDesignRequest, updateMockVipRequestStatus } from '@/lib/vip-design/mock-service.mjs'
-import { VIP_INVITATION_TEMPLATES, VIP_REQUEST_STATUSES, VIP_SITE_TEMPLATES } from '@/lib/vip-design/mock-data.mjs'
+import { fetchVipApi } from '@/lib/vip-design/api-client.mjs'
+import { VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES, VIP_STATUS_TRANSITIONS, VIP_WORKFLOW_STATUSES } from '@/lib/vip-design/mock-data.mjs'
 
 export function VipAdminRequestDetail({ requestId }) {
+  const router = useRouter()
   const { user, status: authStatus } = useAuth()
   const [request, setRequest] = useState(null)
-  const [status, setStatus] = useState('created')
+  const [status, setStatus] = useState('')
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [creatingSiteDraft, setCreatingSiteDraft] = useState(false)
+  const [siteDraftError, setSiteDraftError] = useState('')
 
   useEffect(() => {
     if (!canReadAdmin(user)) return
-    getAdminVipDesignRequest(requestId)
-      .then((item) => { setRequest(item); if (item) setStatus(item.status); setLoading(false) })
-      .catch((cause) => { setError(cause instanceof Error ? cause.message : 'Talep açılamadı.'); setLoading(false) })
+    let active = true
+    fetchVipApi(`/api/admin/vip-requests/${encodeURIComponent(requestId)}`)
+      .then((result) => {
+        if (!active) return
+        setRequest(result.request)
+        setStatus(result.request?.status || '')
+        setLoading(false)
+      })
+      .catch((cause) => {
+        if (!active) return
+        setError(cause instanceof Error ? cause.message : 'Talep açılamadı.')
+        setLoading(false)
+      })
+    return () => { active = false }
   }, [requestId, user])
 
+  const availableStatuses = useMemo(() => {
+    if (!request) return []
+    const allowed = new Set([request.status, ...(VIP_STATUS_TRANSITIONS[request.status] || [])])
+    return VIP_WORKFLOW_STATUSES.filter((item) =>
+      allowed.has(item.id) && !(item.id === 'delivered' && request.site_draft?.status === 'draft')
+    )
+  }, [request])
+
   const save = async () => {
+    if (!request) return
     setSaving(true)
     setError('')
     setSaved(false)
     try {
-      const updated = await updateMockVipRequestStatus(requestId, status, note)
-      setRequest(updated)
+      const body = {}
+      if (status !== request.status) body.status = status
+      if (note.trim()) body.note = note.trim()
+      const result = await fetchVipApi(`/api/admin/vip-requests/${encodeURIComponent(requestId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      })
+      setRequest(result.request)
+      setStatus(result.request.status)
       setNote('')
       setSaved(true)
+      window.dispatchEvent(new Event('vip-request-updated'))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Mock durum güncellenemedi.')
+      setError(cause instanceof Error ? cause.message : 'Talep güncellenemedi.')
     } finally {
       setSaving(false)
+    }
+
+    const createSiteDraft = async () => {
+      setCreatingSiteDraft(true)
+      setSiteDraftError('')
+      try {
+        await fetchVipApi(`/api/admin/vip-requests/${encodeURIComponent(requestId)}/site-draft`, {
+          method: 'POST',
+          body: JSON.stringify({}),
+        })
+        router.push(`/panel/admin/vip-talepler/${encodeURIComponent(requestId)}/site`)
+      } catch (cause) {
+        setSiteDraftError(cause instanceof Error ? cause.message : 'VIP site taslağı oluşturulamadı.')
+      } finally {
+        setCreatingSiteDraft(false)
+      }
     }
   }
 
   if (authStatus === 'loading' || loading) return <p className="py-16 text-center text-sm text-muted-foreground">Talep yükleniyor…</p>
   if (!canReadAdmin(user)) return <div className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-white p-8 text-center"><ShieldAlert className="mx-auto h-7 w-7 text-red-700" /><h1 className="mt-3 font-serif text-2xl">Erişim izni gerekli</h1><p className="mt-2 text-sm text-muted-foreground">Bu sayfa mevcut admin/support rolü gerektirir.</p></div>
-  if (!request) return <div className="rounded-2xl border border-midnight/10 bg-white p-8 text-center"><p className="font-serif text-2xl">Demo talep bulunamadı</p><p className="mt-2 text-xs text-muted-foreground">Bu tarayıcıdaki mock depoda böyle bir kayıt yok.</p><Link href="/panel/admin/vip-talepler" className="mt-4 inline-block text-xs underline">Talep listesine dön</Link></div>
+  if (!request) return <div className="rounded-2xl border border-midnight/10 bg-white p-8 text-center"><p className="font-serif text-2xl">VIP talep bulunamadı</p><p className="mt-2 text-xs text-muted-foreground">{error}</p><Link href="/panel/admin/vip-talepler" className="mt-4 inline-block text-xs underline">Talep listesine dön</Link></div>
 
   const site = VIP_SITE_TEMPLATES.find((item) => item.id === request.selectedSiteTemplateId)
   const invitation = VIP_INVITATION_TEMPLATES.find((item) => item.id === request.selectedInvitationTemplateId)
+  const hasChanges = status !== request.status || Boolean(note.trim())
   return (
-    <article className="mx-auto max-w-5xl">
-      <Link href="/panel/admin/vip-talepler" className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-midnight">← VIP talepler</Link>
-      <header className="mt-5 flex flex-wrap items-start justify-between gap-3"><div><p className="text-[9px] uppercase tracking-widest text-muted-foreground">Mock talep · {request.id}</p><h1 className="mt-2 font-serif text-3xl">Talep inceleme</h1></div><span className="rounded-full bg-champagne/20 px-3 py-1.5 text-xs">{VIP_REQUEST_STATUSES.find((item) => item.id === request.status)?.label}</span></header>
-      <p className="mt-3 text-xs text-muted-foreground">{request.userName || 'İsimsiz'} · {request.userEmail} · {new Date(request.createdAt).toLocaleString('tr-TR')}</p>
+    <article className="mx-auto max-w-6xl space-y-6">
+      <Link href="/panel/admin/vip-talepler" className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition hover:text-midnight">← VIP talep kuyruğuna dön</Link>
+      <header className="relative overflow-hidden rounded-[2rem] bg-midnight px-6 py-7 text-ivory shadow-xl sm:px-9 sm:py-9">
+        <div aria-hidden className="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full bg-champagne/20 blur-3xl" />
+        <div className="relative flex flex-wrap items-start justify-between gap-5">
+          <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-champagne">VIP talep · {request.id}</p><h1 className="mt-3 font-serif text-3xl sm:text-4xl">Talep inceleme</h1><p className="mt-3 text-sm text-ivory/70">{request.user_snapshot?.name || 'İsimsiz'} <span className="mx-1.5 text-ivory/35">·</span>{request.user_snapshot?.email}</p></div>
+          <div className="rounded-2xl border border-ivory/10 bg-ivory/5 px-4 py-3"><p className="text-[9px] uppercase tracking-wider text-ivory/50">Mevcut aşama</p><span className="mt-1.5 inline-flex rounded-full bg-champagne/20 px-3 py-1.5 text-xs font-semibold text-champagne">{VIP_WORKFLOW_STATUSES.find((item) => item.id === request.status)?.label}</span></div>
+        </div>
+        <p className="relative mt-5 text-[11px] text-ivory/50">Gönderildi {new Date(request.createdAt).toLocaleString('tr-TR')}</p>
+      </header>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <Info title="Seçilen VIP site" value={site?.title} detail={site?.description} />
+        <Info title="Seçilen VIP site" value={site?.title} detail={site?.description} href={site ? `/tasarimlar/vip/${site.slug}` : undefined} linkLabel="VIP sayfa demosunu aç" />
         <Info title="Seçilen hediye davetiye" value={invitation?.title} detail={invitation?.description} />
         <Info title="Çift ve etkinlik" value={`${request.eventDetails.brideName} & ${request.eventDetails.groomName} · ${request.eventDetails.eventType}`} detail={`Tarih: ${request.eventDetails.date} ${request.eventDetails.time || ''} · Mekân: ${request.eventDetails.venue} · Adres: ${request.eventDetails.address || 'Belirtilmedi'} · Aile: ${request.eventDetails.familyInfo || 'Belirtilmedi'} · Davet notu: ${request.eventDetails.invitationText || 'Belirtilmedi'}`} />
         <Info title="Tasarım tercihleri" value={`${request.preferences.style} · ${request.preferences.colors || 'Renk belirtilmedi'}`} detail={`Bölümler: ${request.preferences.sections.join(', ') || 'Belirtilmedi'} · Referanslar: ${request.preferences.referenceNotes || 'Yok'} · Ek istek: ${request.preferences.description || 'Yok'}`} />
         <Info title="QR albüm tercihleri" value={request.albumPreferences.wantsAlbum ? 'Albüm isteniyor' : 'Albüm istenmiyor'} detail={request.albumPreferences.guestPhotoSharing ? 'Misafir QR fotoğraf paylaşımı isteniyor' : 'Misafir paylaşımı istenmiyor'} />
-        <Info title="Fotoğraf metadata / önizleme" value={`${request.uploadedPhotoMetadata.length} mock dosya kaydı`} detail={request.uploadedPhotoMetadata.map((photo) => `${photo.name} · ${photo.type} · ${Math.round(photo.size / 1024)} KB`).join(' | ') || 'Fotoğraf yok. Gerçek dosya yüklenmedi.'} />
+        <Info title="Yüklenen fotoğraflar" value={`${request.uploadedPhotoMetadata.length} dosya`} detail={request.uploadedPhotoMetadata.map((photo) => `${photo.name} · ${photo.type} · ${Math.round(photo.size / 1024)} KB`).join(' | ') || 'Fotoğraf eklenmedi.'} />
       </div>
-      <section className="mt-6 rounded-2xl border border-midnight/10 bg-white p-5">
-        <h2 className="font-serif text-xl">Mock durum ve iç not</h2>
-        {canManageAdmin(user) ? <div className="mt-4 grid gap-4 md:grid-cols-[240px_1fr_auto] md:items-end"><div><Label htmlFor="vip-status">Talep durumu</Label><select id="vip-status" value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-midnight/15 bg-white px-3 text-sm">{VIP_REQUEST_STATUSES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></div><div><Label htmlFor="vip-note">Mock iç not (isteğe bağlı)</Label><textarea id="vip-note" maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-midnight/15 p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" placeholder="Yalnızca demo kaydına eklenir" /></div><Button disabled={saving} onClick={() => void save()} className="rounded-xl bg-midnight text-white">{saving ? 'Kaydediliyor…' : 'Mock durumu güncelle'}</Button></div> : <p className="mt-3 text-xs text-muted-foreground">Support rolü talepleri inceleyebilir ancak mevcut izinler gereği durum veya iç not değiştiremez.</p>}
+      <section className="flex flex-wrap items-center justify-between gap-5 rounded-3xl border border-champagne/50 bg-white p-5 shadow-sm sm:p-7">
+        <div className="max-w-2xl">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-champagne-dark">VIP sayfa entegrasyonu</p>
+          <h2 className="mt-2 font-serif text-2xl text-midnight">{request.site_draft ? 'VIP site taslağı hazır' : 'Talep bilgileriyle VIP site taslağı'}</h2>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            Seçilen VIP konseptinin renkleri ve etkinlik bilgileri düzenlenebilir site editörüne aktarılır. Taslak yayınlanana kadar ziyaretçilere kapalıdır; talep onayı özel tasarım hizmetini satın alınmış saymaz.
+          </p>
+          {request.site_draft && <p className="mt-2 text-xs font-medium text-midnight">Durum: {request.site_draft.status === 'published' ? 'Yayında' : 'Yayınlanmamış taslak'} · {request.site_draft.templateTitle}</p>}
+          {siteDraftError && <p className="mt-2 text-xs text-red-700" role="alert">{siteDraftError}</p>}
+        </div>
+        {canManageAdmin(user) && (request.site_draft ? (
+          <Button asChild className="h-11 rounded-xl bg-midnight px-5 text-white">
+            <Link href={`/panel/admin/vip-talepler/${encodeURIComponent(request.id)}/site`}><PencilRuler className="mr-2 h-4 w-4" />VIP siteyi düzenle</Link>
+          </Button>
+        ) : (
+          <Button
+            onClick={() => void createSiteDraft()}
+            disabled={creatingSiteDraft || !['approved', 'in_progress'].includes(request.status)}
+            className="h-11 rounded-xl bg-midnight px-5 text-white"
+          >
+            <PencilRuler className="mr-2 h-4 w-4" />{creatingSiteDraft ? 'Taslak hazırlanıyor…' : 'VIP sayfa taslağı oluştur'}
+          </Button>
+        ))}
+        {!request.site_draft && !['approved', 'in_progress'].includes(request.status) && (
+          <p className="w-full text-xs text-muted-foreground">Taslak oluşturmak için önce talebi onaylayın.</p>
+        )}
+      </section>
+      {request.uploadedPhotoMetadata.some((photo) => photo.uploaded) && <ul className="mt-4 space-y-2">{request.uploadedPhotoMetadata.filter((photo) => photo.uploaded).map((photo) => <li key={photo.photoId}><a href={`/api/admin/vip-requests/${encodeURIComponent(request.id)}/photos/${encodeURIComponent(photo.photoId)}`} className="text-xs underline" download>{photo.name} · Fotoğrafı indir</a></li>)}</ul>}
+      <section className="rounded-3xl border border-midnight/10 bg-white p-5 shadow-sm sm:p-7">
+        <div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage/25 text-midnight"><ShieldAlert className="h-5 w-5" /></span><div><h2 className="font-serif text-2xl text-midnight">İş akışı ve iç notlar</h2>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">Onay üretim sürecini başlatır; özel tasarım hizmetinin ücretsiz veya satın alınmış olduğu anlamına gelmez. VIP talep standart proje kredisi tüketmez.</p>
+        </div></div>
+        {canManageAdmin(user) ? <div className="mt-6 grid gap-4 rounded-2xl bg-ivory/60 p-4 sm:p-5 lg:grid-cols-[320px_minmax(0,1fr)_auto] lg:items-end"><div className="min-w-0"><Label htmlFor="vip-status">Talep durumu</Label><Select value={status} onValueChange={setStatus}><SelectTrigger id="vip-status" className="mt-1 h-11 rounded-xl bg-white"><SelectValue placeholder="Durum seçin" /></SelectTrigger><SelectContent>{availableStatuses.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select></div><div className="min-w-0"><Label htmlFor="vip-note">Yalnızca adminlerin görebileceği iç not</Label><textarea id="vip-note" maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-midnight/15 bg-white p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne" placeholder="İç not ekleyin (isteğe bağlı)" /></div><Button disabled={saving || !hasChanges} onClick={() => void save()} className="h-11 rounded-xl bg-midnight px-5 text-white">{saving ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}</Button></div> : <p className="mt-4 rounded-2xl bg-ivory px-4 py-3 text-xs text-muted-foreground">Support rolü talepleri görüntüleyebilir ancak durum veya iç not değiştiremez.</p>}
         {error && <p className="mt-3 text-xs text-red-700" role="alert">{error}</p>}
-        {saved && <p className="mt-3 text-xs text-emerald-700" role="status">Mock durum yerel demo deposunda güncellendi. Harici bildirim gönderilmedi.</p>}
-        <ol className="mt-5 space-y-3 border-t border-midnight/10 pt-4">{request.timeline.map((item, index) => <li key={`${item.createdAt}-${index}`} className="text-xs"><strong>{VIP_REQUEST_STATUSES.find((entry) => entry.id === item.status)?.label || item.status}</strong><span className="ml-2 text-muted-foreground">{new Date(item.createdAt).toLocaleString('tr-TR')}</span><p className="mt-1 text-muted-foreground">{item.note}</p></li>)}</ol>
+        {saved && <p className="mt-3 text-xs text-emerald-700" role="status">Talep güncellendi. Müşteri yalnızca durumu görür; iç notlar gizlidir.</p>}
+        {request.internal_notes?.length > 0 && <section className="mt-5 border-t border-midnight/10 pt-4"><h3 className="text-xs font-semibold">Admin iç notları</h3><ol className="mt-3 space-y-2">{request.internal_notes.map((item, index) => <li key={`${item.createdAt}-${index}`} className="rounded-lg bg-ivory p-3 text-xs"><p>{item.note}</p><p className="mt-1 text-[10px] text-muted-foreground">{new Date(item.createdAt).toLocaleString('tr-TR')} · Admin ID: {item.actorId}</p></li>)}</ol></section>}
+        <div className="mt-6 border-t border-midnight/10 pt-5"><h3 className="font-serif text-xl text-midnight">Durum geçmişi</h3><ol className="mt-4 space-y-4">{request.timeline.map((item, index) => <li key={`${item.createdAt}-${index}`} className="flex gap-3 text-xs"><span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-champagne/20"><span className="h-2 w-2 rounded-full bg-champagne-dark" /></span><span className="min-w-0"><strong className="block font-medium text-midnight">{VIP_WORKFLOW_STATUSES.find((entry) => entry.id === item.status)?.label || item.status}</strong><span className="mt-1 block text-[10px] text-muted-foreground">{new Date(item.createdAt).toLocaleString('tr-TR')}</span></span></li>)}</ol></div>
       </section>
     </article>
   )
 }
 
-function Info({ title, value, detail }) {
-  return <section className="rounded-2xl border border-midnight/10 bg-white p-5"><h2 className="text-[9px] uppercase tracking-wider text-muted-foreground">{title}</h2><p className="mt-2 text-sm font-medium">{value || 'Belirtilmedi'}</p>{detail && <p className="mt-2 text-[10px] leading-5 text-muted-foreground">{detail}</p>}</section>
+function Info({ title, value, detail, href, linkLabel }) {
+  return <section className="rounded-2xl border border-midnight/10 bg-white p-5"><h2 className="text-[9px] uppercase tracking-wider text-muted-foreground">{title}</h2><p className="mt-2 text-sm font-medium">{value || 'Belirtilmedi'}</p>{detail && <p className="mt-2 text-[10px] leading-5 text-muted-foreground">{detail}</p>}{href && <Link href={href} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-midnight underline underline-offset-4">{linkLabel}<ExternalLink className="h-3.5 w-3.5" /></Link>}</section>
 }

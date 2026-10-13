@@ -107,20 +107,22 @@ export function syncEventDataFromForm(form: any, current: any = {}) {
   const babyShower = eventType === 'baby-shower'
   const corporate = eventType === 'kurumsal'
 
-  return {
+  const family = {
+    ...(current.family || {}),
+    ...(form.bride_mother ? { brideMother: form.bride_mother } : {}),
+    ...(form.bride_father ? { brideFather: form.bride_father } : {}),
+    ...(form.groom_mother ? { groomMother: form.groom_mother } : {}),
+    ...(form.groom_father ? { groomFather: form.groom_father } : {}),
+  }
+
+  const next = {
     ...current,
     couple: {
       ...(current.couple || {}),
       bride: couple ? form.host_a || '' : '',
       groom: couple ? form.host_b || '' : '',
     },
-    family: {
-      ...(current.family || {}),
-      brideMother: form.bride_mother || '',
-      brideFather: form.bride_father || '',
-      groomMother: form.groom_mother || '',
-      groomFather: form.groom_father || '',
-    },
+    family,
     celebrant: {
       ...(current.celebrant || {}),
       name: birthday ? form.host_a || '' : '',
@@ -151,5 +153,10 @@ export function syncEventDataFromForm(form: any, current: any = {}) {
     program: form.program ?? [],
     menuOptions: form.menu_options ?? [],
     eventTypeLabel: current.eventTypeLabel || 'Etkinlik',
+  }
+
+  return {
+    ...next,
+    family: Object.fromEntries(Object.entries(next.family).filter(([, value]) => value !== '')),
   }
 }

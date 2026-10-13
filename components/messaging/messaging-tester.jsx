@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/components/auth/auth-provider'
 
 const TYPE_LABELS = { invitation: 'Davetiye', rsvp: 'RSVP Onayı', reminder: 'Hatırlatma' }
 
@@ -25,6 +26,7 @@ const DEFAULTS = {
 const inputCls = 'h-11 rounded-2xl border-border bg-ivory-50'
 
 export function MessagingTester() {
+  const { user } = useAuth()
   const [status, setStatus] = useState(null)
   const [channel, setChannel] = useState('email')
   const [type, setType] = useState('invitation')
@@ -36,6 +38,7 @@ export function MessagingTester() {
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [projects, setProjects] = useState([])
   const [projectId, setProjectId] = useState('')
+  const [providerTestSending, setProviderTestSending] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !form.invitationUrl) {
@@ -97,6 +100,24 @@ export function MessagingTester() {
     }
   }
 
+  const onResendTest = async () => {
+    setProviderTestSending(true)
+    try {
+      const response = await fetch('/api/messaging/test-email', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': window.crypto.randomUUID() },
+        credentials: 'include',
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Resend bağlantı testi başarısız')
+      toast.success(`Resend test e-postası ${user?.email || 'hesap adresinize'} gönderildi.`)
+    } catch (error) {
+      toast.error(error.message || 'Resend bağlantı testi başarısız')
+    } finally {
+      setProviderTestSending(false)
+    }
+  }
+
   const channelConfigured = status ? status[channel]?.configured : true
 
   return (
@@ -106,6 +127,25 @@ export function MessagingTester() {
           <StatusCard icon={Mail} label="Resend E-posta" data={status?.email} testid="status-email" />
           <StatusCard icon={MessageSquare} label="Twilio SMS" data={status?.sms} testid="status-sms" />
         </div>
+        {channel === 'email' && status?.email?.configured && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-medium text-emerald-950">Resend bağlantısını doğrula</p>
+            <p className="mt-1 text-xs leading-relaxed text-emerald-900/80">
+              Proje veya mesaj kotası kullanmadan, oturum açmış hesabın e-posta adresine kısa bir test gönderir.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={providerTestSending || !user?.email}
+              onClick={onResendTest}
+              className="mt-3 border-emerald-300 bg-white text-emerald-950 hover:bg-emerald-100"
+              data-testid="resend-connection-test"
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {providerTestSending ? 'Resend test e-postası gönderiliyor…' : 'Hesabıma test e-postası gönder'}
+            </Button>
+          </div>
+        )}
 
         <form onSubmit={onSend} className="mt-8 space-y-6 border border-border bg-ivory p-8">
           <Tabs value={channel} onValueChange={setChannel}>

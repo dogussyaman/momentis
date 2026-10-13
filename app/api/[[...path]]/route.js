@@ -15,6 +15,9 @@ import { handleAuthRoutes } from '@/lib/api/auth-routes'
 import { handleProjectRoutes, handlePublicRoutes } from '@/lib/api/project-routes'
 import { handleBillingRoutes } from '@/lib/api/billing-routes'
 import { handleAdminRoutes } from '@/lib/api/admin-routes'
+import { handleVipRoutes } from '@/lib/api/vip-routes'
+import { handleNotificationRoutes } from '@/lib/api/notification-routes'
+import { handleMessagingTestRoutes } from '@/lib/api/messaging-test-routes'
 import { consumeQuota, getProjectPlan, getRequestKey, releaseQuota } from '@/lib/billing/usage'
 
 export const runtime = 'nodejs'
@@ -94,7 +97,7 @@ async function handleRoute(request, { params }) {
     const siteTemplates = getTemplateCatalog()
     const ctx = { db, route, path, method, request, user, siteTemplates }
     if (path[0] === 'projects' || path[0] === 'public') await ensureTemplatesSeeded(db)
-    const modular = (await handleAdminRoutes(ctx)) || (await handleAuthRoutes(ctx)) || (await handleBillingRoutes(ctx)) || (await handleProjectRoutes({ ...ctx, siteTemplates })) || (await handlePublicRoutes(ctx))
+    const modular = (await handleVipRoutes(ctx)) || (await handleNotificationRoutes(ctx)) || (await handleMessagingTestRoutes(ctx)) || (await handleAdminRoutes(ctx)) || (await handleAuthRoutes(ctx)) || (await handleBillingRoutes(ctx)) || (await handleProjectRoutes({ ...ctx, siteTemplates })) || (await handlePublicRoutes(ctx))
     if (modular) return handleCORS(modular, request)
 
     // Health / root

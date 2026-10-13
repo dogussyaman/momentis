@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink, LoaderCircle, LockKeyhole, Upload, X, Calendar as CalendarIcon, MapPin, Sparkles } from 'lucide-react'
@@ -18,7 +18,6 @@ import {
 import { DatePickerField } from '@/components/ui/date-picker-field'
 import { useAuth } from '@/components/auth/auth-provider'
 import { VipInvitationCard } from './VipInvitationCard'
-import { createVipDesignRequest } from '@/lib/vip-design/mock-service.mjs'
 import { VIP_FORM_OPTIONS, VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES } from '@/lib/vip-design/mock-data.mjs'
 import { subscribeToVipSiteSelection } from '@/lib/vip-design/vip-sync'
 
@@ -51,7 +50,9 @@ export function VipRequestWizard() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
+  const [submissionAttempt, setSubmissionAttempt] = useState(null)
   const [notification, setNotification] = useState('')
+  const pendingPhotoFiles = useRef(new Map())
 
   useEffect(() => {
     try {
@@ -59,8 +60,18 @@ export function VipRequestWizard() {
       if (saved) {
         const draft = JSON.parse(saved)
         if (draft?.form) {
-          setForm((current) => ({ ...current, ...draft.form, photos: Array.isArray(draft.form.photos) ? draft.form.photos : [] }))
+          setForm((current) => ({
+            ...current,
+            ...draft.form,
+            photos: Array.isArray(draft.form.photos)
+              ? draft.form.photos.map((photo) => ({
+                ...photo,
+                photoId: photo.photoId || window.crypto.randomUUID().replace(/-/g, ''),
+              }))
+              : [],
+          }))
           setStep(Math.min(Math.max(Number(draft.step) || 0, 0), STEPS.length - 1))
+          setSubmissionAttempt(draft.submissionAttempt || null)
         }
       }
     } catch {
@@ -83,11 +94,11 @@ export function VipRequestWizard() {
   useEffect(() => {
     if (!restored || success) return
     try {
-      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step }))
+      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step, submissionAttempt }))
     } catch {
       setError('Taslak bu sekmede saklanamadı. Sayfayı kapatmadan önce talebinizi gönderin.')
     }
-  }, [form, step, restored, success])
+  }, [form, step, submissionAttempt, restored, success])
 
   useEffect(() => {
     const unsubscribe = subscribeToVipSiteSelection((siteId, slug) => {
@@ -137,22 +148,49 @@ export function VipRequestWizard() {
     setSubmitting(true)
     setError('')
     try {
-      const ownerId = user.id || user._id || user.email
-      const request = await createVipDesignRequest({
-        userId: String(ownerId),
-        userName: String(user.name || user.fullName || ''),
-        userEmail: String(user.email || ''),
+      const photoMetadata = form.photos.map(({ photoId, name, type, size }) => ({ photoId, name, type, size }))
+      if (form.photos.some((photo) => !pendingPhotoFiles.current.has(photo.photoId))) {
+        setError('Oturum değiştiği için dosyalara erişilemiyor. Seçili görselleri yeniden seçin veya kaldırın.')
+        return
+      }
+      const payload = {
         selectedSiteTemplateId: form.siteId,
         selectedInvitationTemplateId: form.invitationId,
         eventDetails: form.event,
         preferences: form.preferences,
         albumPreferences: form.album,
-        uploadedPhotoMetadata: form.photos,
+        uploadedPhotoMetadata: photoMetadata,
+      }
+      const payloadSignature = JSON.stringify(payload)
+      const attempt = submissionAttempt?.payloadSignature === payloadSignature
+        ? submissionAttempt
+        : { key: window.crypto.randomUUID().replace(/-/g, ''), payloadSignature }
+      setSubmissionAttempt(attempt)
+      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step, submissionAttempt: attempt }))
+      const body = photoMetadata.length ? new FormData() : JSON.stringify(payload)
+      if (photoMetadata.length) {
+        body.set('payload', JSON.stringify(payload))
+        for (const photo of photoMetadata) {
+          body.append(`photo:${photo.photoId}`, pendingPhotoFiles.current.get(photo.photoId), photo.name)
+        }
+      }
+      const response = await fetch('/api/vip/requests', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Idempotency-Key': attempt.key,
+          ...(!photoMetadata.length ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body,
       })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(result?.error || 'VIP talebi gönderilemedi.')
+      if (!result?.request) throw new Error('Sunucudan geçerli talep yanıtı alınamadı.')
       window.sessionStorage.removeItem(DRAFT_KEY)
-      setSuccess(request)
+      pendingPhotoFiles.current.clear()
+      setSuccess(result.request)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Mock talep oluşturulamadı.')
+      setError(cause instanceof Error ? cause.message : 'VIP talebi gönderilemedi.')
     } finally {
       setSubmitting(false)
     }
@@ -160,21 +198,40 @@ export function VipRequestWizard() {
 
   const onPhotoChange = (event) => {
     const files = Array.from(event.target.files || [])
-    if (form.photos.length + files.length > 8) {
-      setError('En fazla 8 görsel metadata kaydı ekleyebilirsiniz.')
+    const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    const invalid = files.find((file) => !acceptedTypes.includes(file.type) || file.size > 10 * 1024 * 1024)
+    if (invalid) {
+      setError('Yalnızca görsel dosyası seçin; her dosya en fazla 10 MB olabilir.')
       event.target.value = ''
       return
     }
-    const invalid = files.find((file) => !file.type.startsWith('image/') || file.size > 10 * 1024 * 1024)
-    if (invalid) {
-      setError('Yalnızca görsel dosyası seçin; her dosya en fazla 10 MB olabilir.')
+    const unmatchedPhotos = form.photos.filter((photo) => !pendingPhotoFiles.current.has(photo.photoId))
+    const nextPhotos = files.map((file) => {
+      const matchIndex = unmatchedPhotos.findIndex((photo) => (
+        photo.name === file.name && photo.type === file.type && photo.size === file.size
+      ))
+      if (matchIndex >= 0) {
+        const [photo] = unmatchedPhotos.splice(matchIndex, 1)
+        pendingPhotoFiles.current.set(photo.photoId, file)
+        return photo
+      }
+      const photoId = window.crypto.randomUUID().replace(/-/g, '')
+      pendingPhotoFiles.current.set(photoId, file)
+      return { photoId, name: file.name, type: file.type, size: file.size }
+    })
+    const retainedPhotos = form.photos.filter((photo) => pendingPhotoFiles.current.has(photo.photoId))
+    const retainedIds = new Set(retainedPhotos.map((photo) => photo.photoId))
+    const addedPhotos = nextPhotos.filter((photo) => !retainedIds.has(photo.photoId))
+    if (retainedPhotos.length + addedPhotos.length > 8) {
+      for (const photo of addedPhotos) pendingPhotoFiles.current.delete(photo.photoId)
+      setError('En fazla 8 görsel ekleyebilirsiniz.')
       event.target.value = ''
       return
     }
     setError('')
     setForm((current) => ({
       ...current,
-      photos: [...current.photos, ...files.map((file) => ({ name: file.name, type: file.type, size: file.size }))],
+      photos: [...retainedPhotos, ...addedPhotos],
     }))
     event.target.value = ''
   }
@@ -187,14 +244,14 @@ export function VipRequestWizard() {
     return (
       <div className="mx-auto max-w-2xl rounded-[28px] border border-midnight/10 bg-white p-6 text-center shadow-xl sm:p-10" role="status">
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><Check className="h-6 w-6" /></span>
-        <p className="mt-5 text-[10px] uppercase tracking-[0.24em] text-champagne-dark">Mock/demo talep kaydı</p>
-        <h1 className="mt-3 font-serif text-3xl">Talep özeti hazır</h1>
-        <p className="mt-3 text-sm text-muted-foreground">Bu numara yalnızca demo kaydını belirtir. Gerçek bir sipariş oluşturulmadı ve admin bildirimi gönderilmedi.</p>
+        <p className="mt-5 text-[10px] uppercase tracking-[0.24em] text-champagne-dark">VIP talep kaydı</p>
+        <h1 className="mt-3 font-serif text-3xl">Talebiniz alındı</h1>
+        <p className="mt-3 text-sm text-muted-foreground">Talebiniz admin onayı için kuyruğa eklendi. Onay üretim sürecini başlatır; özel tasarım hizmetinin ücretsiz veya satın alınmış olduğu anlamına gelmez.</p>
         <div className="mt-6 rounded-2xl bg-ivory p-5 text-left text-sm">
           <p><strong>Talep no:</strong> {success.id}</p>
           <p className="mt-2"><strong>Site:</strong> {selectedSite?.title}</p>
           <p className="mt-2"><strong>Hediye davetiye:</strong> {selectedInvitation?.title}</p>
-          <p className="mt-2"><strong>Durum:</strong> Talep oluşturuldu (demo)</p>
+          <p className="mt-2"><strong>Durum:</strong> Yeni talep · Ücretsiz gönderim</p>
         </div>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <Button onClick={() => router.push('/panel/vip-taleplerim')} className="rounded-xl bg-midnight text-white">VIP Taleplerim</Button>
@@ -210,7 +267,7 @@ export function VipRequestWizard() {
       <header className="mt-7">
         <p className="text-[10px] uppercase tracking-[0.24em] text-champagne-dark">MOMENTIS VIP · Talep sihirbazı</p>
         <h1 className="mt-2 font-serif text-3xl sm:text-4xl">Kişiye özel tasarım talebi</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Talebiniz demo kaydı olarak bu tarayıcıda tutulur. Admin incelemesi, hizmet siparişi veya gerçek bildirim gerçekleşmez.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">VIP talep gönderimi ücretsizdir ve standart proje kredisi tüketmez. Talep admin onayından sonra üretim değerlendirmesine alınır; özel tasarım hizmeti bu talep ile satın alınmış olmaz.</p>
       </header>
 
       <nav className="mt-7 overflow-x-auto pb-2" aria-label="Talep adımları">
@@ -565,7 +622,8 @@ export function VipRequestWizard() {
                 >
                   <Upload className="mb-2 h-6 w-6 text-champagne-dark" />
                   <span className="font-medium text-midnight">Fotoğrafları seçin veya sürükleyin</span>
-                  <span className="mt-1 text-[10px] text-muted-foreground">JPG, PNG, WEBP · Demo metadata kaydı</span>
+                  <span className="mt-1 text-[10px] text-muted-foreground">JPG, PNG, WEBP veya GIF · Dosyalar güvenli şekilde talep kaydına yüklenir</span>
+                  <span className="mt-1 text-[10px] text-muted-foreground">Giriş için başka sayfaya geçişte dosyaları tekrar seçmeniz gerekebilir.</span>
                 </label>
                 <input id="photo-input" type="file" accept="image/*" multiple className="sr-only" onChange={onPhotoChange} />
 
@@ -574,7 +632,7 @@ export function VipRequestWizard() {
                     {form.photos.map((photo, index) => (
                       <li key={`${photo.name}-${index}`} className="flex items-center justify-between gap-2 rounded-lg bg-stone-50 px-3 py-1.5 border border-midnight/5">
                         <span className="truncate font-medium text-midnight">{photo.name} · {(photo.size / 1024).toFixed(0)} KB</span>
-                        <button type="button" aria-label={`${photo.name} kaldır`} onClick={() => setForm((current) => ({ ...current, photos: current.photos.filter((_, i) => i !== index) }))} className="text-stone-400 hover:text-red-600 transition">
+                        <button type="button" aria-label={`${photo.name} kaldır`} onClick={() => { pendingPhotoFiles.current.delete(photo.photoId); setForm((current) => ({ ...current, photos: current.photos.filter((_, i) => i !== index) })) }} className="text-stone-400 hover:text-red-600 transition">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </li>
@@ -624,7 +682,7 @@ export function VipRequestWizard() {
                     placeholder="Örn. Sade, abartısız bir karşılama hissi ve zarif altın çizgiler."
                     maxLength={800}
                     value={form.preferences.referenceNotes}
-                    onChange={(e) => updatePreference('references', e.target.value)}
+                    onChange={(e) => updatePreference('referenceNotes', e.target.value)}
                     className="mt-1.5 min-h-[80px] rounded-xl border-midnight/20 bg-white p-3 text-xs shadow-xs focus-visible:ring-champagne"
                   />
                 </div>
@@ -670,11 +728,11 @@ export function VipRequestWizard() {
               <div className="space-y-3">
                 <label className="flex items-center gap-3 rounded-2xl border border-midnight/10 p-4 text-sm"><input type="checkbox" checked={form.album.wantsAlbum} onChange={(e) => updateAlbum('wantsAlbum', e.target.checked)} className="h-4 w-4 accent-midnight" /> QR fotoğraf albümü istiyorum</label>
                 <label className="flex items-center gap-3 rounded-2xl border border-midnight/10 p-4 text-sm"><input type="checkbox" checked={form.album.guestPhotoSharing} onChange={(e) => updateAlbum('guestPhotoSharing', e.target.checked)} className="h-4 w-4 accent-midnight" /> Misafirlerin QR ile fotoğraf paylaşmasını istiyorum</label>
-                <p className="text-[10px] leading-5 text-muted-foreground">Bunlar yalnızca talep tercihleridir; bu mock modülde çalışan bir albüm veya QR bağlantısı oluşturulmaz.</p>
+                <p className="text-[10px] leading-5 text-muted-foreground">Bunlar talep tercihleridir; gerçek albüm veya QR bağlantısı ancak ayrıca oluşturulup onaylanır.</p>
               </div>
               <div className="flex items-center gap-5 rounded-2xl bg-ivory p-5">
                 <div aria-label="Temsili QR örneği, çalışmıyor" className="grid h-24 w-24 shrink-0 grid-cols-5 gap-1 rounded-lg border border-midnight/15 bg-white p-2" role="img">{Array.from({ length: 25 }, (_, i) => <span key={i} className={`rounded-[2px] ${[0,1,2,4,5,7,9,10,12,14,15,17,19,20,21,23,24].includes(i) ? 'bg-midnight' : 'bg-midnight/10'}`} />)}</div>
-                <div><p className="font-serif text-lg">Örnek albüm alanı</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Yalnızca mock görünüm · aktif QR değil</p></div>
+                <div><p className="font-serif text-lg">Örnek albüm alanı</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Örnek görünüm · aktif QR değil</p></div>
               </div>
             </div>
           </div>
@@ -694,14 +752,14 @@ export function VipRequestWizard() {
         {step === 5 && (
           <div>
             <h2 className="font-serif text-2xl">Talep özeti ve gönderim</h2>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">Geri dönerek istediğiniz adımı düzenleyebilirsiniz. Gönderim bir demo kaydı oluşturur; gerçek hizmet veya bildirim başlatmaz.</p>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">Geri dönerek istediğiniz adımı düzenleyebilirsiniz. Gönderim ücretsizdir; bu form standart proje kredisi düşürmez ve hizmet satın alımı başlatmaz.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Summary title="VIP site konsepti" value={selectedSite?.title || 'Seçilmedi'} detail={selectedSite?.description} />
               <Summary title="Hediye davetiye" value={selectedInvitation?.title || 'Seçilmedi'} detail={selectedInvitation?.description} />
               <Summary title="Etkinlik bilgileri" value={`${form.event.brideName} & ${form.event.groomName}`} detail={`${form.event.eventType} · ${form.event.date} · ${form.event.time || 'Saat belirtilmedi'} · ${form.event.venue}`} />
               <Summary title="Tasarım tercihleri" value={`${form.preferences.style}${form.preferences.colors ? ` · ${form.preferences.colors}` : ''}`} detail={form.preferences.sections.join(', ') || 'Bölüm seçilmedi'} />
               <Summary title="QR fotoğraf albümü" value={form.album.wantsAlbum ? 'Talep edildi' : 'Talep edilmedi'} detail={form.album.guestPhotoSharing ? 'Misafir paylaşımı tercihi açık' : 'Misafir paylaşımı tercihi kapalı'} />
-              <Summary title="Mock fotoğraf metadata" value={`${form.photos.length} görsel seçildi`} detail={form.photos.map((photo) => photo.name).join(', ') || 'Dosyalar yüklenmedi'} />
+              <Summary title="Fotoğraflar" value={`${form.photos.length} görsel seçildi`} detail={form.photos.map((photo) => photo.name).join(', ') || 'Fotoğraf seçilmedi'} />
             </div>
             {!user && <div className="mt-5 flex gap-3 rounded-2xl border border-champagne/50 bg-champagne/10 p-4 text-xs leading-5"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" /><p>Talebi hesabınızla ilişkilendirmek için giriş yapın. Form taslağınız bu sekmede tutulur ve girişten sonra devam edebilirsiniz.</p></div>}
           </div>
@@ -710,7 +768,7 @@ export function VipRequestWizard() {
         {error && <p className="mt-5 rounded-xl bg-red-50 p-3 text-xs text-red-700" role="alert">{error}</p>}
         <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-midnight/10 pt-5 sm:flex-row">
           <Button type="button" variant="outline" disabled={step === 0 || submitting} onClick={() => { setError(''); setStep((value) => Math.max(value - 1, 0)) }} className="rounded-xl"><ArrowLeft className="mr-2 h-4 w-4" /> Geri</Button>
-          {step < STEPS.length - 1 ? <Button type="button" onClick={next} className="rounded-xl bg-midnight text-white">Devam et <ArrowRight className="ml-2 h-4 w-4" /></Button> : <Button type="button" onClick={() => void submit()} disabled={submitting || authStatus === 'error'} className="rounded-xl bg-midnight text-white">{submitting ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Mock kayıt oluşturuluyor</> : user ? 'Mock talep oluştur' : 'Giriş yap ve devam et'}</Button>}
+          {step < STEPS.length - 1 ? <Button type="button" onClick={next} className="rounded-xl bg-midnight text-white">Devam et <ArrowRight className="ml-2 h-4 w-4" /></Button> : <Button type="button" onClick={() => void submit()} disabled={submitting || authStatus === 'error'} className="rounded-xl bg-midnight text-white">{submitting ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Talep gönderiliyor</> : user ? 'Ücretsiz talep gönder' : 'Giriş yap ve devam et'}</Button>}
         </div>
       </section>
     </div>

@@ -8,7 +8,7 @@ export const metadata = {
 
 const items = [
   'Veri sorumlusunun resmi unvanı, adresi ve başvuru kanalı',
-  'Hesap, etkinlik, davetli yanıtları, yüklenen medya ve bülten verilerinin işlenme amaçları ve hukuki dayanakları',
+  'Hesap, etkinlik, davetli yanıtları, VIP talepleri, bildirim kayıtları ve yüklenen görsellerin işlenme amaçları ve hukuki dayanakları',
   'Kullanılan hizmet sağlayıcılar, olası yurt dışı aktarımları ve saklama süreleri',
   'Verilere erişme, düzeltme, silme ve diğer başvuru haklarının nasıl kullanılacağı',
   'Çerezler ve oturum bilgilerinin kullanımı',
@@ -31,6 +31,8 @@ export default function PrivacyPage() {
             {items.map((item) => <li key={item}>{item}</li>)}
           </ul>
           <p>Bu alanlar henüz doğrulanmış bilgiyle doldurulmadı. Sorular için <a className="text-midnight underline underline-offset-4" href="mailto:merhaba@momentis.app">merhaba@momentis.app</a> adresine ulaşabilirsiniz; bu iletişim adresi tek başına resmi veri sorumlusu veya başvuru usulünü tanımlamaz.</p>
+          <p><strong>Mevcut VIP talep akışı:</strong> Talep formuna eklenen görseller, VIP talebiyle ilişkilendirilerek MongoDB GridFS'te saklanır. Talep sahibi ve yetkili admin/support kullanıcıları görselleri indirebilir. Uygulamada şu anda otomatik saklama süresi veya görsel silme akışı tanımlı değildir; üretim kullanımı öncesinde bu kuralların ve ilgili hukuki bildirimin tamamlanması gerekir.</p>
+          <p><strong>Mevcut bildirim akışı:</strong> Hesap, proje, paket ve VIP talep güncellemeleri alıcı hesabıyla ilişkilendirilerek MongoDB'de uygulama içi bildirim olarak saklanır. Resend yapılandırılmışsa ilgili e-posta ayrıca gönderilir; yapılandırılmamış veya başarısız e-posta durumu bildirim kaydında tutulur. Bildirimler ve e-posta teslim kayıtları için saklama/silme süresi henüz belirlenmemiştir ve yayımdan önce netleştirilmelidir.</p>
         </section>
         <Link href="/" className="mt-9 inline-flex text-sm font-medium text-midnight underline decoration-champagne underline-offset-4">Ana sayfaya dön</Link>
       </article>

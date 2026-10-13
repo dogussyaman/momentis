@@ -4,13 +4,27 @@ import { InvitationSite } from '@/components/invitation/invitation-site'
 import { SiteViewer } from '@/components/site-builder/SiteViewer'
 import { getProjectPlan } from '@/lib/billing/usage'
 import { applySiteEntitlements } from '@/lib/billing/site-entitlements'
+import { getPublishedVipSite } from '@/lib/vip-design/public-site'
 
 export const dynamic = 'force-dynamic'
 
 async function loadInvitation(slug) {
   const db = await getDb()
   const project = await db.collection('event_projects').findOne({ slug, published: true, archived: { $ne: true } }, { projection: { _id: 0 } })
-  if (!project) return null
+  if (!project) {
+    const site = await getPublishedVipSite(db, slug)
+    if (!site) return null
+    return {
+      project: {
+        title: site.title,
+        host_a: site.settings?.brideName || '',
+        host_b: site.settings?.groomName || '',
+        site_data: site,
+      },
+      template: null,
+      vip: true,
+    }
+  }
   const plan = await getProjectPlan(db, project.user_id, project.id)
   project.site_data = applySiteEntitlements(project.site_data, plan.entitlements)
   project.advanced_rsvp = plan.entitlements.advancedRsvp
