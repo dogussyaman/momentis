@@ -262,7 +262,7 @@ export function DashboardShell({ children }) {
   useEffect(() => {
     if (!user || user === false) return
     let active = true
-    setNavSummary({ status: 'loading' })
+    setNavSummary((current) => current.status === 'ready' ? current : { status: 'loading' })
     const load = async (url) => {
       const response = await fetch(url, { credentials: 'include', cache: 'no-store' })
       const payload = await response.json().catch(() => ({}))
@@ -285,7 +285,9 @@ export function DashboardShell({ children }) {
         })
       })
       .catch(() => {
-        if (active) setNavSummary({ status: 'error', message: 'Hesap özeti alınamadı. Bağlantınızı kontrol edip yeniden deneyin.' })
+        if (active) setNavSummary((current) => current.status === 'ready'
+          ? current
+          : { status: 'error', message: 'Hesap özeti alınamadı. Bağlantınızı kontrol edip yeniden deneyin.' })
       })
     return () => { active = false }
   }, [user?.id, isAdmin, pathname, summaryRefresh])

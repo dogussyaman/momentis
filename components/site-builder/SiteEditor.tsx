@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type, AudioLines, HelpCircle } from 'lucide-react'
+import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type, AudioLines, HelpCircle, PanelLeft, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createStarterSite, normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
 import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
@@ -19,6 +19,7 @@ import { SiteCanvas } from './SiteCanvas'
 import { SiteViewer } from './SiteViewer'
 import { SiteAudioField } from './panels/SiteAudioField'
 import { ResizableSidebar } from '@/components/shared/ResizableSidebar'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 
 interface SiteEditorProps {
   onSwitchToCard: () => void;
@@ -38,11 +39,21 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
   const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, saveError, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
   const [previewTextScale, setPreviewTextScale] = useState(100);
+  const [compactLayout, setCompactLayout] = useState(false)
   const canvasViewportRef = useRef<HTMLDivElement>(null)
   const canvasFrameRef = useRef<HTMLDivElement>(null)
   const [canvasScale, setCanvasScale] = useState(1)
   const [canvasFrameHeight, setCanvasFrameHeight] = useState(600)
+  const [mobilePanel, setMobilePanel] = useState<'tools' | 'settings' | null>(null)
   const canvasWidth = device === 'mobile' ? 390 : device === 'tablet' ? 768 : 1200
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 1279px)')
+    const updateLayout = () => setCompactLayout(query.matches)
+    updateLayout()
+    query.addEventListener('change', updateLayout)
+    return () => query.removeEventListener('change', updateLayout)
+  }, [])
 
   const handleSave = async () => {
     if (onSave && site) {
@@ -209,7 +220,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
           </div>
         ) : <>
         {/* Left Sidebar */}
-        <ResizableSidebar id="site-left" label="Site araç paneli" side="left" initialWidth={360} minWidth={280} maxWidth={560} className="border-r border-border bg-white">
+        {!compactLayout && <ResizableSidebar id="site-left" label="Site araç paneli" side="left" initialWidth={360} minWidth={280} maxWidth={560} className="border-r border-border bg-white">
           {/* Nav Strip */}
           <div className="w-[68px] shrink-0 border-r border-border bg-white py-3">
             <div className="flex flex-col items-center gap-1.5">
@@ -276,10 +287,18 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
              {leftTab === 'layers' && <LayersPanel />}
              {/* other tabs can be added here if needed */}
           </div>
-        </ResizableSidebar>
+        </ResizableSidebar>}
 
         {/* Canvas / Preview */}
-        <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-4 sm:p-8">
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-3 pt-14 sm:p-8">
+          {compactLayout && <div className="absolute inset-x-3 top-2 z-10 flex items-center justify-between gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setMobilePanel('tools')} className="h-9 rounded-full bg-white/95 px-3 text-xs shadow-sm">
+              <PanelLeft className="mr-2 h-4 w-4" /> Araçlar
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setMobilePanel('settings')} className="h-9 rounded-full bg-white/95 px-3 text-xs shadow-sm">
+              <SlidersHorizontal className="mr-2 h-4 w-4" /> Düzenle
+            </Button>
+          </div>}
           <div ref={canvasViewportRef} className="flex min-h-full min-w-0 items-center justify-center">
             <div
               className="relative shrink-0 overflow-hidden rounded-xl"
@@ -304,11 +323,74 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
         </div>
 
         {/* Right Inspector */}
-        <ResizableSidebar id="site-right" label="Site özellik paneli" side="right" initialWidth={340} minWidth={260} maxWidth={520} className="overflow-hidden border-l border-border bg-white">
+        {!compactLayout && <ResizableSidebar id="site-right" label="Site özellik paneli" side="right" initialWidth={340} minWidth={260} maxWidth={520} className="overflow-hidden border-l border-border bg-white">
           <InspectorPanel />
-        </ResizableSidebar>
+        </ResizableSidebar>}
         </>}
       </div>
+      {compactLayout && <>
+      <Drawer open={mobilePanel === 'tools'} onOpenChange={(open) => setMobilePanel(open ? 'tools' : null)}>
+        <DrawerContent className="h-[85dvh] max-h-[85dvh] rounded-t-3xl p-0">
+          <DrawerHeader className="shrink-0 border-b px-5 py-3 text-left">
+            <DrawerTitle className="font-serif text-lg">Site araçları</DrawerTitle>
+            <DrawerDescription>Bölümleri, şablonları ve katmanları yönetin.</DrawerDescription>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <div className="flex h-full min-h-0">
+              <div className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 border-r border-border bg-white py-3">
+                {([
+                  { key: 'add', label: 'Ekle', icon: PlusCircle },
+                  { key: 'templates', label: 'Şablon', icon: LayoutTemplate },
+                  { key: 'music', label: 'Ses', icon: AudioLines },
+                  { key: 'layers', label: 'Katman', icon: Layers },
+                ] as Array<{ key: LeftTab; label: string; icon: typeof PlusCircle }>).map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => useSiteEditorStore.getState().setLeftTab(key)}
+                    className={cn('flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium', leftTab === key ? 'bg-midnight text-ivory' : 'text-midnight/55')}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { useSiteEditorStore.getState().selectSection(null); useSiteEditorStore.getState().setLeftTab('add') }}
+                  className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55"
+                >
+                  <Settings2 className="h-5 w-5" />
+                  <span>Ayarlar</span>
+                </button>
+              </div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                {leftTab === 'add' && <SectionsPanel />}
+                {leftTab === 'templates' && <TemplatesPanel eventData={eventData} canUsePremiumTemplates={canUsePremiumTemplates} />}
+                {leftTab === 'music' && site && (
+                  <div className="h-full space-y-4 overflow-y-auto p-4">
+                    <div>
+                      <h2 className="font-serif text-lg text-midnight">Site müziği</h2>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Davet siteniz için bir parça seçin.</p>
+                    </div>
+                    <SiteAudioField label="Müzik seç" value={site.settings.musicUrl} onChange={(musicUrl) => useSiteEditorStore.getState().updateSettings({ musicUrl, musicEnabled: true })} />
+                  </div>
+                )}
+                {leftTab === 'layers' && <LayersPanel />}
+              </div>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+      <Drawer open={mobilePanel === 'settings'} onOpenChange={(open) => setMobilePanel(open ? 'settings' : null)}>
+        <DrawerContent className="h-[85dvh] max-h-[85dvh] rounded-t-3xl p-0">
+          <DrawerHeader className="shrink-0 border-b px-5 py-3 text-left">
+            <DrawerTitle className="font-serif text-lg">Bölüm özellikleri</DrawerTitle>
+            <DrawerDescription>Seçili bölümün içeriğini ve görünümünü düzenleyin.</DrawerDescription>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 overflow-hidden"><InspectorPanel /></div>
+        </DrawerContent>
+      </Drawer>
+      </>}
     </div>
   )
 }

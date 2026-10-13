@@ -252,34 +252,34 @@ export function NewProjectWizard() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-4rem)] w-full items-center justify-center bg-ivory px-6 py-12 lg:min-h-[100dvh]">
+    <div className="flex min-h-[calc(100dvh-4rem)] w-full items-center justify-center overflow-x-hidden bg-ivory px-4 py-6 sm:px-6 sm:py-12 lg:min-h-[100dvh]">
       <div className="w-full max-w-4xl">
 
         {/* Step Indicator */}
-        <div className="mb-12 flex items-center justify-center gap-4 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="mb-8 flex items-center justify-center gap-1.5 text-[9px] font-medium uppercase tracking-[0.08em] text-muted-foreground sm:mb-12 sm:gap-4 sm:text-xs sm:tracking-[0.2em]">
           <span className={step >= 1 ? 'text-midnight' : ''}>1. Etkinlik</span>
-          <span className="h-px w-8 bg-border"></span>
+          <span className="h-px w-3 bg-border sm:w-8"></span>
           <span className={step >= 2 ? 'text-midnight' : ''}>2. Bilgiler</span>
-          <span className="h-px w-8 bg-border"></span>
+          <span className="h-px w-3 bg-border sm:w-8"></span>
           <span className={step >= 3 ? 'text-midnight' : ''}>3. Ne Hazırlıyoruz?</span>
         </div>
 
         {/* STEP 1: EVENT TYPE */}
         {step === 1 && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center mb-10">
-              <h1 className="font-serif text-4xl text-midnight md:text-5xl">Ne kutluyorsunuz?</h1>
+            <div className="mb-8 text-center sm:mb-10">
+              <h1 className="font-serif text-3xl text-midnight sm:text-4xl md:text-5xl">Ne kutluyorsunuz?</h1>
               <p className="mt-4 text-muted-foreground">Etkinliğinizin türünü seçerek başlayalım.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
               {EVENT_TYPES_LIST.map((type) => {
                 const Icon = ICONS[type.icon] || Sparkles
                 return (
                   <button
                     key={type.id}
                     onClick={() => handleTypeSelect(type.id)}
-                    className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-white p-6 text-center transition-all hover:border-champagne hover:shadow-lg"
+                    className="group flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-white p-4 text-center transition-all hover:border-champagne hover:shadow-lg sm:min-h-0 sm:gap-4 sm:rounded-3xl sm:p-6"
                   >
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ivory-50 text-champagne-dark group-hover:bg-champagne/10">
                       <Icon className="h-6 w-6" />
@@ -298,9 +298,9 @@ export function NewProjectWizard() {
         {/* STEP 2: EVENT INFO */}
         {step === 2 && config && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
                <div>
-                  <h2 className="font-serif text-3xl text-midnight">Etkinlik Bilgileri</h2>
+                  <h2 className="font-serif text-2xl text-midnight sm:text-3xl">Etkinlik Bilgileri</h2>
                   <p className="mt-2 text-sm text-muted-foreground">İhtiyacımız olan temel detayları girin.</p>
                </div>
                <Button variant="ghost" onClick={() => setStep(1)} className="text-muted-foreground">
@@ -308,16 +308,16 @@ export function NewProjectWizard() {
                </Button>
             </div>
 
-            <div className="rounded-3xl border border-border bg-white p-8 shadow-sm">
-               <div className="space-y-10">
+            <div className="rounded-2xl border border-border bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
+               <div className="space-y-7 sm:space-y-10">
                   {config.groups.map(group => {
                      const fields = group.fields.filter(f => config.required.includes(f) || config.optional.includes(f))
                      if (!fields.length) return null
 
                      return (
                         <div key={group.id}>
-                           <h3 className="mb-4 text-sm font-medium uppercase tracking-[0.15em] text-midnight">{group.label}</h3>
-                           <div className="grid gap-6 md:grid-cols-2">
+                           <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.15em] text-midnight sm:mb-4 sm:text-sm">{group.label}</h3>
+                           <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
                               {fields.map(field => (
                                  <div key={field} className="space-y-2">
                                     <Label className="text-xs text-muted-foreground">
@@ -363,11 +363,11 @@ export function NewProjectWizard() {
                   })}
                </div>
 
-               <div className="mt-10 flex justify-end">
+               <div className="mt-7 flex justify-end sm:mt-10">
                   <Button
                     onClick={() => setStep(3)}
                     disabled={!canProceedToDeliverables()}
-                    className="h-12 rounded-full bg-midnight px-8 text-sm uppercase tracking-[0.15em] text-ivory hover:bg-midnight-700"
+                    className="h-12 w-full rounded-full bg-midnight px-8 text-sm uppercase tracking-[0.15em] text-ivory hover:bg-midnight-700 sm:w-auto"
                   >
                     Devam Et
                   </Button>
@@ -379,9 +379,9 @@ export function NewProjectWizard() {
         {/* STEP 3: DELIVERABLES */}
         {step === 3 && config && (
            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="mb-8 flex items-center justify-between">
+             <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
                <div>
-                  <h2 className="font-serif text-3xl text-midnight">Ne hazırlamak istiyorsunuz?</h2>
+                  <h2 className="font-serif text-2xl text-midnight sm:text-3xl">Ne hazırlamak istiyorsunuz?</h2>
                   <p className="mt-2 text-sm text-muted-foreground">Etkinliğiniz için hangi formatı kullanacaksınız?</p>
                </div>
                <Button variant="ghost" onClick={() => setStep(2)} className="text-muted-foreground">

@@ -8,13 +8,18 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import { Eye, EyeOff, Lock, Unlock, Plus, Trash2, ChevronDown, ChevronRight, Type, MousePointerClick } from 'lucide-react'
+import { Eye, EyeOff, Lock, Unlock, Plus, Trash2, ChevronDown, ChevronRight, Type, MousePointerClick, Clock3 } from 'lucide-react'
 import { ACTION_OPTIONS, ACTION_TARGET_HINT } from '@/lib/site-builder/actions'
 import { BODY_FONTS, HEADING_FONTS, SCRIPT_FONTS } from '@/lib/site-builder/fonts'
 import { SiteImageField } from './SiteImageField'
 import { SiteAudioField } from './SiteAudioField'
 import type { SiteOverlayElement, SiteSection } from '@/lib/site-builder/schema'
 import { slugify } from '@/lib/projects'
+import { DatePickerField } from '@/components/ui/date-picker-field'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
+const UNSPECIFIED_TIME = 'unspecified'
 
 export function InspectorPanel(){
  const {site,selectedSectionId,selectedOverlayId,selectOverlay,updateSectionProps,updateSectionStyle,updateSectionAnimation,updateTheme,updateSettings,inspectorTab,setInspectorTab,toggleVisibility,toggleLock}=useSiteEditorStore()
@@ -34,7 +39,7 @@ export function InspectorPanel(){
        <div className="flex items-center justify-between"><Label className="text-[10px] uppercase tracking-wider">{f.label}</Label><Button size="sm" variant="outline" className="h-7 px-2 text-[10px]" disabled={!!f.maxItems&&items.length>=f.maxItems} onClick={()=>set([...items,f.newItem()])}><Plus className="mr-1 h-3 w-3"/>Ekle</Button></div>
        {items.map((item:any,i:number)=>{const key=item.id||String(i),open=openItems[key]??i===0;return <div key={key} className="rounded-lg border bg-ivory-50/50">
          <button className="flex w-full items-center justify-between p-2.5 text-left" onClick={()=>setOpenItems(x=>({...x,[key]:!open}))}><span className="truncate text-[10px] font-medium">{item[f.itemLabelKey]||('Öğe '+(i+1))}</span>{open?<ChevronDown className="h-3 w-3"/>:<ChevronRight className="h-3 w-3"/>}</button>
-         {open&&<div className="space-y-2 border-t p-2.5">{f.itemFields.map((sub:any)=><div key={sub.key}>{renderField(sub,item[sub.key],v=>{const next=[...items];next[i]={...item,[sub.key]:v};set(next)},`${fieldPath}.${i}.${sub.key}`)}</div>)}<Button variant="ghost" size="sm" className="h-7 w-full text-[10px] text-red-500" onClick={()=>set(items.filter((_:any,j:number)=>j!==i))}><Trash2 className="mr-1 h-3 w-3"/>Sil</Button></div>}
+         {open&&<div className="space-y-2 border-t p-2.5">{f.itemFields.map((sub:any)=><div key={sub.key}>{sub.type==='datetime'?<DateTimeField date={item[sub.key]} time={item.time} onChange={(date,time)=>{const next=[...items];next[i]={...item,[sub.key]:date,time};set(next)}}/>:renderField(sub,item[sub.key],v=>{const next=[...items];next[i]={...item,[sub.key]:v};set(next)},`${fieldPath}.${i}.${sub.key}`)}</div>)}<Button variant="ghost" size="sm" className="h-7 w-full text-[10px] text-red-500" onClick={()=>set(items.filter((_:any,j:number)=>j!==i))}><Trash2 className="mr-1 h-3 w-3"/>Sil</Button></div>}
        </div>})}
      </div>
    }
@@ -108,10 +113,33 @@ function FreeformOverlayControls({section,selectedOverlayId,selectOverlay,update
  </section>
 }
 function tab(active:boolean){return 'h-7 rounded-md text-[9px] uppercase tracking-wider transition-all duration-200 '+(active?'bg-[#111827] text-[#f8f5f1] shadow-[0_10px_20px_-14px_rgba(17,24,39,0.8)]':'text-midnight/60 hover:bg-[#f5f1eb]')}
+
+function DateTimeField({ date, time, onChange }: { date: string; time?: string; onChange: (date: string, time: string) => void }) {
+ const dateValue=typeof date==='string'?date.slice(0,10):''
+ const embeddedTime=typeof date==='string'&&date.includes('T')?new Date(date).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):''
+ const timeValue=time||embeddedTime
+ return <div className="space-y-1">
+  <Label className="text-[9px] text-muted-foreground">Tarih & saat</Label>
+  <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2">
+   <DatePickerField value={dateValue} onChange={nextDate=>onChange(nextDate,timeValue)} placeholder="Tarih seçin" className="h-9 rounded-lg px-2 text-[10px]" disabled={false} testid="site-builder-event-date"/>
+   <Select value={timeValue||UNSPECIFIED_TIME} onValueChange={nextTime=>onChange(dateValue,nextTime===UNSPECIFIED_TIME?'':nextTime)}>
+    <SelectTrigger className="h-9 w-full rounded-lg px-2 text-[10px]" aria-label="Etkinlik saati">
+     <Clock3 className="mr-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"/>
+     <SelectValue placeholder="Saat"/>
+    </SelectTrigger>
+    <SelectContent className="max-h-64">
+     <SelectItem value={UNSPECIFIED_TIME}>Saat seçin</SelectItem>
+     {TIME_OPTIONS.map(option=><SelectItem key={option} value={option}>{option}</SelectItem>)}
+    </SelectContent>
+   </Select>
+  </div>
+ </div>
+}
+
 function renderField(f:any,value:any,set:(v:any)=>void,fieldKey=f.key){
  if(f.type==='image')return <SiteImageField label={f.label} fieldKey={fieldKey} value={value} onChange={set}/>
  if(f.type==='audio')return <SiteAudioField label={f.label} value={value} onChange={set}/>
- if(['text','url','datetime','date','time','color','video'].includes(f.type))return <div className="space-y-1"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><Input type={f.type==='color'?'color':f.type==='url'?'url':'text'} value={value??''} onChange={e=>set(e.target.value)} placeholder={f.placeholder} className="h-8 text-[11px]"/></div>
+ if(['text','url','date','time','color','video'].includes(f.type))return <div className="space-y-1"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><Input type={f.type==='color'?'color':f.type==='url'?'url':f.type==='date'||f.type==='time'?f.type:'text'} value={value??''} onChange={e=>set(e.target.value)} placeholder={f.placeholder} className="h-8 text-[11px]"/></div>
  if(f.type==='textarea')return <div className="space-y-1"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><Textarea value={value??''} onChange={e=>set(e.target.value)} placeholder={f.placeholder} rows={3} className="text-[11px]"/></div>
  if(f.type==='toggle')return <div className="flex items-center justify-between"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><input type="checkbox" checked={!!value} onChange={e=>set(e.target.checked)}/></div>
  if(f.type==='number'||f.type==='slider')return <div className="space-y-1"><div className="flex justify-between"><Label className="text-[9px] text-muted-foreground">{f.label}</Label><span className="text-[9px]">{value}</span></div><input type="range" min={f.min??0} max={f.max??100} step={f.step??1} value={Number(value)||0} onChange={e=>set(Number(e.target.value))} className="w-full"/>{f.type==='number'&&<Input type="number" value={value??0} onChange={e=>set(Number(e.target.value))} className="h-8 text-[10px]"/>}</div>

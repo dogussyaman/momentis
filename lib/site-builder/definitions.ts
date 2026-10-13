@@ -346,7 +346,6 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
         itemFields: [
           { key: 'name', label: 'Etkinlik adı', type: 'text' },
           { key: 'date', label: 'Tarih & saat', type: 'datetime' },
-          { key: 'time', label: 'Saat metni', type: 'text' },
           { key: 'venue', label: 'Mekan', type: 'text' },
           { key: 'address', label: 'Adres', type: 'textarea' },
           { key: 'note', label: 'Not', type: 'text' },
