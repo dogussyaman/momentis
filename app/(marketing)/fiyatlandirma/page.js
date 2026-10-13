@@ -1,8 +1,11 @@
+import Link from 'next/link'
 import { PricingSection } from '@/components/marketing/pricing-section'
 import { CTA } from '@/components/marketing/cta'
 import { Reveal } from '@/components/shared/reveal'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { FAQ } from '@/lib/data/site'
+import { FAQ_ITEMS } from '@/lib/data/faq'
+
+const pricingFaqItems = FAQ_ITEMS.filter(({ id }) => ['package-differences', 'credits', 'unused-credits'].includes(id))
 
 export const metadata = {
   title: 'Fiyatlandırma | MOMENTIS',
@@ -32,13 +35,16 @@ export default function PricingPage() {
           </Reveal>
           <Reveal delay={0.1} className="lg:col-span-8">
             <Accordion type="single" collapsible className="w-full">
-              {FAQ.map((item, i) => (
-                <AccordionItem key={item.q} value={`faq-${i}`} className="border-border">
-                  <AccordionTrigger className="py-6 text-left font-serif text-xl text-midnight hover:no-underline" data-testid={`faq-trigger-${i}`}>{item.q}</AccordionTrigger>
-                  <AccordionContent className="pb-6 leading-relaxed text-muted-foreground">{item.a}</AccordionContent>
+              {pricingFaqItems.map((item, i) => (
+                <AccordionItem key={item.id} value={`faq-${i}`} className="border-border">
+                  <AccordionTrigger className="py-6 text-left font-serif text-xl text-midnight hover:no-underline" data-testid={`faq-trigger-${i}`}>{item.question}</AccordionTrigger>
+                  <AccordionContent className="pb-6 leading-relaxed text-muted-foreground">{item.answer}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
+            <Link href="/sikca-sorulanlar" className="mt-6 inline-flex items-center text-sm font-medium text-midnight underline decoration-champagne underline-offset-4">
+              Tüm soruları incele
+            </Link>
           </Reveal>
         </div>
       </section>

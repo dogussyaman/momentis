@@ -4,7 +4,7 @@ import { Logo } from '@/components/shared/logo'
 import { NewsletterForm } from './newsletter-form'
 
 const COLUMNS = [
-  { title: 'Ürün', links: [{ label: 'Tasarımlar', href: '/tasarimlar' }, { label: 'Nasıl Çalışır', href: '/nasil-calisir' }, { label: 'Fiyatlandırma', href: '/fiyatlandirma' }, { label: 'Sık Sorulanlar', href: '/fiyatlandirma#faq' }, { label: 'Gönderim Testi', href: '/gonderim-testi' }] },
+  { title: 'Ürün', links: [{ label: 'Tasarımlar', href: '/tasarimlar' }, { label: 'Nasıl Çalışır', href: '/nasil-calisir' }, { label: 'Fiyatlandırma', href: '/fiyatlandirma' }, { label: 'Sık Sorulanlar', href: '/sikca-sorulanlar' }, { label: 'Gönderim Testi', href: '/gonderim-testi' }] },
   { title: 'Etkinlikler', links: [{ label: 'Düğün', href: '/tasarimlar?kategori=dugun' }, { label: 'Nişan', href: '/tasarimlar?kategori=nisan' }, { label: 'Kına Gecesi', href: '/tasarimlar?kategori=kina' }, { label: 'Doğum Günü', href: '/tasarimlar?kategori=dogum-gunu' }] },
   { title: 'Hesap', links: [{ label: 'Giriş Yap', href: '/giris' }, { label: 'Hesap Oluştur', href: '/kayit' }] },
 ]
