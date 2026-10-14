@@ -33,15 +33,15 @@ export function AdminDiagnostics() {
   useEffect(() => { load() }, [load])
 
   return (
-    <section className="rounded-3xl border border-border bg-white p-6 sm:p-8">
+    <section className="rounded-3xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-8">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
-          <h2 className="flex items-center gap-2 font-serif text-2xl text-midnight"><Activity className="h-5 w-5" /> Sistem sağlığı ve hatalar</h2>
+          <h2 className="flex items-center gap-2 font-serif text-xl text-midnight sm:text-2xl"><Activity className="h-5 w-5" /> Sistem sağlığı ve hatalar</h2>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">Veritabanı erişimi, kaydedilmiş başarısız gönderimler, kilitli giriş denemeleri ve tamamlanmamış kota işlemleri.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}><RefreshCw className="mr-2 h-4 w-4" /> Kontrol et</Button>
+        <Button variant="outline" size="sm" className="h-9 rounded-xl" onClick={load} disabled={loading}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Kontrol et</Button>
       </div>
-      {error && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-white p-3 text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
       {loading && !report ? (
         <p role="status" className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Kontroller çalışıyor</p>
       ) : report && (
@@ -53,7 +53,7 @@ export function AdminDiagnostics() {
               ['Kilitli giriş', report.checks.lockedAccounts, report.checks.lockedAccounts === 0],
               ['Bekleyen kota işlemi', report.checks.pendingUsage, report.checks.pendingUsage === 0],
             ].map(([label, value, ok]) => (
-              <article key={label} className="rounded-xl border border-border p-4">
+              <article key={label} className={`rounded-xl border p-4 ${ok ? 'border-border bg-ivory-50/50' : 'border-destructive/25 bg-destructive/[0.04]'}`}>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
                 <Badge variant={ok ? 'secondary' : 'destructive'} className="mt-2">{value}</Badge>
               </article>
@@ -65,7 +65,7 @@ export function AdminDiagnostics() {
             {report.failures.length ? (
               <div className="mt-3 space-y-2">
                 {report.failures.map((item) => (
-                  <article key={item.id} className="rounded-xl border border-border bg-ivory-50 p-3">
+                  <article key={item.id} className="rounded-xl border border-border bg-ivory-50/80 p-4 transition-colors hover:border-midnight/15">
                     <div className="flex flex-wrap justify-between gap-2 text-xs">
                       <span>{item.channel || 'kanal bilinmiyor'} · {item.type || 'tür bilinmiyor'} · Proje {item.projectId || '—'}</span>
                       <time>{formatDate(item.createdAt)}</time>
