@@ -15,6 +15,7 @@ import { AlbumSection } from '@/components/invitation/album-section'
 import { InviteActions } from '@/components/invitation/invite-actions'
 import { EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
+import { getPublicInvitationUrl } from '@/lib/site-builder/public-url'
 
 const FALLBACK = { palette: { bg: '#F8F4EC', accent: '#C9A96E', text: '#101827', muted: '#8B8577' }, layout: 'classic', cover: null }
 
@@ -91,12 +92,16 @@ export function InvitationSite({ project, template }) {
   }, [project.rsvp_deadline])
   const spotifyEmbed = spotifyEmbedUrl(project.spotify_url)
   useEffect(() => {
-    const url = `${window.location.origin}/d/${project.slug || 'ornek-davet'}`
-    setShareUrl(url)
-    if (project.qr_enabled === false) {
+    if (typeof window === 'undefined' || !project.slug) {
+      setShareUrl('')
       setQrImage('')
       return
     }
+    const url = getPublicInvitationUrl(window.location.origin, project.slug)
+    setShareUrl(url)
+    setQrImage('')
+    if (project.qr_enabled === false) return
+
     let active = true
     QRCode.toDataURL(url, { width: 280, margin: 1, color: { dark: '#101827', light: '#FFFFFF' }, errorCorrectionLevel: 'H' })
       .then((image) => { if (active) setQrImage(image) })
