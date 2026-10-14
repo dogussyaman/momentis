@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import QRCode from 'qrcode'
+import { getAlbumSectionAnchor, getPublicInvitationUrl } from '@/lib/site-builder/public-url'
 import { Trash2, Download, QrCode, Images, Loader2, Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,8 @@ export function AlbumTab({ projectId, project, onChanged }) {
   const [toggling, setToggling] = useState(false)
   const [zipping, setZipping] = useState(false)
 
-  const albumUrl = `${project.url}#album`
+  const [albumUrl, setAlbumUrl] = useState('')
+  const albumAnchor = getAlbumSectionAnchor(project.site_data)
 
   const load = useCallback(async () => {
     setItems(null)
@@ -37,9 +39,18 @@ export function AlbumTab({ projectId, project, onChanged }) {
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    QRCode.toDataURL(albumUrl, { width: 480, margin: 1, color: { dark: '#101827', light: '#FFFFFF' } })
-      .then(setQr).catch(() => setQr(null))
-  }, [albumUrl])
+    if (typeof window === 'undefined' || !project.slug) return
+    const nextUrl = getPublicInvitationUrl(window.location.origin, project.slug, albumAnchor)
+    setAlbumUrl(nextUrl)
+    setQr(null)
+    if (!project.published) return
+
+    let cancelled = false
+    QRCode.toDataURL(nextUrl, { width: 480, margin: 1, color: { dark: '#101827', light: '#FFFFFF' } })
+      .then((dataUrl) => { if (!cancelled) setQr(dataUrl) })
+      .catch(() => { if (!cancelled) setQr(null) })
+    return () => { cancelled = true }
+  }, [albumAnchor, project.published, project.slug])
 
   const toggle = async (next) => {
     setToggling(true)
@@ -95,7 +106,7 @@ export function AlbumTab({ projectId, project, onChanged }) {
         <div className="flex flex-col items-center rounded-3xl border border-border bg-ivory-50 p-7 text-center">
           <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-muted-foreground"><QrCode className="h-3.5 w-3.5 text-champagne-dark" /> QR Kod</p>
           <div className="mt-5 rounded-2xl border border-border bg-white p-3">
-            {qr ? <img src={qr} alt="Albüm QR kodu" className="h-40 w-40 rounded-xl" data-testid="album-qr" /> : <div className="h-40 w-40 animate-pulse rounded-xl bg-muted" />}
+            {qr ? <img src={qr} alt="Albüm QR kodu" className="h-40 w-40 rounded-xl" data-testid="album-qr" /> : project.published ? <div className="h-40 w-40 animate-pulse rounded-xl bg-muted" /> : <div className="flex h-40 w-40 items-center justify-center rounded-xl bg-muted px-4 text-xs leading-relaxed text-muted-foreground">Etkinliği yayınladığınızda çalışan QR kod burada oluşur.</div>}
           </div>
           {qr && (
             <Button asChild variant="outline" size="sm" className="mt-5 rounded-xl border-midnight/20 text-[10px] uppercase tracking-[0.18em]">
