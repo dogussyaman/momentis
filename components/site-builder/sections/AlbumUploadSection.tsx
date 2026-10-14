@@ -22,7 +22,7 @@ export function AlbumUploadSection({ section, props }: SectionComponentProps) {
   const [qr, setQr] = useState('')
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [albumEnabled, setAlbumEnabled] = useState(true)
+  const [albumEnabled, setAlbumEnabled] = useState(false)
   const canUpload = mode === 'live' && albumEnabled
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function AlbumUploadSection({ section, props }: SectionComponentProps) {
       .then((data) => {
         if (!cancelled) {
           setPhotos(Array.isArray(data.items) ? data.items : [])
-          setAlbumEnabled(data.enabled !== false)
+          setAlbumEnabled(data.enabled === true)
         }
       })
       .catch((error) => {
@@ -53,13 +53,19 @@ export function AlbumUploadSection({ section, props }: SectionComponentProps) {
   }, [mode, site.slug])
 
   useEffect(() => {
-    if (!site.slug || typeof window === 'undefined') return
+    setQr('')
+    if (typeof window === 'undefined' || !site.slug || mode !== 'live' || !albumEnabled) return
+
+    let active = true
     QRCode.toDataURL(getPublicInvitationUrl(window.location.origin, site.slug, `section-${section.id}`), {
       width: 240,
       margin: 1,
       color: { dark: site.theme.textColor, light: site.theme.backgroundColor },
-    }).then(setQr).catch(() => toast.error('Albüm QR kodu oluşturulamadı'))
-  }, [section.id, site.slug, site.theme.backgroundColor, site.theme.textColor])
+    })
+      .then((image) => { if (active) setQr(image) })
+      .catch(() => { if (active) toast.error('Albüm QR kodu oluşturulamadı') })
+    return () => { active = false }
+  }, [albumEnabled, mode, section.id, site.slug, site.theme.backgroundColor, site.theme.textColor])
 
   const uploadPhotos = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []).slice(0, 12)
@@ -109,7 +115,7 @@ export function AlbumUploadSection({ section, props }: SectionComponentProps) {
         </Reveal>
         <Reveal className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-current/10 p-5 text-center">
           {qr ? <img src={qr} alt="Anı albümü QR kodu" className="h-36 w-36 rounded-xl bg-white p-2" /> : <QrCode className="h-12 w-12 opacity-40" />}
-          <p className="text-[10px] uppercase tracking-[0.16em] sb-muted">Albümü QR ile aç</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] sb-muted">{mode !== 'live' ? 'Yayınlandıktan sonra albüm QR kodu burada görünür' : albumEnabled ? 'Albümü QR ile aç' : 'Anı albümü etkin değil'}</p>
         </Reveal>
       </div>
       <div className="mt-8">
@@ -118,7 +124,7 @@ export function AlbumUploadSection({ section, props }: SectionComponentProps) {
             {photos.map((photo) => <figure key={photo.id} className="overflow-hidden rounded-xl border border-current/10"><img src={photo.data_url} alt={`${photo.uploader_name} tarafından paylaşıldı`} loading="lazy" className="aspect-square w-full object-cover" /><figcaption className="truncate px-3 py-2 text-[10px] sb-muted">{photo.uploader_name}</figcaption></figure>)}
           </div>
         ) : (
-          <div className={cn('flex flex-col items-center gap-3 rounded-2xl border border-dashed border-current/15 py-10 text-center')}><ImagePlus className="h-7 w-7 opacity-40" /><p className="text-sm sb-muted">{canUpload ? 'Albüm henüz boş. İlk fotoğrafı siz ekleyin.' : 'Yayınlanan sitede fotoğraflar bu alanda görünür.'}</p></div>
+          <div className={cn('flex flex-col items-center gap-3 rounded-2xl border border-dashed border-current/15 py-10 text-center')}><ImagePlus className="h-7 w-7 opacity-40" /><p className="text-sm sb-muted">{mode !== 'live' ? 'Albüm ve QR kodu yayınlanmış sitede etkinleşir.' : !albumEnabled ? 'Bu etkinlikte anı albümü etkin değil.' : 'Albüm henüz boş. İlk fotoğrafı siz ekleyin.'}</p></div>
         )}
       </div>
     </SectionShell>
