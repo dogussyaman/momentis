@@ -14,7 +14,8 @@ function formatDate(value) {
 }
 
 function summarizeAuditChange(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (Array.isArray(value)) return `${value.length} öğe`
+  if (!value || typeof value !== 'object') {
     return typeof value === 'string' ? value : 'Değişiklik ayrıntısı yok'
   }
   const entries = Object.entries(value)
@@ -171,7 +172,7 @@ export function AdminDashboard() {
                       <td className="max-w-[160px] break-all px-4 py-3.5 font-mono text-[11px] text-muted-foreground">{item.target_id || '—'}</td>
                       <td className="max-w-[160px] break-all px-4 py-3.5 text-xs">{item.actor_user_id || 'Bootstrap'}</td>
                       <td className="max-w-[260px] px-4 py-3.5 text-xs">
-                        {item.after && typeof item.after === 'object' && !Array.isArray(item.after) ? (
+                        {item.after && typeof item.after === 'object' ? (
                           <details className="group">
                             <summary className="cursor-pointer list-none rounded-lg px-2 py-1.5 text-midnight outline-none transition hover:bg-midnight/5 focus-visible:ring-2 focus-visible:ring-champagne">
                               <span className="block truncate font-medium">{summarizeAuditChange(item.after)}</span>
