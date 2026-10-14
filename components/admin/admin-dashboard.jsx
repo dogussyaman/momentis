@@ -3,11 +3,24 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { AdminDiagnostics } from '@/components/admin/admin-diagnostics'
 
 function formatDate(value) {
   if (!value) return '—'
-  return new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+}
+
+function summarizeAuditChange(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return typeof value === 'string' ? value : 'Değişiklik ayrıntısı yok'
+  }
+  const entries = Object.entries(value)
+  if (!entries.length) return 'Değişiklik ayrıntısı yok'
+  const keys = entries.slice(0, 2).map(([key]) => key)
+  return `${keys.join(' · ')}${entries.length > 2 ? ` +${entries.length - 2}` : ''}`
 }
 
 export function AdminDashboard() {
@@ -77,14 +90,14 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-champagne-dark"><ShieldCheck className="h-4 w-4" /> Yönetim</p>
-          <h1 className="mt-2 font-serif text-4xl text-midnight">Admin Paneli</h1>
+          <h1 className="mt-2 font-serif text-3xl text-midnight sm:text-4xl">Admin Paneli</h1>
           <p className="mt-2 text-sm text-muted-foreground">Paket durumu, sistem özeti ve yönetim işlem geçmişi.</p>
         </div>
-        <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="mr-2 h-4 w-4" /> Yenile</Button>
+        <Button variant="outline" className="h-10 rounded-xl" onClick={load} disabled={loading}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Yenile</Button>
       </header>
 
       {error && <p className="rounded-xl border border-destructive/30 bg-white p-4 text-sm text-destructive" role="alert">{error}</p>}
@@ -96,9 +109,9 @@ export function AdminDashboard() {
           ['Aktif hak kaydı', overview?.stats?.activeGrants],
           ['Denetim kaydı', overview?.stats?.auditEntries],
         ].map(([label, value]) => (
-          <article key={label} className="rounded-2xl border border-border bg-white p-5">
+          <article key={label} className="rounded-2xl border border-border bg-white p-5 shadow-sm shadow-midnight/[0.025] transition-colors hover:border-midnight/15">
             <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-            <p className="mt-2 font-serif text-3xl text-midnight">{value ?? '—'}</p>
+            <p className="mt-2 font-serif text-3xl tabular-nums text-midnight">{value ?? '—'}</p>
           </article>
         ))}
       </section>
@@ -110,10 +123,10 @@ export function AdminDashboard() {
         </div>
         <div className="space-y-3">
           {packages.map((plan) => (
-            <article key={plan.id} className="flex flex-col justify-between gap-4 rounded-2xl border border-border p-4 sm:flex-row sm:items-center">
+            <article key={plan.id} className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-white p-4 transition-colors hover:border-midnight/20 sm:flex-row sm:items-center">
               <div>
                 <h3 className="font-medium text-midnight">{plan.name}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">{plan.settings.is_active ? 'Aktif' : 'Pasif'} · {plan.settings.is_public ? 'Katalogda görünür' : 'Katalogda gizli'} · {plan.eventCredits} etkinlik kredisi</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2"><Badge variant={plan.settings.is_active ? 'secondary' : 'outline'}>{plan.settings.is_active ? 'Aktif' : 'Pasif'}</Badge><Badge variant="outline">{plan.settings.is_public ? 'Katalogda görünür' : 'Katalogda gizli'}</Badge><span className="text-xs text-muted-foreground">{plan.eventCredits} etkinlik kredisi</span></div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {overview?.canManage && (
@@ -138,22 +151,45 @@ export function AdminDashboard() {
       <section className="rounded-3xl border border-border bg-white p-6 sm:p-8">
         <h2 className="font-serif text-2xl text-midnight">Son yönetim işlemleri</h2>
         {auditLogs.length ? (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead><tr className="border-b text-xs uppercase tracking-wider text-muted-foreground"><th className="py-3 pr-4 font-medium">İşlem</th><th className="py-3 pr-4 font-medium">Hedef</th><th className="py-3 pr-4 font-medium">Yönetici</th><th className="py-3 pr-4 font-medium">Değişiklik</th><th className="py-3 pr-4 font-medium">Gerekçe</th><th className="py-3 font-medium">Zaman</th></tr></thead>
-              <tbody>{auditLogs.map((item) => (
-                <tr key={item.id} className="border-b last:border-0">
-                  <td className="py-3 pr-4">{item.action}</td>
-                  <td className="py-3 pr-4">{item.target_id}</td>
-                  <td className="py-3 pr-4">{item.actor_user_id || 'Bootstrap'}</td>
-                  <td className="py-3 pr-4 text-xs">{JSON.stringify(item.after || {})}</td>
-                  <td className="py-3 pr-4 text-xs">{item.reason || '—'}</td>
-                  <td className="py-3">{formatDate(item.created_at)}</td>
-                </tr>
-              ))}</tbody>
-            </table>
+          <div className="mt-5 overflow-hidden rounded-2xl border border-border">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="bg-ivory-50 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 font-semibold">İşlem</th>
+                    <th className="px-4 py-3 font-semibold">Hedef</th>
+                    <th className="px-4 py-3 font-semibold">Yönetici</th>
+                    <th className="px-4 py-3 font-semibold">Değişiklik</th>
+                    <th className="px-4 py-3 font-semibold">Gerekçe</th>
+                    <th className="px-4 py-3 font-semibold">Zaman</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {auditLogs.map((item) => (
+                    <tr key={item.id} className="align-top transition-colors hover:bg-ivory-50/70">
+                      <td className="whitespace-nowrap px-4 py-3.5"><Badge variant="outline" className="font-medium">{item.action || 'İşlem'}</Badge></td>
+                      <td className="max-w-[160px] break-all px-4 py-3.5 font-mono text-[11px] text-muted-foreground">{item.target_id || '—'}</td>
+                      <td className="max-w-[160px] break-all px-4 py-3.5 text-xs">{item.actor_user_id || 'Bootstrap'}</td>
+                      <td className="max-w-[260px] px-4 py-3.5 text-xs">
+                        {item.after && typeof item.after === 'object' && !Array.isArray(item.after) ? (
+                          <details className="group">
+                            <summary className="cursor-pointer list-none rounded-lg px-2 py-1.5 text-midnight outline-none transition hover:bg-midnight/5 focus-visible:ring-2 focus-visible:ring-champagne">
+                              <span className="block truncate font-medium">{summarizeAuditChange(item.after)}</span>
+                              <span className="mt-1 block text-[10px] text-muted-foreground group-open:text-champagne-dark">Ayrıntıları görüntüle</span>
+                            </summary>
+                            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-ivory-50 p-3 font-mono text-[10px] leading-relaxed text-muted-foreground">{JSON.stringify(item.after, null, 2)}</pre>
+                          </details>
+                        ) : <span className="break-words text-muted-foreground">{item.after || '—'}</span>}
+                      </td>
+                      <td className="max-w-[180px] px-4 py-3.5 text-xs leading-relaxed text-muted-foreground">{item.reason || '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-xs text-muted-foreground">{formatDate(item.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        ) : <p className="mt-3 text-sm text-muted-foreground">Henüz yönetim işlemi kaydedilmedi.</p>}
+        ) : <div className="mt-5 rounded-xl border border-dashed border-border px-5 py-10 text-center"><ShieldCheck className="mx-auto h-7 w-7 text-muted-foreground/60" /><p className="mt-3 text-sm font-medium text-midnight">Henüz yönetim işlemi yok</p><p className="mt-1 text-xs text-muted-foreground">Yönetim değişiklikleri burada listelenir.</p></div>}
       </section>
     </div>
   )
