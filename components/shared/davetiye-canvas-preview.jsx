@@ -39,13 +39,13 @@ export function DavetiyeCanvasPreview({ project }) {
   }
 
   return (
-    <div className="flex flex-col items-center bg-[#e9e4d9] p-4 sm:p-6 w-full">
-      <div className="flex w-full items-center justify-between mb-4 px-2">
-        <div>
-          <h2 className="font-serif text-xl text-midnight">Davetiye Kartı</h2>
-          <p className="text-xs text-muted-foreground mt-1">Önizleme ve indirme seçenekleri</p>
+    <div className="flex flex-col items-center bg-[#e9e4d9] p-3 sm:p-6 w-full max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <div className="flex w-full flex-wrap items-center justify-between gap-2.5 mb-3 sm:mb-4 px-1 sm:px-2">
+        <div className="min-w-0">
+          <h2 className="font-serif text-lg sm:text-xl text-midnight">Davetiye Kartı</h2>
+          <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Önizleme ve indirme seçenekleri</p>
         </div>
-        <Button onClick={handleDownload} size="sm" className="h-9 rounded-full bg-midnight px-4 text-[10px] uppercase tracking-[0.14em] text-ivory hover:bg-midnight/90">
+        <Button onClick={handleDownload} size="sm" className="h-9 rounded-full bg-midnight px-3.5 sm:px-4 text-[10px] uppercase tracking-[0.14em] text-ivory hover:bg-midnight/90 shrink-0">
           <Download className="mr-1.5 h-3.5 w-3.5" /> PNG indir
         </Button>
       </div>
@@ -53,11 +53,11 @@ export function DavetiyeCanvasPreview({ project }) {
       {/* Container that maintains aspect ratio and fits the modal. */}
       <div 
         ref={wrapperRef}
-        className="w-full relative rounded-lg overflow-hidden border-4 border-midnight bg-ivory shadow-lg pointer-events-none"
+        className="w-full relative rounded-lg overflow-hidden border-2 sm:border-4 border-midnight bg-ivory shadow-lg pointer-events-none"
         style={{ 
           // Match standard canvas ratio roughly (e.g. 1080x1560 -> ~0.692)
           aspectRatio: `${design.width} / ${design.height}`,
-          maxHeight: '70vh'
+          maxHeight: '65dvh'
         }}
       >
         <CanvasStage />

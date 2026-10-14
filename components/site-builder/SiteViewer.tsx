@@ -80,6 +80,15 @@ export function SiteNavigation({ site }: { site: WeddingSite }) {
     </button>
   )
 
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mobileOpen])
+
   const mobileDrawer = (
     <AnimatePresence>
       {mobileOpen && (
@@ -88,7 +97,10 @@ export function SiteNavigation({ site }: { site: WeddingSite }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="fixed inset-x-4 top-20 z-50 rounded-3xl border border-current/10 bg-[color-mix(in_srgb,var(--sb-bg)_96%,transparent)] p-6 shadow-2xl backdrop-blur-2xl @3xl:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobil site menüsü"
+          className="fixed inset-x-4 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-3xl border border-current/10 bg-[color-mix(in_srgb,var(--sb-bg)_96%,transparent)] p-5 sm:p-6 shadow-2xl backdrop-blur-2xl @3xl:hidden"
         >
           <div className="flex flex-col items-center gap-5 text-center">
             <span className="sb-script sb-primary text-3xl">{initials || name}</span>
@@ -306,13 +318,13 @@ function EnvelopeIntro({ site }: { site: WeddingSite }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.55, ease: 'easeInOut' }}
           onAnimationComplete={() => { if (opening) setOpen(false) }}
-          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[#302621] px-5 py-10 text-[#3b302c]"
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[#302621] p-3 sm:px-5 sm:py-10 text-[#3b302c]"
           style={{ backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(215,183,122,.22), transparent 55%)' }}
         >
           <motion.div
             animate={opening ? { y: -18, scale: 0.97 } : { y: 0, scale: 1 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-[#e8d9c2] bg-[#fbf8f3] px-8 py-12 text-center shadow-[0_36px_120px_-38px_rgba(0,0,0,.7)] sm:px-14"
+            className="relative w-[calc(100%-1rem)] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[2rem] border border-[#e8d9c2] bg-[#fbf8f3] px-6 py-8 sm:px-14 sm:py-12 text-center shadow-[0_36px_120px_-38px_rgba(0,0,0,.7)]"
           >
             <div className="pointer-events-none absolute inset-3 rounded-[1.5rem] border border-[#ad8059]/25" />
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#ad8059]/30 text-[#ad8059]">

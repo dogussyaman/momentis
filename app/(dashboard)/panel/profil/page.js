@@ -312,17 +312,17 @@ export default function ProfilePage() {
         </div>
       </div>
       <AlertDialog open={deletionDialogOpen} onOpenChange={setDeletionDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-lg rounded-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5" /> Hesabınız kalıcı olarak silinsin mi?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive text-lg sm:text-xl break-words"><AlertTriangle className="h-5 w-5 shrink-0" /> Hesabınız kalıcı olarak silinsin mi?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm leading-relaxed">
               Kişisel etkinlik içerikleri silinir, kullanılabilir krediler iptal edilir ve yasal/finansal kayıtlar korunur. Bu işlem geri alınamaz.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2.5">
+            <AlertDialogCancel className="w-full sm:w-auto rounded-xl">Vazgeç</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto rounded-xl"
               disabled={deletionState.status === 'loading'}
               onClick={(event) => {
                 event.preventDefault()

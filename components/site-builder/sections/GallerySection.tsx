@@ -138,21 +138,42 @@ function Lightbox({ images, index, onClose, onIndex }: { images: { src: string; 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fotoğraf galerisi önizleme"
+          className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
           onClick={onClose}
         >
-          <button className="absolute top-5 right-5 text-white/80 hover:text-white" onClick={onClose}><X className="w-7 h-7" /></button>
-          <button className="absolute left-4 text-white/70 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); onIndex((index - 1 + images.length) % images.length) }}><ChevronLeft className="w-8 h-8" /></button>
+          <button
+            className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/80 hover:text-white transition"
+            onClick={onClose}
+            aria-label="Kapat"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+          <button
+            className="absolute left-1.5 sm:left-4 z-10 text-white/70 hover:text-white p-2 rounded-full bg-black/40 sm:bg-transparent"
+            onClick={(e) => { e.stopPropagation(); onIndex((index - 1 + images.length) % images.length) }}
+            aria-label="Önceki fotoğraf"
+          >
+            <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+          </button>
           <motion.img
             key={index}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             src={images[index].src}
-            className="max-h-[85vh] max-w-[90vw] object-contain rounded-md shadow-2xl"
+            className="max-h-[calc(100dvh-6rem)] max-w-[calc(100vw-3rem)] object-contain rounded-md shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
-          <button className="absolute right-4 text-white/70 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); onIndex((index + 1) % images.length) }}><ChevronRight className="w-8 h-8" /></button>
-          <div className="absolute bottom-6 text-white/80 text-sm">
+          <button
+            className="absolute right-1.5 sm:right-4 z-10 text-white/70 hover:text-white p-2 rounded-full bg-black/40 sm:bg-transparent"
+            onClick={(e) => { e.stopPropagation(); onIndex((index + 1) % images.length) }}
+            aria-label="Sonraki fotoğraf"
+          >
+            <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+          </button>
+          <div className="absolute bottom-4 sm:bottom-6 z-10 text-white/80 text-xs sm:text-sm px-4 text-center max-w-full truncate">
             {images[index].caption ? `${images[index].caption} · ` : ''}{index + 1} / {images.length}
           </div>
         </motion.div>

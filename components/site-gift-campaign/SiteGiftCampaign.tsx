@@ -208,17 +208,17 @@ export function SiteGiftCampaign() {
         )}
 
         <Dialog open={!!previewTemplate} onOpenChange={(open) => !open && setPreviewId(null)}>
-          <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl border-0 bg-[#fbf8f3] sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">{previewTemplate?.title}</DialogTitle>
-              <DialogDescription>{previewTemplate?.description}</DialogDescription>
+          <DialogContent className="w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-0 bg-[#fbf8f3] p-4 sm:p-6 sm:max-w-2xl">
+            <DialogHeader className="pr-6 sm:pr-0">
+              <DialogTitle className="font-serif text-xl sm:text-2xl break-words">{previewTemplate?.title}</DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm">{previewTemplate?.description}</DialogDescription>
             </DialogHeader>
             {previewTemplate && <InvitationPreview theme={previewTemplate.preview} title={previewTemplate.title} />}
-            <div className="flex flex-wrap gap-2">
-              {previewTemplate?.styleTags.map((tag) => <Badge key={tag} variant="outline" className="">{tag}</Badge>)}
-              <Badge variant="default" className="border-0 bg-[#ead9b6] text-[#172033] hover:bg-[#ead9b6]">Premium · Demo seçkisi</Badge>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {previewTemplate?.styleTags.map((tag) => <Badge key={tag} variant="outline" className="text-[10px]">{tag}</Badge>)}
+              <Badge variant="default" className="border-0 bg-[#ead9b6] text-[#172033] hover:bg-[#ead9b6] text-[10px]">Premium · Demo seçkisi</Badge>
             </div>
-            <DialogFooter className="gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2.5">
               <Button type="button" variant="outline" onClick={() => setPreviewId(null)} className="w-full rounded-xl sm:w-auto">Karşılaştırmaya dön</Button>
               <Button type="button" onClick={() => { setConfirmId(previewTemplate?.id || null); setPreviewId(null) }} className="w-full rounded-xl bg-[#172033] text-white hover:bg-[#25314a] sm:w-auto">
                 Bu tasarımı seç
@@ -228,16 +228,16 @@ export function SiteGiftCampaign() {
         </Dialog>
 
         <Dialog open={!!confirmationTemplate} onOpenChange={(open) => !open && !selecting && setConfirmId(null)}>
-          <DialogContent className="rounded-2xl border-0 bg-[#fbf8f3]">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">Bu ücretsiz seçimi onaylıyor musun?</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-0 bg-[#fbf8f3] p-4 sm:p-6 sm:max-w-md">
+            <DialogHeader className="pr-6 sm:pr-0">
+              <DialogTitle className="font-serif text-xl sm:text-2xl break-words">Bu ücretsiz seçimi onaylıyor musun?</DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm leading-relaxed">
                 {confirmationTemplate?.title} seçilecek. Demo kuralında seçim kesinleşince değiştirilemez ve ikinci ücretsiz seçim yapılamaz.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
-              <Button type="button" variant="outline" disabled={selecting} onClick={() => setConfirmId(null)} className="rounded-xl">Vazgeç</Button>
-              <Button type="button" disabled={selecting} onClick={() => void confirmSelection()} className="rounded-xl bg-[#172033] text-white hover:bg-[#25314a]">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2.5">
+              <Button type="button" variant="outline" disabled={selecting} onClick={() => setConfirmId(null)} className="w-full sm:w-auto rounded-xl">Vazgeç</Button>
+              <Button type="button" disabled={selecting} onClick={() => void confirmSelection()} className="w-full sm:w-auto rounded-xl bg-[#172033] text-white hover:bg-[#25314a]">
                 {selecting ? 'Seçim kaydediliyor…' : 'Bu davetiyeyi ücretsiz seç'}
               </Button>
             </DialogFooter>

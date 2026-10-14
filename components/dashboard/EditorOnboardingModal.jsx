@@ -20,38 +20,40 @@ import {
 export function EditorOnboardingModal({ open, onOpenChange }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-hidden rounded-[28px] border-midnight/10 bg-[#faf8f5] p-0 shadow-2xl">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col rounded-[28px] border-midnight/10 bg-[#faf8f5] p-0 shadow-2xl">
         <DialogTitle className="sr-only">MOMENTIS Stüdyo Kullanım Rehberi</DialogTitle>
 
-        <div className="p-4 sm:p-6">
-          <div className="mb-4 flex items-center justify-between border-b border-midnight/10 pb-3">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-midnight text-[#e7c98f]">
+        <div className="flex flex-col max-h-[calc(100dvh-2rem)] p-4 sm:p-6 overflow-hidden">
+          <div className="shrink-0 mb-3 sm:mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-midnight/10 pb-3 pr-7 sm:pr-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-midnight text-[#e7c98f]">
                 <Sparkles className="h-4 w-4" />
               </span>
-              <div>
-                <h3 className="font-serif text-lg font-medium text-midnight">MOMENTIS Stüdyo Rehberi</h3>
-                <p className="text-[11px] text-muted-foreground">Etkinlik web siteniz ve davetiyeniz için adım adım rehber</p>
+              <div className="min-w-0">
+                <h3 className="font-serif text-base sm:text-lg font-medium text-midnight truncate">MOMENTIS Stüdyo Rehberi</h3>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">Etkinlik web siteniz ve davetiyeniz için adım adım rehber</p>
               </div>
             </div>
-            <span className="rounded-full bg-champagne/30 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-midnight">
+            <span className="shrink-0 rounded-full bg-champagne/30 px-2.5 py-1 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-midnight">
               5 Adımda Rehber
             </span>
           </div>
 
-          <Stepper
-            initialStep={1}
-            theme="light"
-            indicator="numbers"
-            orientation="horizontal"
-            transition="slide"
-            frame={false}
-            backButtonText="Önceki"
-            nextButtonText="İlerle"
-            completeButtonText="Anladım, Başlayalım"
-            onFinalStepCompleted={() => onOpenChange(false)}
-            contentClassName="py-2"
-          >
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <Stepper
+              initialStep={1}
+              theme="light"
+              indicator="numbers"
+              orientation="horizontal"
+              transition="slide"
+              frame={false}
+              backButtonText="Önceki"
+              nextButtonText="İlerle"
+              completeButtonText="Anladım, Başlayalım"
+              onFinalStepCompleted={() => onOpenChange(false)}
+              contentClassName="py-2"
+              footerClassName="flex-wrap gap-2"
+            >
             {/* ── ADIM 1: GENEL BAKIŞ ── */}
             <Step title="Başlangıç" description="Genel bakış">
               <div className="space-y-3.5 py-1 text-midnight">
@@ -276,6 +278,7 @@ export function EditorOnboardingModal({ open, onOpenChange }) {
               </div>
             </Step>
           </Stepper>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -160,9 +160,9 @@ export function AlbumTab({ projectId, project, onChanged }) {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="rounded-2xl">
-                    <AlertDialogHeader><AlertDialogTitle className="font-serif text-2xl">Fotoğrafı sil?</AlertDialogTitle><AlertDialogDescription>Bu fotoğraf albümden kalıcı olarak kaldırılacak.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter><AlertDialogCancel className="rounded-2xl">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={() => removePhoto(ph.id)} className="rounded-2xl bg-destructive text-ivory hover:bg-destructive/90">Sil</AlertDialogAction></AlertDialogFooter>
+                  <AlertDialogContent className="w-[calc(100%-2rem)] max-w-sm rounded-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+                    <AlertDialogHeader><AlertDialogTitle className="font-serif text-xl sm:text-2xl">Fotoğrafı sil?</AlertDialogTitle><AlertDialogDescription className="text-xs sm:text-sm">Bu fotoğraf albümden kalıcı olarak kaldırılacak.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2.5"><AlertDialogCancel className="rounded-2xl w-full sm:w-auto">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={() => removePhoto(ph.id)} className="rounded-2xl bg-destructive text-ivory hover:bg-destructive/90 w-full sm:w-auto">Sil</AlertDialogAction></AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </div>

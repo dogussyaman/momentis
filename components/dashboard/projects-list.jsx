@@ -162,16 +162,16 @@ export function ProjectsList({ view = 'active' }) {
       )}
 
       <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
-        <AlertDialogContent className="bg-ivory border-0 rounded-2xl">
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-lg bg-ivory border-0 rounded-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-serif text-2xl text-midnight">Etkinliği Sil</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground mt-2">
+            <AlertDialogTitle className="font-serif text-xl sm:text-2xl text-midnight break-words">Etkinliği Sil</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
               Bu etkinliği kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm tasarım verileriniz silinir.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6">
-            <AlertDialogCancel className="rounded-xl border-midnight/20 text-midnight">İptal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="rounded-xl bg-red-600 text-white hover:bg-red-700">Sil</AlertDialogAction>
+          <AlertDialogFooter className="mt-4 sm:mt-6 flex-col-reverse sm:flex-row gap-2 sm:gap-2.5">
+            <AlertDialogCancel className="rounded-xl border-midnight/20 text-midnight w-full sm:w-auto">İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="rounded-xl bg-red-600 text-white hover:bg-red-700 w-full sm:w-auto">Sil</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

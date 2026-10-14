@@ -63,18 +63,18 @@ export function StoryTemplatesModal({ onSelect }) {
           Hazır Şablonlar
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-2 border-b">
-          <DialogTitle>Hazır Davetiye Metinleri</DialogTitle>
-          <DialogDescription>Hikayeniz için size en uygun olan şablonu seçip düzenleyebilirsiniz.</DialogDescription>
+      <DialogContent className="w-[calc(100%-2rem)] max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-4 sm:p-6 pb-2 border-b pr-8 sm:pr-6">
+          <DialogTitle className="text-lg sm:text-xl">Hazır Davetiye Metinleri</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">Hikayeniz için size en uygun olan şablonu seçip düzenleyebilirsiniz.</DialogDescription>
         </DialogHeader>
-        <ScrollArea className="flex-1 p-6 pt-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <ScrollArea className="flex-1 p-3.5 sm:p-6 pt-3 sm:pt-4 overflow-y-auto">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
             {STORY_TEMPLATES.map((t, i) => (
-              <div key={i} className="flex flex-col gap-3 rounded-2xl border bg-ivory-50 p-5 transition-colors hover:border-midnight/30">
-                <h3 className="font-serif text-lg font-medium">{t.title}</h3>
-                <p className="flex-1 whitespace-pre-wrap text-sm text-muted-foreground line-clamp-[8]">{t.content}</p>
-                <Button variant="secondary" className="w-full mt-2" onClick={() => handleSelect(t.content)}>
+              <div key={i} className="flex flex-col gap-2.5 sm:gap-3 rounded-2xl border bg-ivory-50 p-4 sm:p-5 transition-colors hover:border-midnight/30">
+                <h3 className="font-serif text-base sm:text-lg font-medium">{t.title}</h3>
+                <p className="flex-1 whitespace-pre-wrap text-xs sm:text-sm text-muted-foreground line-clamp-[8] leading-relaxed">{t.content}</p>
+                <Button variant="secondary" className="w-full mt-2 text-xs sm:text-sm rounded-xl" onClick={() => handleSelect(t.content)}>
                   Bu Şablonu Kullan
                 </Button>
               </div>

@@ -78,6 +78,15 @@ export function Ozel1GallerySlider() {
     return () => cancelAnimationFrame(animationFrameId)
   }, [isPaused])
 
+  useEffect(() => {
+    if (!selectedPhoto) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedPhoto(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selectedPhoto])
+
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return
     const offset = direction === 'left' ? -360 : 360
@@ -169,23 +178,24 @@ export function Ozel1GallerySlider() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-200"
+          aria-label="Fotoğraf detay görünümü"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200"
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="relative max-h-[90vh] max-w-4xl overflow-hidden rounded-3xl bg-[#1e221d] p-3 shadow-2xl border border-white/15"
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-3xl bg-[#1e221d] p-2.5 sm:p-3 shadow-2xl border border-white/15 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setSelectedPhoto(null)}
-              className="absolute top-5 right-5 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition hover:bg-[#a98756]"
+              className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition hover:bg-[#a98756]"
               aria-label="Kapat"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
-            <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full max-h-[72vh] overflow-hidden rounded-2xl">
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full max-h-[65vh] shrink-0 overflow-hidden rounded-2xl">
               <Image
                 src={selectedPhoto.src}
                 alt={selectedPhoto.title}
@@ -196,11 +206,11 @@ export function Ozel1GallerySlider() {
               />
             </div>
 
-            <div className="p-4 sm:p-5 text-center text-white">
+            <div className="p-3 sm:p-5 text-center text-white shrink-0">
               <p className="text-[10px] uppercase tracking-[0.25em] text-[#e7c98f]">
                 {selectedPhoto.subtitle}
               </p>
-              <h3 className="mt-1 font-serif text-2xl text-white">
+              <h3 className="mt-1 font-serif text-lg sm:text-2xl text-white break-words">
                 {selectedPhoto.title}
               </h3>
             </div>

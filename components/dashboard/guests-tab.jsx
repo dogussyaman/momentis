@@ -83,8 +83,8 @@ export function GuestsTab({ projectId, onChanged }) {
           <Button variant="outline" disabled={importing} onClick={() => fileRef.current?.click()} className="h-11 rounded-2xl border-midnight/20 text-[11px] uppercase tracking-[0.18em]" data-testid="import-button"><Upload className="mr-2 h-3.5 w-3.5" /> {importing ? 'Yükleniyor…' : 'CSV / Excel Yükle'}</Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button className="h-11 rounded-2xl bg-midnight text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-midnight-700" data-testid="add-guest-button"><Plus className="mr-2 h-3.5 w-3.5" /> Davetli Ekle</Button></DialogTrigger>
-            <DialogContent className="rounded-2xl sm:max-w-md">
-              <DialogHeader><DialogTitle className="font-serif text-2xl">Yeni Davetli</DialogTitle><DialogDescription>E-posta veya telefon ekleyin; davetiyenizi toplu gönderimle iletebilirsiniz.</DialogDescription></DialogHeader>
+            <DialogContent className="w-[calc(100%-2rem)] rounded-2xl sm:max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+              <DialogHeader><DialogTitle className="font-serif text-xl sm:text-2xl">Yeni Davetli</DialogTitle><DialogDescription className="text-xs sm:text-sm">E-posta veya telefon ekleyin; davetiyenizi toplu gönderimle iletebilirsiniz.</DialogDescription></DialogHeader>
               <form onSubmit={addGuest} className="space-y-4">
                 <div className="space-y-2"><Label className="text-[11px] uppercase tracking-[0.2em]">Ad Soyad *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} data-testid="guest-name" /></div>
                 <div className="space-y-2"><Label className="text-[11px] uppercase tracking-[0.2em]">E-posta</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputCls} data-testid="guest-email" /></div>

@@ -121,6 +121,7 @@ export function Ozel5Client() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [selectedGuestPhoto, setSelectedGuestPhoto] = useState<GuestPhoto | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -131,6 +132,18 @@ export function Ozel5Client() {
         color: { dark: '#354239', light: '#f8faf5' },
       }).then(setQrCodeDataUrl).catch(() => {})
     }
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsQrModalOpen(false)
+        setLightboxPhoto(null)
+        setSelectedGuestPhoto(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -493,7 +506,11 @@ export function Ozel5Client() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {guestPhotos.map((p) => (
-                  <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden border border-[#d6e0cf] group">
+                  <div
+                    key={p.id}
+                    onClick={() => setSelectedGuestPhoto(p)}
+                    className="relative aspect-square rounded-xl overflow-hidden border border-[#d6e0cf] group cursor-pointer"
+                  >
                     <img src={p.url} alt={p.uploader} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-[9px] text-white">
                       <p className="font-semibold truncate">{p.uploader}</p>
@@ -554,12 +571,27 @@ export function Ozel5Client() {
 
       {/* MODALS */}
       {isQrModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setIsQrModalOpen(false)}>
-          <div className="relative max-w-sm w-full rounded-3xl bg-white border border-[#82947a]/30 p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setIsQrModalOpen(false)} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-[#edf2e8] flex items-center justify-center"><X className="h-4 w-4" /></button>
-            <h4 className="font-serif text-2xl">Masa QR Kodu</h4>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Masa QR Kodu"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm"
+          onClick={() => setIsQrModalOpen(false)}
+        >
+          <div
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl bg-white border border-[#82947a]/30 p-5 sm:p-6 text-center shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsQrModalOpen(false)}
+              aria-label="Kapat"
+              className="absolute top-4 right-4 h-8 w-8 rounded-full bg-[#edf2e8] flex items-center justify-center text-[#354239] hover:bg-[#82947a] hover:text-white transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <h4 className="font-serif text-xl sm:text-2xl pr-8">Masa QR Kodu</h4>
             <p className="text-xs text-[#354239]/60 mt-1">Kameranızla okutarak fotoğraflarınızı albüme ekleyin</p>
-            <div className="mx-auto my-5 h-56 w-56 rounded-2xl bg-[#edf2e8] p-3 flex items-center justify-center">
+            <div className="mx-auto my-5 h-48 w-48 sm:h-56 sm:w-56 max-w-full aspect-square rounded-2xl bg-[#edf2e8] p-3 flex items-center justify-center">
               {qrCodeDataUrl && <img src={qrCodeDataUrl} alt="QR" className="h-full w-full object-contain" />}
             </div>
             <p className="text-[10px] text-[#82947a]">Ece & Deniz · Zeytinli Bahçe</p>
@@ -568,15 +600,62 @@ export function Ozel5Client() {
       )}
 
       {lightboxPhoto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md" onClick={() => setLightboxPhoto(null)}>
-          <div className="relative max-w-4xl w-full rounded-2xl overflow-hidden bg-white p-2" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setLightboxPhoto(null)} className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-black/60 flex items-center justify-center text-white"><X className="h-5 w-5" /></button>
-            <div className="relative aspect-[16/10] w-full">
-              <Image src={lightboxPhoto.src} alt={lightboxPhoto.title} fill className="object-cover" />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fotoğraf detay görünümü"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div
+            className="relative max-h-[calc(100dvh-2rem)] max-w-4xl w-full overflow-y-auto rounded-2xl bg-white p-2 sm:p-2.5 flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              aria-label="Kapat"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition"
+            >
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] max-h-[65vh] w-full shrink-0 overflow-hidden rounded-xl">
+              <Image src={lightboxPhoto.src} alt={lightboxPhoto.title} fill sizes="(max-width: 1024px) 100vw, 900px" className="object-cover" />
             </div>
-            <div className="p-4 text-center">
-              <p className="text-xs text-[#82947a] uppercase tracking-widest">{lightboxPhoto.subtitle}</p>
-              <h3 className="font-serif text-2xl mt-1">{lightboxPhoto.title}</h3>
+            <div className="p-3 sm:p-4 text-center shrink-0">
+              <p className="text-[10px] sm:text-xs text-[#82947a] uppercase tracking-widest">{lightboxPhoto.subtitle}</p>
+              <h3 className="font-serif text-lg sm:text-2xl mt-1 break-words">{lightboxPhoto.title}</h3>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GUEST PHOTO MODAL */}
+      {selectedGuestPhoto && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Misafir fotoğrafı detay görünümü"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md"
+          onClick={() => setSelectedGuestPhoto(null)}
+        >
+          <div
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-white border border-[#d6e0cf] p-2.5 sm:p-3 text-[#354239] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedGuestPhoto(null)}
+              aria-label="Kapat"
+              className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition hover:bg-[#82947a]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="relative aspect-square w-full max-h-[60vh] overflow-hidden rounded-2xl">
+              <img src={selectedGuestPhoto.url} alt={selectedGuestPhoto.uploader} className="h-full w-full object-cover" />
+            </div>
+            <div className="p-3 sm:p-4 text-center">
+              <p className="font-serif text-lg sm:text-xl text-[#354239] break-words">{selectedGuestPhoto.uploader}</p>
+              {selectedGuestPhoto.note && <p className="mt-1 text-xs text-[#82947a] italic break-words">"{selectedGuestPhoto.note}"</p>}
+              <p className="mt-2 text-[9px] uppercase tracking-wider text-[#354239]/50">{selectedGuestPhoto.time}</p>
             </div>
           </div>
         </div>

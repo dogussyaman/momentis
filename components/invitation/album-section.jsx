@@ -78,6 +78,15 @@ export function AlbumSection({ project, p, isDark }) {
   }
   useEffect(() => { load() /* eslint-disable-next-line */ }, [project.slug])
 
+  useEffect(() => {
+    if (!lightbox) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setLightbox(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lightbox])
+
   const onPick = async (e) => {
     const files = Array.from(e.target.files || []).slice(0, 12)
     if (!files.length) return
@@ -199,18 +208,21 @@ export function AlbumSection({ project, p, isDark }) {
         {lightbox && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Fotoğraf detay görünümü"
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-sm"
             onClick={() => setLightbox(null)} data-testid="album-lightbox"
           >
-            <button className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20" onClick={() => setLightbox(null)} aria-label="Kapat">
+            <button className="absolute right-3.5 top-3.5 sm:right-5 sm:top-5 z-10 flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition" onClick={() => setLightbox(null)} aria-label="Kapat">
               <X className="h-5 w-5" />
             </button>
-            <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} onClick={(e) => e.stopPropagation()} className="max-h-[88vh] max-w-3xl overflow-hidden rounded-3xl">
-              <img src={lightbox.data_url} alt={lightbox.uploader_name} className="max-h-[88vh] w-auto object-contain" />
+            <motion.div initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} onClick={(e) => e.stopPropagation()} className="max-h-[calc(100dvh-7.5rem)] max-w-3xl overflow-hidden rounded-2xl sm:rounded-3xl flex items-center justify-center">
+              <img src={lightbox.data_url} alt={lightbox.uploader_name} className="max-h-[calc(100dvh-7.5rem)] max-w-[calc(100vw-2rem)] w-auto object-contain" />
             </motion.div>
-            <p className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-white/70">
-              {lightbox.uploader_name}
-              <button type="button" onClick={() => toggleLike(lightbox)} className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-white hover:bg-white/20" aria-label="Beğen" data-testid="lightbox-like">
+            <p className="absolute bottom-4 sm:bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2.5 sm:gap-3 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-white/70 max-w-[calc(100vw-2rem)] truncate px-2">
+              <span className="truncate">{lightbox.uploader_name}</span>
+              <button type="button" onClick={() => toggleLike(lightbox)} className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 sm:px-3 py-1 sm:py-1.5 text-white hover:bg-white/20 shrink-0" aria-label="Beğen" data-testid="lightbox-like">
                 <Heart className={`h-3.5 w-3.5 ${liked.has(lightbox.id) ? 'fill-rose-500 text-rose-500' : 'text-white'}`} />
                 {(lightbox.likes || 0) > 0 && <span>{lightbox.likes}</span>}
               </button>

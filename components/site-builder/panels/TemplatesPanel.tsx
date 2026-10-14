@@ -149,19 +149,19 @@ export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { 
 
       {tierError && <p className="border-t px-4 py-2 text-[10px] text-destructive" role="alert">{tierError}</p>}
       <Dialog open={!!pendingTemplate} onOpenChange={(open) => !open && setPendingTemplate(null)}>
-        <DialogContent className="rounded-2xl border-0 bg-ivory">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-2xl text-midnight">Şablon değişikliğini seçin</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-ivory max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="pr-6 sm:pr-0">
+            <DialogTitle className="font-serif text-xl sm:text-2xl text-midnight break-words">Şablon değişikliğini seçin</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               {pendingTemplate?.name} şablonu için mevcut bölümlerinizi koruyabilir veya yeni şablonun bölüm düzenini uygulayabilirsiniz. Etkinlik bilgileriniz korunur.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-2 flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2">
-            <Button type="button" variant="outline" onClick={() => setPendingTemplate(null)} className="w-full rounded-xl sm:w-auto">Vazgeç</Button>
-            <Button type="button" variant="outline" onClick={() => applyTemplate(true)} className="w-full rounded-xl border-midnight/20 bg-white text-midnight hover:bg-ivory-50 sm:w-auto">
+          <DialogFooter className="mt-3 flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setPendingTemplate(null)} className="w-full sm:w-auto rounded-xl text-xs sm:text-sm">Vazgeç</Button>
+            <Button type="button" variant="outline" onClick={() => applyTemplate(true)} className="w-full sm:w-auto rounded-xl border-midnight/20 bg-white text-midnight hover:bg-ivory-50 text-xs sm:text-sm">
               Renk ve yazı tipini uygula
             </Button>
-            <Button type="button" onClick={() => applyTemplate(false)} className="w-full rounded-xl bg-midnight text-ivory hover:bg-midnight/90 sm:w-auto">
+            <Button type="button" onClick={() => applyTemplate(false)} className="w-full sm:w-auto rounded-xl bg-midnight text-ivory hover:bg-midnight/90 text-xs sm:text-sm">
               Bölüm düzenini değiştir
             </Button>
           </DialogFooter>

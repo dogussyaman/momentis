@@ -77,6 +77,18 @@ export function Ozel1GuestUploadCard() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isQrModalOpen && !selectedPhoto) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsQrModalOpen(false)
+        setSelectedPhoto(null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isQrModalOpen, selectedPhoto])
+
   // File selection handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -295,17 +307,19 @@ export function Ozel1GuestUploadCard() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in"
+          aria-label="Fotoğraf yükleme QR kodu"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in"
           onClick={() => setIsQrModalOpen(false)}
         >
           <div
-            className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white p-6 text-center shadow-2xl border border-[#ebd8c0]"
+            className="relative w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-4 sm:p-6 text-center shadow-2xl border border-[#ebd8c0]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsQrModalOpen(false)}
-              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#f8f5ef] text-midnight/70 transition hover:bg-[#e7c98f]"
+              className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#f8f5ef] text-midnight/70 transition hover:bg-[#e7c98f]"
+              aria-label="Kapat"
             >
               <X className="h-4 w-4" />
             </button>
@@ -314,12 +328,12 @@ export function Ozel1GuestUploadCard() {
               <QrCode className="h-3.5 w-3.5" /> Masa QR Kodu
             </span>
 
-            <h4 className="mt-3 font-serif text-2xl text-midnight">Fotoğraf Yükleme Kodu</h4>
+            <h4 className="mt-2.5 sm:mt-3 font-serif text-xl sm:text-2xl text-midnight break-words">Fotoğraf Yükleme Kodu</h4>
             <p className="mt-1 text-xs text-midnight/60">
               Telefonunuzun kamerasını koda yaklaştırarak doğrudan albüme bağlanabilirsiniz.
             </p>
 
-            <div className="mx-auto my-5 flex h-56 w-56 items-center justify-center rounded-2xl border border-[#eee4d5] bg-white p-3 shadow-inner">
+            <div className="mx-auto my-4 sm:my-5 flex h-48 w-48 sm:h-56 sm:w-56 max-w-full aspect-square items-center justify-center rounded-2xl border border-[#eee4d5] bg-white p-2.5 sm:p-3 shadow-inner">
               {qrCodeDataUrl && (
                 <img src={qrCodeDataUrl} alt="QR Kod Büyük Görünüm" className="h-full w-full object-contain" />
               )}
@@ -337,22 +351,24 @@ export function Ozel1GuestUploadCard() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in"
+          aria-label="Fotoğraf detay görünümü"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-md animate-in fade-in"
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="relative max-h-[90vh] max-w-md overflow-hidden rounded-3xl bg-[#1e221d] p-3 shadow-2xl border border-white/15"
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-[#1e221d] p-2.5 sm:p-3 shadow-2xl border border-white/15"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setSelectedPhoto(null)}
-              className="absolute top-5 right-5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition hover:bg-[#a98756]"
+              className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition hover:bg-[#a98756]"
+              aria-label="Kapat"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
+            <div className="relative aspect-square w-full max-h-[60vh] overflow-hidden rounded-2xl">
               <img
                 src={selectedPhoto.url}
                 alt={selectedPhoto.uploader}
@@ -360,10 +376,10 @@ export function Ozel1GuestUploadCard() {
               />
             </div>
 
-            <div className="p-4 text-center text-white">
-              <p className="font-serif text-xl text-white">{selectedPhoto.uploader}</p>
+            <div className="p-3 sm:p-4 text-center text-white">
+              <p className="font-serif text-lg sm:text-xl text-white break-words">{selectedPhoto.uploader}</p>
               {selectedPhoto.note && (
-                <p className="mt-1 text-xs text-[#e7c98f] italic">"{selectedPhoto.note}"</p>
+                <p className="mt-1 text-xs text-[#e7c98f] italic break-words">"{selectedPhoto.note}"</p>
               )}
               <p className="mt-2 text-[9px] uppercase tracking-wider text-white/50">{selectedPhoto.time}</p>
             </div>

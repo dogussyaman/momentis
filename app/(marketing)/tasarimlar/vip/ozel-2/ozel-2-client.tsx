@@ -153,6 +153,19 @@ export function Ozel2Client() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isQrModalOpen && !lightboxPhoto && !selectedGuestPhoto) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsQrModalOpen(false)
+        setLightboxPhoto(null)
+        setSelectedGuestPhoto(null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isQrModalOpen, lightboxPhoto, selectedGuestPhoto])
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files?.[0]) return
@@ -649,12 +662,12 @@ export function Ozel2Client() {
 
       {/* QR MODAL */}
       {isQrModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setIsQrModalOpen(false)}>
-          <div className="relative max-w-sm w-full rounded-3xl bg-[#121c2d] border border-[#d3b77e]/40 p-6 text-center text-white" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setIsQrModalOpen(false)} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white"><X className="h-4 w-4" /></button>
-            <h4 className="font-serif text-2xl text-white">Masa QR Kodu</h4>
+        <div role="dialog" aria-modal="true" aria-label="Masa QR kodu" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm" onClick={() => setIsQrModalOpen(false)}>
+          <div className="relative max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-[#121c2d] border border-[#d3b77e]/40 p-4 sm:p-6 text-center text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setIsQrModalOpen(false)} aria-label="Kapat" className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition"><X className="h-4 w-4" /></button>
+            <h4 className="font-serif text-xl sm:text-2xl text-white break-words">Masa QR Kodu</h4>
             <p className="text-xs text-white/60 mt-1">Kameranızla okutarak fotoğraflarınızı doğrudan yükleyin</p>
-            <div className="mx-auto my-5 h-56 w-56 rounded-2xl bg-white p-3 flex items-center justify-center">
+            <div className="mx-auto my-4 sm:my-5 h-48 w-48 sm:h-56 sm:w-56 max-w-full aspect-square rounded-2xl bg-white p-2.5 sm:p-3 flex items-center justify-center">
               {qrCodeDataUrl && <img src={qrCodeDataUrl} alt="QR" className="h-full w-full object-contain" />}
             </div>
             <p className="text-[10px] text-[#d3b77e]">Defne & Atlas · Rıhtım Teras</p>
@@ -664,15 +677,32 @@ export function Ozel2Client() {
 
       {/* LIGHTBOX MODAL */}
       {lightboxPhoto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md" onClick={() => setLightboxPhoto(null)}>
-          <div className="relative max-w-4xl w-full rounded-2xl overflow-hidden bg-[#101a2b] border border-white/20 p-2" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setLightboxPhoto(null)} className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-black/60 flex items-center justify-center text-white"><X className="h-5 w-5" /></button>
-            <div className="relative aspect-[16/10] w-full">
-              <Image src={lightboxPhoto.src} alt={lightboxPhoto.title} fill className="object-cover" />
+        <div role="dialog" aria-modal="true" aria-label="Fotoğraf detay görünümü" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md" onClick={() => setLightboxPhoto(null)}>
+          <div className="relative max-h-[calc(100dvh-2rem)] max-w-4xl w-full overflow-y-auto rounded-2xl bg-[#101a2b] border border-white/20 p-2 sm:p-2.5 flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setLightboxPhoto(null)} aria-label="Kapat" className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition"><X className="h-4 w-4 sm:h-5 sm:w-5" /></button>
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] max-h-[65vh] w-full shrink-0 overflow-hidden rounded-xl">
+              <Image src={lightboxPhoto.src} alt={lightboxPhoto.title} fill sizes="(max-width: 1024px) 100vw, 900px" className="object-cover" />
             </div>
-            <div className="p-4 text-center text-white">
-              <p className="text-xs text-[#d3b77e] uppercase tracking-widest">{lightboxPhoto.subtitle}</p>
-              <h3 className="font-serif text-2xl mt-1">{lightboxPhoto.title}</h3>
+            <div className="p-3 sm:p-4 text-center text-white shrink-0">
+              <p className="text-[10px] sm:text-xs text-[#d3b77e] uppercase tracking-widest">{lightboxPhoto.subtitle}</p>
+              <h3 className="font-serif text-lg sm:text-2xl mt-1 break-words">{lightboxPhoto.title}</h3>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GUEST PHOTO MODAL */}
+      {selectedGuestPhoto && (
+        <div role="dialog" aria-modal="true" aria-label="Misafir fotoğrafı detay görünümü" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md" onClick={() => setSelectedGuestPhoto(null)}>
+          <div className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl bg-[#121c2d] border border-white/20 p-2.5 sm:p-3 text-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setSelectedGuestPhoto(null)} aria-label="Kapat" className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition hover:bg-[#d3b77e]"><X className="h-4 w-4" /></button>
+            <div className="relative aspect-square w-full max-h-[60vh] overflow-hidden rounded-2xl">
+              <img src={selectedGuestPhoto.url} alt={selectedGuestPhoto.uploader} className="h-full w-full object-cover" />
+            </div>
+            <div className="p-3 sm:p-4 text-center">
+              <p className="font-serif text-lg sm:text-xl text-white break-words">{selectedGuestPhoto.uploader}</p>
+              {selectedGuestPhoto.note && <p className="mt-1 text-xs text-[#d3b77e] italic break-words">"{selectedGuestPhoto.note}"</p>}
+              <p className="mt-2 text-[9px] uppercase tracking-wider text-white/50">{selectedGuestPhoto.time}</p>
             </div>
           </div>
         </div>

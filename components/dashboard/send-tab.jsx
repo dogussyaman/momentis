@@ -84,9 +84,9 @@ export function SendTab({ projectId, project, onSent }) {
             <AlertDialogTrigger asChild>
               <Button disabled={sending || !configured || !eligible.length || !project?.published} className="mt-6 h-12 w-full rounded-2xl bg-champagne text-[12px] uppercase tracking-[0.2em] text-midnight hover:bg-champagne-light" data-testid="bulk-send-button"><Send className="mr-2 h-4 w-4" /> {sending ? 'Gönderiliyor…' : `${eligible.length} Kişiye Gönder`}</Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl">
-              <AlertDialogHeader><AlertDialogTitle className="font-serif text-2xl">{TYPE_LABELS[type]} gönderilsin mi?</AlertDialogTitle><AlertDialogDescription>{eligible.length} davetliye {channel === 'email' ? 'e-posta' : 'SMS'} gönderilecek. Gönderim birkaç saniye sürebilir.</AlertDialogDescription></AlertDialogHeader>
-              <AlertDialogFooter><AlertDialogCancel className="rounded-2xl">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={send} className="rounded-2xl bg-midnight text-ivory hover:bg-midnight-700" data-testid="confirm-bulk-send">Gönder</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogContent className="w-[calc(100%-2rem)] rounded-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+              <AlertDialogHeader><AlertDialogTitle className="font-serif text-xl sm:text-2xl break-words">{TYPE_LABELS[type]} gönderilsin mi?</AlertDialogTitle><AlertDialogDescription className="text-xs sm:text-sm">{eligible.length} davetliye {channel === 'email' ? 'e-posta' : 'SMS'} gönderilecek. Gönderim birkaç saniye sürebilir.</AlertDialogDescription></AlertDialogHeader>
+              <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2.5"><AlertDialogCancel className="rounded-2xl w-full sm:w-auto">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={send} className="rounded-2xl bg-midnight text-ivory hover:bg-midnight-700 w-full sm:w-auto" data-testid="confirm-bulk-send">Gönder</AlertDialogAction></AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
           {!project?.published && <p className="mt-3 text-xs text-muted-foreground">Gönderim için davetiyenin yayında olması gerekir.</p>}

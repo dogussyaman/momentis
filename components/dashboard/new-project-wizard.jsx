@@ -468,11 +468,11 @@ export function NewProjectWizard() {
             </div>
 
             <Dialog open={Boolean(lockedDeliverables)} onOpenChange={(open) => { if (!open && !busyPackage) setLockedDeliverables(null) }}>
-              <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-3xl border-[#e8dfd1] bg-[#fbf9f5] p-5 sm:max-w-2xl sm:p-7">
-                <DialogHeader>
+              <DialogContent className="w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl border-[#e8dfd1] bg-[#fbf9f5] p-4 sm:max-w-2xl sm:p-7">
+                <DialogHeader className="pr-6 sm:pr-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#a28453]">Paket hakkı gerekli</p>
-                  <DialogTitle className="font-serif text-2xl text-[#172033]">Bu format için bir paket seçin</DialogTitle>
-                  <DialogDescription className="text-sm leading-6 text-[#77746f]">
+                  <DialogTitle className="font-serif text-xl sm:text-2xl text-[#172033]">Bu format için bir paket seçin</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm leading-5 sm:leading-6 text-[#77746f]">
                     {lockedDeliverables?.site && lockedDeliverables?.invitation
                       ? 'Site ve dijital davetiyeyi birlikte hazırlamak için kullanılabilir etkinlik hakkınız bulunmuyor.'
                       : `Bu ${lockedDeliverables?.site ? 'davet sitesi' : 'dijital davetiye'} hakkınız dolmuş. Var olan etkinlik kredinizi kullanabilir veya bir paket alabilirsiniz.`}
@@ -487,22 +487,22 @@ export function NewProjectWizard() {
                     const canUseCredit = credits > 0 && billingSnapshot.usage.projects < billingSnapshot.quotas.projects
                     const isBusy = busyPackage === plan.id
                     return (
-                      <article key={plan.id} className="flex flex-col rounded-2xl border border-[#e8dfd1] bg-white p-4">
-                        <div className="flex items-start justify-between gap-3">
+                      <article key={plan.id} className="flex flex-col rounded-2xl border border-[#e8dfd1] bg-white p-3.5 sm:p-4">
+                        <div className="flex items-start justify-between gap-2.5">
                           <div>
-                            <h3 className="font-serif text-xl text-[#172033]">{plan.name}</h3>
-                            <p className="mt-1 text-sm font-medium text-[#8f744b]">{formatPrice(plan.price)} <span className="font-normal text-[#77746f]">· {plan.period}</span></p>
+                            <h3 className="font-serif text-lg sm:text-xl text-[#172033]">{plan.name}</h3>
+                            <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-medium text-[#8f744b]">{formatPrice(plan.price)} <span className="font-normal text-[#77746f]">· {plan.period}</span></p>
                           </div>
-                          {plan.highlighted && <span className="rounded-full bg-[#f2e6d2] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-[#8f744b]">Önerilen</span>}
+                          {plan.highlighted && <span className="shrink-0 rounded-full bg-[#f2e6d2] px-2 sm:px-2.5 py-0.5 sm:py-1 text-[8px] sm:text-[9px] font-semibold uppercase tracking-wider text-[#8f744b]">Önerilen</span>}
                         </div>
-                        <ul className="my-4 flex-1 space-y-2 text-xs leading-5 text-[#68645d]">
+                        <ul className="my-3 sm:my-4 flex-1 space-y-1.5 sm:space-y-2 text-xs leading-5 text-[#68645d]">
                           {plan.features.slice(0, 4).map((feature) => (
-                            <li key={feature} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#809184]" />{feature}</li>
+                            <li key={feature} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#809184]" /><span className="truncate">{feature}</span></li>
                           ))}
                         </ul>
                         <Button
                           type="button"
-                          className="h-10 rounded-xl bg-[#172033] text-xs text-white hover:bg-[#25314a]"
+                          className="h-10 w-full rounded-xl bg-[#172033] text-xs text-white hover:bg-[#25314a]"
                           disabled={Boolean(busyPackage) || (!canUseCredit && (!billingSnapshot?.mockPaymentAvailable || !availablePackageIds?.includes(plan.id)))}
                           onClick={() => {
                             if (canUseCredit) {
@@ -532,9 +532,9 @@ export function NewProjectWizard() {
                     <a href="/fiyatlandirma" className="font-semibold text-[#8f744b] underline underline-offset-2">fiyatlandırma sayfasını açın</a>.
                   </p>
                 )}
-                <DialogFooter className="sm:justify-between">
-                  <Button type="button" variant="ghost" className="text-xs text-[#77746f]" disabled={Boolean(busyPackage)} onClick={() => setLockedDeliverables(null)}>Şimdilik vazgeç</Button>
-                  <a href="/panel/paketim" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#e8dfd1] bg-white px-4 text-xs font-medium text-[#172033] hover:bg-[#f7f4ee]">
+                <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2.5 sm:gap-4 w-full">
+                  <Button type="button" variant="ghost" className="w-full sm:w-auto text-xs text-[#77746f]" disabled={Boolean(busyPackage)} onClick={() => setLockedDeliverables(null)}>Şimdilik vazgeç</Button>
+                  <a href="/panel/paketim" className="inline-flex h-10 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-[#e8dfd1] bg-white px-4 text-xs font-medium text-[#172033] hover:bg-[#f7f4ee]">
                     Paketimi görüntüle <ArrowUpRight className="h-3.5 w-3.5" />
                   </a>
                 </DialogFooter>

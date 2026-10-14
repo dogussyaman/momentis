@@ -320,15 +320,15 @@ export function AdminUserDetail() {
       </Section>
 
       <AlertDialog open={Boolean(confirmAction)} onOpenChange={(open) => { if (!open) setConfirmAction(null) }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="break-words">
               {confirmAction?.type === 'delete' ? 'Kullanıcı kalıcı olarak silinsin mi?' :
                 confirmAction?.type === 'status' ? (confirmAction.status === 'suspended' ? 'Hesap askıya alınsın mı?' : 'Hesap yeniden etkinleştirilsin mi?') :
                   confirmAction?.type === 'debit' ? `${debitAmount} kredi düşülsün mü?` :
                     confirmAction?.type === 'credit' ? `${creditAmount} kredi eklensin mi?` : 'Kullanıcı rolü değiştirilsin mi?'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-xs sm:text-sm leading-relaxed">
               {confirmAction?.type === 'delete'
                 ? `Bu işlem geri alınamaz. Devam etmek için ${account.email} adresini girin. İlişkili kayıtlar varsa silme reddedilir.`
                 : confirmAction?.type === 'debit'
@@ -340,10 +340,11 @@ export function AdminUserDetail() {
                     : `Rol "${ROLE_LABELS[confirmAction?.role]}" olarak değiştirilecek.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {confirmAction?.type === 'delete' && <Input autoComplete="off" value={deleteEmail} onChange={(event) => setDeleteEmail(event.target.value)} placeholder={account.email} aria-label="Silme onayı için e-posta" />}
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConfirmAction(null)}>İptal</AlertDialogCancel>
+          {confirmAction?.type === 'delete' && <Input autoComplete="off" value={deleteEmail} onChange={(event) => setDeleteEmail(event.target.value)} placeholder={account.email} aria-label="Silme onayı için e-posta" className="h-11 rounded-xl" />}
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2.5">
+            <AlertDialogCancel className="w-full sm:w-auto rounded-xl" onClick={() => setConfirmAction(null)}>İptal</AlertDialogCancel>
             <AlertDialogAction
+              className="w-full sm:w-auto rounded-xl"
               disabled={busy !== '' || (confirmAction?.type === 'delete' && deleteEmail.trim().toLowerCase() !== account.email)}
               onClick={(event) => { event.preventDefault(); runConfirmedAction() }}
             >

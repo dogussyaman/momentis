@@ -181,7 +181,7 @@ export function ProjectDetail() {
                     <Eye className="mr-2 h-3.5 w-3.5" /> Önizle & İndir
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-2xl bg-ivory rounded-2xl p-0 overflow-hidden border-0">
+                <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md md:max-w-lg lg:max-w-2xl bg-ivory rounded-2xl p-0 overflow-hidden border-0 max-h-[calc(100dvh-2rem)] overflow-y-auto">
                   <DialogTitle className="sr-only">Davetiye Kartı</DialogTitle>
                   <DavetiyeCanvasPreview project={normProject} />
                 </DialogContent>
@@ -192,16 +192,16 @@ export function ProjectDetail() {
       </div>
 
       <AlertDialog open={!!qrCodeData} onOpenChange={(open) => !open && setQrCodeData(null)}>
-        <AlertDialogContent className="rounded-2xl max-w-sm text-center">
-          <AlertDialogHeader><AlertDialogTitle className="font-serif text-2xl text-center">{qrCodeTitle}</AlertDialogTitle></AlertDialogHeader>
-          <div className="flex justify-center p-4">
-            {qrCodeData && <img src={qrCodeData} alt="QR Code" className="w-64 h-64 rounded-xl shadow-sm border border-border" />}
+        <AlertDialogContent className="w-[calc(100%-2rem)] max-w-sm rounded-2xl text-center max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+          <AlertDialogHeader><AlertDialogTitle className="font-serif text-xl sm:text-2xl text-center break-words">{qrCodeTitle}</AlertDialogTitle></AlertDialogHeader>
+          <div className="flex justify-center p-2 sm:p-4">
+            {qrCodeData && <img src={qrCodeData} alt="QR Code" className="w-44 h-44 sm:w-56 sm:h-56 max-w-full aspect-square object-contain rounded-xl shadow-sm border border-border" />}
           </div>
-          <AlertDialogFooter className="sm:justify-center flex-col gap-2">
+          <AlertDialogFooter className="w-full flex-col-reverse sm:flex-col gap-2">
             <Button asChild variant="default" className="w-full rounded-xl bg-midnight text-ivory">
               <a href={qrCodeData} download={`${project.slug}-${qrCodeTitle === 'Anı Albümü QR Kodu' ? 'album' : 'site'}-qr.png`}>Görseli İndir</a>
             </Button>
-            <AlertDialogCancel className="rounded-xl w-full mt-2">Kapat</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl w-full mt-0">Kapat</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -234,9 +234,9 @@ export function ProjectDetail() {
             <p className="mt-2 text-sm text-muted-foreground">Davetiye, davetli listesi ve tüm RSVP yanıtları kalıcı olarak silinir.</p>
             <AlertDialog>
               <AlertDialogTrigger asChild><Button variant="outline" className="mt-6 h-11 rounded-2xl border-destructive text-[11px] uppercase tracking-[0.18em] text-destructive hover:bg-destructive hover:text-ivory" data-testid="delete-project"><Trash2 className="mr-2 h-3.5 w-3.5" /> Etkinliği Sil</Button></AlertDialogTrigger>
-              <AlertDialogContent className="rounded-2xl">
-                <AlertDialogHeader><AlertDialogTitle className="font-serif text-2xl">Emin misiniz?</AlertDialogTitle><AlertDialogDescription>Bu işlem geri alınamaz.</AlertDialogDescription></AlertDialogHeader>
-                <AlertDialogFooter><AlertDialogCancel className="rounded-2xl">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={remove} className="rounded-2xl bg-destructive text-ivory hover:bg-destructive/90" data-testid="confirm-delete">Evet, sil</AlertDialogAction></AlertDialogFooter>
+              <AlertDialogContent className="w-[calc(100%-2rem)] rounded-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+                <AlertDialogHeader><AlertDialogTitle className="font-serif text-xl sm:text-2xl">Emin misiniz?</AlertDialogTitle><AlertDialogDescription>Bu işlem geri alınamaz.</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2.5"><AlertDialogCancel className="rounded-2xl w-full sm:w-auto">Vazgeç</AlertDialogCancel><AlertDialogAction onClick={remove} className="rounded-2xl bg-destructive text-ivory hover:bg-destructive/90 w-full sm:w-auto" data-testid="confirm-delete">Evet, sil</AlertDialogAction></AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
