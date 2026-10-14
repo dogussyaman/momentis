@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { compressImageFile } from '@/lib/compress-image'
+import { getPublicInvitationUrl } from '@/lib/site-builder/public-url'
 import { cn } from '@/lib/utils'
 import { Reveal, SectionHeading, SectionShell, useSiteRender, type SectionComponentProps } from '../render/primitives'
 
@@ -53,7 +54,7 @@ export function AlbumUploadSection({ section, props }: SectionComponentProps) {
 
   useEffect(() => {
     if (!site.slug || typeof window === 'undefined') return
-    QRCode.toDataURL(`${window.location.origin}/d/${encodeURIComponent(site.slug)}#${section.id}`, {
+    QRCode.toDataURL(getPublicInvitationUrl(window.location.origin, site.slug, `section-${section.id}`), {
       width: 240,
       margin: 1,
       color: { dark: site.theme.textColor, light: site.theme.backgroundColor },
