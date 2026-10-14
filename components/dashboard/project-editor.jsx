@@ -127,11 +127,13 @@ export function ProjectEditor() {
   const [previewMode, setPreviewMode] = useState(initialMode)
   const [designTarget, setDesignTarget] = useState(initialMode)
   const [openSection, setOpenSection] = useState('details')
-  // Premium template access: check current project's billing plan
+  // Premium template access: server-side authoritative entitlement result with local fallback
   const canUsePremiumTemplates = Boolean(
-    project?.billing_package_id &&
-    project.billing_package_id !== 'baslangic' &&
-    BILLING_PLANS[project.billing_package_id]?.entitlements?.premiumTemplates
+    project?.can_use_premium_templates ?? (
+      project?.billing_package_id &&
+      project.billing_package_id !== 'baslangic' &&
+      BILLING_PLANS[project.billing_package_id]?.entitlements?.premiumTemplates
+    )
   )
   const iframeRef = useRef(null)
   const [upgradeModal, setUpgradeModal] = useState({ open: false, templateName: '' })
@@ -180,7 +182,12 @@ export function ProjectEditor() {
         toast.error(error.message || 'Etkinlik taslağı açılamadı.')
         router.replace('/panel/yeni')
       }
-      return () => controller.abort()
+      return () => {
+        controller.abort()
+        useEditorStore.getState().resetDesign()
+        useEditorStore.temporal.getState().clear()
+        useSiteEditorStore.getState().reset()
+      }
     }
 
     setProject(null)
@@ -208,7 +215,12 @@ export function ProjectEditor() {
           setProjectLoadError(error.message || 'Etkinlik bilgileri yüklenemedi.')
         }
       })
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      useEditorStore.getState().resetDesign()
+      useEditorStore.temporal.getState().clear()
+      useSiteEditorStore.getState().reset()
+    }
   }, [id, isUnsavedProject, router, setDesign, projectLoadAttempt])
 
   // Davetiye-svg temalarını Next.js'in beklediği palet yapısına uyarlama
@@ -402,8 +414,10 @@ export function ProjectEditor() {
         host_a: form.host_a,
         date: form.date,
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
-        canvas_design: isManual ? canvasDesign : form.canvas_design,
-        site_data: form.site_data ? syncSiteEventData(form.site_data, project?.event_data, eventData) : form.site_data,
+        canvas_design: isManual ? canvasDesign : (canvasDesign || form.canvas_design || project?.canvas_design || null),
+        site_data: useSiteEditorStore.getState().site
+          ? syncSiteEventData(useSiteEditorStore.getState().site, project?.event_data, eventData)
+          : (form.site_data ? syncSiteEventData(form.site_data, project?.event_data, eventData) : form.site_data),
         ...(isUnsavedProject || project?.id === 'new' ? { billing_package_id: project?.billing_package_id || 'baslangic' } : {}),
       }
       const isCreating = isUnsavedProject || project?.id === 'new'
@@ -456,6 +470,7 @@ export function ProjectEditor() {
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
         slug: siteData?.slug || form.slug,
         site_data: siteData,
+        canvas_design: canvasDesign || form.canvas_design || project?.canvas_design || null,
         ...(isUnsavedProject || project?.id === 'new' ? { billing_package_id: project?.billing_package_id || 'baslangic' } : {}),
       }
       const isCreating = isUnsavedProject || project?.id === 'new'
