@@ -158,25 +158,25 @@ export function AdminEmailTemplateManager() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7">
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-7">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-champagne-dark"><Mail className="h-4 w-4" /> Admin · Bildirimler</p>
-          <h1 className="mt-2 font-serif text-4xl text-midnight">E-posta şablonları</h1>
+          <h1 className="mt-2 font-serif text-3xl text-midnight sm:text-4xl">E-posta şablonları</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">Hesap, etkinlik, VIP ve yönetim bildirimlerinin konu ve metinlerini düzenleyin; kaydetmeden önce örnek e-postayı kontrol edin.</p>
         </div>
-        <Button variant="outline" onClick={load} disabled={loading || hasUnsavedChanges}><RefreshCw className="mr-2 h-4 w-4" /> Yenile</Button>
+        <Button variant="outline" className="h-10 rounded-xl" onClick={load} disabled={loading || hasUnsavedChanges}>{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Yenile</Button>
       </header>
 
-      {error && <p className="rounded-xl border border-destructive/30 bg-white p-4 text-sm text-destructive" role="alert">{error}</p>}
-      {notice && <p className="rounded-xl border border-emerald-700/20 bg-emerald-50 p-4 text-sm text-emerald-900" role="status">{notice}</p>}
+      {error && <p className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{error}</p>}
+      {notice && <p className="rounded-2xl border border-emerald-700/20 bg-emerald-50 p-4 text-sm text-emerald-900" role="status">{notice}</p>}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <section className="space-y-5 rounded-2xl border border-border bg-white p-5 sm:p-7">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:items-start">
+        <section className="min-w-0 space-y-5 rounded-2xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-7">
           <div className="space-y-2">
             <label htmlFor="email-template" className="text-sm font-medium text-midnight">Bildirim türü</label>
             <Select value={selectedKey} onValueChange={selectTemplate}>
-              <SelectTrigger id="email-template" aria-label="E-posta şablonu seç"><SelectValue placeholder="Şablon seçin" /></SelectTrigger>
+              <SelectTrigger id="email-template" className="h-11 rounded-xl" aria-label="E-posta şablonu seç"><SelectValue placeholder="Şablon seçin" /></SelectTrigger>
               <SelectContent>
                 {items.map((item) => <SelectItem key={item.key} value={item.key}>{item.label}</SelectItem>)}
               </SelectContent>
@@ -184,16 +184,16 @@ export function AdminEmailTemplateManager() {
           </div>
           {selected && fields && (
             <>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="secondary">{selected.audience}</Badge>
+              <div className="flex flex-wrap items-center gap-2 rounded-xl bg-ivory-50 px-3 py-2.5 text-xs text-muted-foreground">
+                <Badge variant="secondary">{selected.audience}</Badge>{hasUnsavedChanges && <Badge variant="outline" className="border-amber-500/60 bg-amber-50 text-amber-800">Kaydedilmemiş değişiklik</Badge>}
                 <span>Değişkenler: <code>{'{{subject}}'}</code>, <code>{'{{title}}'}</code>, <code>{'{{message}}'}</code></span>
               </div>
               {FIELD_DEFINITIONS.map((field) => (
                 <label key={field.key} className="block space-y-1.5 text-xs font-medium text-midnight">
                   {field.label}
                   {field.multiline
-                    ? <textarea rows={field.key === 'intro' ? 4 : 3} maxLength={field.maxLength} value={fields[field.key] || ''} onChange={(event) => updateField(field.key, event.target.value)} className="w-full rounded-xl border border-border bg-white p-3 text-sm font-normal outline-none focus:border-champagne focus:ring-1 focus:ring-champagne" />
-                    : <Input maxLength={field.maxLength} value={fields[field.key] || ''} onChange={(event) => updateField(field.key, event.target.value)} />}
+                    ? <textarea rows={field.key === 'intro' ? 4 : 3} maxLength={field.maxLength} value={fields[field.key] || ''} onChange={(event) => updateField(field.key, event.target.value)} className="w-full min-h-24 rounded-xl border border-border bg-white p-3 text-sm font-normal outline-none transition placeholder:text-muted-foreground/70 focus:border-champagne focus:ring-2 focus:ring-champagne/25" />
+                    : <Input className="h-11 rounded-xl" maxLength={field.maxLength} value={fields[field.key] || ''} onChange={(event) => updateField(field.key, event.target.value)} />}
                 </label>
               ))}
               <div className="space-y-3">
@@ -282,12 +282,12 @@ export function AdminEmailTemplateManager() {
                   <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">E-postanın alt bölümünde üç gerçek VIP site tasarımı marka logolu kartlar halinde görünür. Hesap açılışı ve VIP kullanıcı e-postalarında varsayılan olarak açıktır.</span>
                 </span>
               </label>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" onClick={previewTemplate} disabled={busy !== ''}>
+              <div className="flex flex-wrap gap-2.5 border-t border-border pt-4">
+                <Button variant="outline" className="h-10 rounded-xl" onClick={previewTemplate} disabled={busy !== ''}>
                   {busy === 'preview' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Önizlemeyi güncelle
                 </Button>
-                {hasUnsavedChanges && <Button type="button" variant="outline" onClick={() => { setFields({ ...selected.fields }); setPreview(selected.preview); setNotice('Kaydedilmemiş değişiklikler geri alındı.') }} disabled={busy !== ''}>Değişiklikleri geri al</Button>}
-                <Button onClick={saveTemplate} disabled={!canManage || busy !== '' || !hasUnsavedChanges}>
+                {hasUnsavedChanges && <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => { setFields({ ...selected.fields }); setPreview(selected.preview); setNotice('Kaydedilmemiş değişiklikler geri alındı.') }} disabled={busy !== ''}>Değişiklikleri geri al</Button>}
+                <Button className="h-10 rounded-xl" onClick={saveTemplate} disabled={!canManage || busy !== '' || !hasUnsavedChanges}>
                   {busy === 'save' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Kaydet
                 </Button>
               </div>
@@ -296,14 +296,14 @@ export function AdminEmailTemplateManager() {
           )}
         </section>
 
-        <section className="min-w-0 space-y-3 rounded-2xl border border-border bg-white p-5 sm:p-7">
+        <section className="min-w-0 space-y-4 rounded-2xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-7 xl:sticky xl:top-4">
           <div>
-            <h2 className="font-serif text-2xl text-midnight">E-posta önizlemesi</h2>
+            <h2 className="font-serif text-xl text-midnight sm:text-2xl">E-posta önizlemesi</h2>
             <p className="mt-1 break-all text-sm text-muted-foreground">Konu: {preview?.subject || 'Önizleme oluşturun'}</p>
           </div>
           {preview?.html
-            ? <iframe title="E-posta şablonu önizlemesi" sandbox="" srcDoc={preview.html} className="h-[620px] w-full rounded-xl border border-border bg-ivory-50" />
-            : <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">Önizleme henüz oluşturulmadı.</div>}
+            ? <iframe title="E-posta şablonu önizlemesi" sandbox="" srcDoc={preview.html} className="h-[min(70vh,620px)] min-h-[420px] w-full rounded-xl border border-border bg-ivory-50" />
+            : <div className="flex min-h-64 items-center justify-center rounded-xl border border-dashed border-border bg-ivory-50/70 p-5 text-center text-sm text-muted-foreground">Önizleme henüz oluşturulmadı.</div>}
           <p className="text-xs leading-relaxed text-muted-foreground">MOMENTIS logosu tüm bildirim e-postalarında otomatik gösterilir. VIP tasarım kartlarının görünürlüğünü soldaki seçenekten kontrol edebilirsin. Davetiye gönderimi, RSVP, şifre sıfırlama ve Resend bağlantı testi ayrı e-posta akışlarıdır.</p>
         </section>
       </div>

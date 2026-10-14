@@ -284,11 +284,11 @@ export function AdminCampaignManager() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7">
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-7">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-champagne-dark"><TicketPercent className="h-4 w-4" /> Super admin</p>
-          <h1 className="mt-2 font-serif text-4xl text-midnight">Kredi kampanyaları</h1>
+          <h1 className="mt-2 font-serif text-3xl text-midnight sm:text-4xl">Kredi kampanyaları</h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">Toplu premium etkinlik kredisi dağıtın, kredi hediyesi kuponları yönetin ve kampanya sonuçlarını görüntüleyin.</p>
         </div>
         <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="mr-2 h-4 w-4" /> Yenile</Button>
@@ -297,9 +297,9 @@ export function AdminCampaignManager() {
       <CampaignError>{error}</CampaignError>
       {notice && <p role="status" className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
 
-      <section className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-7">
+      <section className="space-y-4 rounded-2xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-7">
         <div>
-          <h2 className="font-serif text-2xl text-midnight">Toplu kredi hediyesi</h2>
+          <h2 className="font-serif text-xl text-midnight sm:text-2xl">Toplu kredi hediyesi</h2>
           <p className="mt-1 text-sm text-muted-foreground">Filtreye uyan en fazla 100 etkin hesabın her birine Premium etkinlik kredisi verilir. Büyük işler için dağıtım sınırı bilinçli olarak uygulanır.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -323,16 +323,16 @@ export function AdminCampaignManager() {
           </Select>
           <Input type="number" min="1" max="1000" value={credits} onChange={(event) => { setCredits(event.target.value); setPreview(null) }} aria-label="Kullanıcı başına kredi" />
         </div>
-        <textarea value={reason} onChange={(event) => { setReason(event.target.value); setPreview(null) }} maxLength={500} minLength={10} rows={3} placeholder="Açıklama / kampanya gerekçesi (10–500 karakter)" className="w-full rounded-xl border border-border bg-white p-3 text-sm outline-none focus:border-champagne focus:ring-1 focus:ring-champagne" />
+        <textarea value={reason} onChange={(event) => { setReason(event.target.value); setPreview(null) }} maxLength={500} minLength={10} rows={3} placeholder="Açıklama / kampanya gerekçesi (10–500 karakter)" className="w-full min-h-24 rounded-xl border border-border bg-white p-3 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-champagne focus:ring-2 focus:ring-champagne/25" />
         <Button variant="outline" onClick={previewCredits} disabled={busy !== '' || reason.trim().length < 10 || Number(credits) < 1}>
           {busy === 'preview' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UsersRound className="mr-2 h-4 w-4" />} Önizleme oluştur
         </Button>
         {preview && (
-          <div className="space-y-3 rounded-xl border border-champagne/50 bg-champagne/10 p-4">
-            <div className="grid gap-2 text-sm sm:grid-cols-3">
-              <p>Hedef kullanıcı: <strong>{preview.userCount}</strong></p>
-              <p>Kişi başı kredi: <strong>{preview.creditsPerUser}</strong></p>
-              <p>Toplam dağıtım: <strong>{preview.totalCredits}</strong></p>
+          <div className="space-y-3 rounded-2xl border border-champagne/50 bg-champagne/10 p-4 sm:p-5">
+            <div className="grid gap-3 text-sm sm:grid-cols-3">
+              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">Hedef kullanıcı <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.userCount}</strong></p>
+              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">Kişi başı kredi <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.creditsPerUser}</strong></p>
+              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">Toplam dağıtım <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.totalCredits}</strong></p>
             </div>
             <p className="text-xs text-muted-foreground">Açıklama: {preview.reason}</p>
             <Button onClick={distributeCredits} disabled={busy !== '' || !preview.userCount}>
@@ -342,18 +342,18 @@ export function AdminCampaignManager() {
         )}
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-7">
+      <section className="space-y-4 rounded-2xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-7">
         <div>
-          <h2 className="font-serif text-2xl text-midnight">Kredi kuponu oluştur</h2>
+          <h2 className="font-serif text-xl text-midnight sm:text-2xl">Kredi kuponu oluştur</h2>
           <p className="mt-1 text-sm text-muted-foreground">Bu uygulama yalnızca ücretsiz kredi hediyesi kuponlarını destekler. Ödeme indirimi/indirim kodu mevcut değildir.</p>
         </div>
         <form onSubmit={createCoupon} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <label className="space-y-1 text-xs text-muted-foreground">Benzersiz kod<Input required minLength={3} maxLength={32} pattern="[A-Za-z0-9_-]+" value={couponForm.code} onChange={(event) => setCouponForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} /></label>
           <label className="space-y-1 text-xs text-muted-foreground">Paket başına kredi<Input required type="number" min="1" max="1000" value={couponForm.credits_per_package} onChange={(event) => setCouponForm((current) => ({ ...current, credits_per_package: event.target.value }))} /></label>
           <div className="space-y-1 text-xs text-muted-foreground">
-            <span className="block font-medium">Uygulanacak paketler</span>
-            <div className="flex gap-4 pt-1">
-              <label className="flex items-center gap-1.5 cursor-pointer">
+            <span className="block font-medium text-midnight">Uygulanacak paketler</span>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <label className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-midnight transition hover:border-champagne cursor-pointer">
                 <input
                   type="checkbox"
                   checked={couponForm.packages.includes('premium')}
@@ -363,11 +363,11 @@ export function AdminCampaignManager() {
                       : couponForm.packages.filter((p) => p !== 'premium')
                     setCouponForm((cur) => ({ ...cur, packages: next }))
                   }}
-                  className="rounded border-border"
+                  className="h-4 w-4 rounded border-border accent-midnight"
                 />
                 <span>Premium</span>
               </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
+              <label className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-midnight transition hover:border-champagne cursor-pointer">
                 <input
                   type="checkbox"
                   checked={couponForm.packages.includes('atolye')}
@@ -377,7 +377,7 @@ export function AdminCampaignManager() {
                       : couponForm.packages.filter((p) => p !== 'atolye')
                     setCouponForm((cur) => ({ ...cur, packages: next }))
                   }}
-                  className="rounded border-border"
+                  className="h-4 w-4 rounded border-border accent-midnight"
                 />
                 <span>Atölye</span>
               </label>
@@ -385,8 +385,8 @@ export function AdminCampaignManager() {
           </div>
           <label className="space-y-1 text-xs text-muted-foreground">Toplam kullanım limiti (boş = sınırsız)<Input type="number" min="1" max="1000000" value={couponForm.totalLimit} onChange={(event) => setCouponForm((current) => ({ ...current, totalLimit: event.target.value }))} /></label>
           <label className="space-y-1 text-xs text-muted-foreground">Kullanıcı başına limit<Input required type="number" min="1" max="10" value={couponForm.perUserLimit} onChange={(event) => setCouponForm((current) => ({ ...current, perUserLimit: event.target.value }))} /></label>
-          <div className="flex items-center pt-5">
-            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer text-midnight">
+          <div className="flex items-center rounded-xl border border-amber-300/70 bg-amber-50/70 p-3 sm:pt-0">
+            <label className="flex items-start gap-2 text-xs font-medium leading-relaxed cursor-pointer text-midnight">
               <input
                 type="checkbox"
                 checked={couponForm.is_test_only}
@@ -398,19 +398,19 @@ export function AdminCampaignManager() {
           </div>
           <label className="space-y-1 text-xs text-muted-foreground">Başlangıç<Input required type="datetime-local" value={couponForm.startsAt} onChange={(event) => setCouponForm((current) => ({ ...current, startsAt: event.target.value }))} /></label>
           <label className="space-y-1 text-xs text-muted-foreground">Bitiş<Input required type="datetime-local" value={couponForm.endsAt} onChange={(event) => setCouponForm((current) => ({ ...current, endsAt: event.target.value }))} /></label>
-          <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">Koşullar / açıklama<textarea rows={2} maxLength={500} value={couponForm.terms} onChange={(event) => setCouponForm((current) => ({ ...current, terms: event.target.value }))} className="w-full rounded-xl border border-border bg-white p-3 text-sm outline-none focus:border-champagne focus:ring-1 focus:ring-champagne" /></label>
-          <div className="sm:col-span-2 xl:col-span-3"><Button type="submit" disabled={busy !== ''}>{busy === 'coupon' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Kupon oluştur</Button></div>
+          <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">Koşullar / açıklama<textarea rows={2} maxLength={500} value={couponForm.terms} onChange={(event) => setCouponForm((current) => ({ ...current, terms: event.target.value }))} className="w-full min-h-20 rounded-xl border border-border bg-white p-3 text-sm outline-none transition focus:border-champagne focus:ring-2 focus:ring-champagne/25" /></label>
+          <div className="sm:col-span-2 xl:col-span-3"><Button type="submit" className="h-11 rounded-xl" disabled={busy !== ''}>{busy === 'coupon' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Kupon oluştur</Button></div>
         </form>
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-7">
-        <h2 className="font-serif text-2xl text-midnight">Kuponlar ve kampanya raporu</h2>
+        <h2 className="font-serif text-xl text-midnight sm:text-2xl">Kuponlar ve kampanya raporu</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-ivory-50 text-xs text-muted-foreground"><tr><th className="px-3 py-3">Kod / kampanya</th><th className="px-3 py-3">Tip / Paket</th><th className="px-3 py-3">Dağıtılan kredi</th><th className="px-3 py-3">Kullanım</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
+            <thead className="bg-ivory-50 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-3 py-3">Kod / kampanya</th><th className="px-3 py-3">Tip / Paket</th><th className="px-3 py-3">Dağıtılan kredi</th><th className="px-3 py-3">Kullanım</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
             <tbody className="divide-y divide-border">
               {coupons.map((coupon) => (
-                <tr key={coupon.id}>
+                <tr key={coupon.id} className="transition-colors hover:bg-ivory-50/70">
                   <td className="px-3 py-3 font-medium">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span>{coupon.code}</span>
@@ -427,7 +427,7 @@ export function AdminCampaignManager() {
                   <td className="px-3 py-3">{coupon.redemption_count}{coupon.total_limit ? ` / ${coupon.total_limit}` : ''}</td>
                   <td className="px-3 py-3"><Badge variant={coupon.active ? 'secondary' : 'outline'}>{coupon.active ? 'Etkin' : 'Pasif'}</Badge></td>
                   <td className="px-3 py-3 text-right">
-                    <div className="flex justify-end gap-2 flex-wrap">
+                    <div className="flex min-w-[220px] justify-end gap-2 flex-wrap">
                       <Button variant="outline" size="sm" disabled={busy === coupon.id} onClick={() => openCouponHistory(coupon)}>Geçmiş</Button>
                       <Button variant="outline" size="sm" disabled={busy === coupon.id} onClick={() => toggleCoupon(coupon)}>{coupon.active ? 'Pasifleştir' : 'Etkinleştir'}</Button>
                       <Button
@@ -444,7 +444,7 @@ export function AdminCampaignManager() {
                 </tr>
               ))}
               {campaigns.filter((campaign) => campaign.kind === 'admin_gift').map((campaign) => (
-                <tr key={campaign.id}>
+                <tr key={campaign.id} className="transition-colors hover:bg-ivory-50/70">
                   <td className="px-3 py-3 font-medium">{campaign.label}</td>
                   <td className="px-3 py-3">Toplu hediye</td>
                   <td className="px-3 py-3">{report?.find((item) => item.id === campaign.id)?.distributedCredits || 0}</td>
@@ -456,7 +456,7 @@ export function AdminCampaignManager() {
               {!coupons.length && !campaigns.some((campaign) => campaign.kind === 'admin_gift') && <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Henüz kampanya yok.</td></tr>}
             </tbody>
           </table>
-        </div>
+          </div>
         {revokingCoupon && (
           <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
             <h3 className="text-sm font-semibold text-destructive">
@@ -471,7 +471,7 @@ export function AdminCampaignManager() {
               onChange={(e) => setRevokeReason(e.target.value)}
               placeholder="İptal gerekçesi (en az 10 karakter)"
               rows={2}
-              className="w-full rounded-xl border border-border bg-white p-3 text-sm outline-none focus:border-champagne"
+              className="w-full min-h-20 rounded-xl border border-border bg-white p-3 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-champagne focus:ring-2 focus:ring-champagne/25"
             />
             <div className="flex gap-2">
               <Button
@@ -506,13 +506,13 @@ export function AdminCampaignManager() {
 
       {batches.length > 0 && (
         <section className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-7">
-          <h2 className="font-serif text-2xl text-midnight">Toplu dağıtım geçmişi</h2>
+          <h2 className="font-serif text-xl text-midnight sm:text-2xl">Toplu dağıtım geçmişi</h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-left text-sm">
-              <thead className="bg-ivory-50 text-xs text-muted-foreground"><tr><th className="px-3 py-3">Açıklama</th><th className="px-3 py-3">Kullanıcı</th><th className="px-3 py-3">Kişi başı</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
+              <thead className="bg-ivory-50 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-3 py-3">Açıklama</th><th className="px-3 py-3">Kullanıcı</th><th className="px-3 py-3">Kişi başı</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
               <tbody className="divide-y divide-border">
                 {batches.map((batch) => (
-                  <tr key={batch.id}>
+                  <tr key={batch.id} className="transition-colors hover:bg-ivory-50/70">
                     <td className="px-3 py-3">{batch.reason}</td>
                     <td className="px-3 py-3">{batch.userCount}</td>
                     <td className="px-3 py-3">{batch.amountPerUser}</td>
