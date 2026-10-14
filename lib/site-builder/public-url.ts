@@ -11,15 +11,18 @@ export function getPublicInvitationUrl(origin: string, slug: string, anchor?: st
 
 /**
  * SiteViewer wraps each visible section with id="section-{section.id}".
- * Legacy invitation templates render the album section with id="album".
+ * The legacy invitation renderer has a fixed #album anchor. A modern site
+ * without a visible album section must not receive a QR that points nowhere.
  */
 export function getAlbumSectionAnchor(siteData: unknown): string {
-  if (siteData && typeof siteData === 'object' && Array.isArray((siteData as { sections?: unknown[] }).sections)) {
-    const sections = (siteData as { sections: Array<{ id?: unknown; type?: unknown; visible?: unknown }> }).sections
-    const albumSection = sections.find((section) =>
-      section?.type === 'album' && section.visible === true && typeof section.id === 'string' && section.id.length > 0,
-    )
-    return albumSection ? `section-${albumSection.id}` : ''
-  }
-  return 'album'
+  if (siteData == null) return 'album'
+  if (typeof siteData !== 'object') return 'album'
+
+  const sections = (siteData as { sections?: unknown }).sections
+  if (!Array.isArray(sections)) return ''
+
+  const albumSection = (sections as Array<{ id?: unknown; type?: unknown; visible?: unknown }>).find((section) =>
+    section?.type === 'album' && section.visible === true && typeof section.id === 'string' && section.id.length > 0,
+  )
+  return albumSection ? `section-${albumSection.id}` : ''
 }
