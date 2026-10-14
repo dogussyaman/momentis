@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Upload, X, ImagePlus, Loader2, Heart } from 'lucide-react'
+import { Camera, Upload, X, ImagePlus, Loader2, Heart, QrCode, Download } from 'lucide-react'
+import QRCode from 'qrcode'
+import { getPublicInvitationUrl } from '@/lib/site-builder/public-url'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +42,8 @@ export function AlbumSection({ project, p, isDark }) {
   const [uploader, setUploader] = useState('')
   const [lightbox, setLightbox] = useState(null)
   const [liked, setLiked] = useState(() => new Set())
+  const [albumEnabled, setAlbumEnabled] = useState(false)
+  const [qr, setQr] = useState('')
   const fileRef = useRef(null)
 
   const likesKey = `momentis_album_likes_${project.slug}`
@@ -73,10 +77,30 @@ export function AlbumSection({ project, p, isDark }) {
     try {
       const res = await fetch(`/api/public/album/${project.slug}`, { cache: 'no-store' })
       const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Anı albümü yüklenemedi')
       setPhotos(Array.isArray(data.items) ? data.items : [])
-    } catch { /* noop */ } finally { setLoading(false) }
+      setAlbumEnabled(data.enabled === true)
+    } catch {
+      setPhotos([])
+      setAlbumEnabled(false)
+    } finally { setLoading(false) }
   }
   useEffect(() => { load() /* eslint-disable-next-line */ }, [project.slug])
+
+  useEffect(() => {
+    setQr('')
+    if (typeof window === 'undefined' || !project.slug || !albumEnabled) return
+    let active = true
+    QRCode.toDataURL(getPublicInvitationUrl(window.location.origin, project.slug, 'album'), {
+      width: 280,
+      margin: 1,
+      color: { dark: '#101827', light: '#FFFFFF' },
+      errorCorrectionLevel: 'H',
+    })
+      .then((image) => { if (active) setQr(image) })
+      .catch(() => { if (active) setQr('') })
+    return () => { active = false }
+  }, [albumEnabled, project.slug])
 
   useEffect(() => {
     if (!lightbox) return
@@ -140,14 +164,21 @@ export function AlbumSection({ project, p, isDark }) {
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onPick} data-testid="album-file-input" />
           <Button
-            type="button" disabled={uploading} onClick={() => fileRef.current?.click()}
+            type="button" disabled={uploading || !albumEnabled} onClick={() => fileRef.current?.click()}
             className="mt-6 h-14 w-full rounded-2xl text-[12px] uppercase tracking-[0.22em] hover:opacity-90"
             style={{ backgroundColor: p.accent, color: p.bg }} data-testid="album-upload-btn"
           >
-            {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yükleniyor…</> : <><Upload className="mr-2 h-4 w-4" /> Fotoğraf Yükle</>}
+            {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yükleniyor…</> : !albumEnabled ? 'Anı albümü etkin değil' : <><Upload className="mr-2 h-4 w-4" /> Fotoğraf Yükle</>}
           </Button>
-          <p className="mt-3 text-[11px]" style={{ color: p.muted }}>Birden fazla fotoğraf seçebilirsiniz · JPG, PNG, WEBP</p>
+          <p className="mt-3 text-[11px]" style={{ color: p.muted }}>{albumEnabled ? 'Birden fazla fotoğraf seçebilirsiniz · JPG, PNG, WEBP' : 'Bu etkinlikte anı albümü etkin değil.'}</p>
         </motion.div>
+        {albumEnabled && qr && (
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-3 rounded-3xl border p-6 text-center" style={{ borderColor: `${p.accent}55`, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)' }}>
+            <img src={qr} alt="Anı albümüne yönlendiren QR kodu" className="h-36 w-36 rounded-xl bg-white p-2" />
+            <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: p.muted }}>Anı albümünü QR ile aç</p>
+            <a href={qr} download={`momentis-album-${project.slug}.png`} className="inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-[10px] font-medium uppercase tracking-[0.16em]" style={{ borderColor: `${p.accent}66`, color: p.text }}><Download className="h-3.5 w-3.5" /> QR indir</a>
+          </motion.div>
+        )}
 
         {/* Gallery */}
         <div className="mt-14">

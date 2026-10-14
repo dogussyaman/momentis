@@ -6,24 +6,40 @@ import { Check, Copy, Instagram, MessageCircle, QrCode, Share2 } from 'lucide-re
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { getPublicInvitationUrl } from '@/lib/site-builder/public-url'
 import { Reveal, SectionHeading, SectionShell, useSiteRender, type SectionComponentProps } from '../render/primitives'
 
 export function ShareSection({ section, props }: SectionComponentProps) {
-  const { site } = useSiteRender()
+  const { site, mode } = useSiteRender()
   const [qr, setQr] = useState('')
   const [copied, setCopied] = useState(false)
   const [shareUrl, setShareUrl] = useState('')
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !site.slug) return
-    const url = `${window.location.origin}/d/${encodeURIComponent(site.slug)}`
+    if (typeof window === 'undefined' || !site.slug) {
+      setShareUrl('')
+      setQr('')
+      return
+    }
+
+    const url = getPublicInvitationUrl(window.location.origin, site.slug)
     setShareUrl(url)
+    setQr('')
+
+    // A preview/draft URL is not guaranteed to be publicly accessible yet.
+    // Only offer a usable QR on the published site.
+    if (mode !== 'live' || props.showQr === false) return
+
+    let active = true
     QRCode.toDataURL(url, {
       width: 480,
       margin: 2,
       color: { dark: site.theme.textColor, light: site.theme.backgroundColor },
-    }).then(setQr).catch(() => toast.error('Davet QR kodu oluşturulamadı'))
-  }, [site.slug, site.theme.backgroundColor, site.theme.textColor])
+    })
+      .then((image) => { if (active) setQr(image) })
+      .catch(() => { if (active) toast.error('Davet QR kodu oluşturulamadı') })
+    return () => { active = false }
+  }, [mode, props.showQr, site.slug, site.theme.backgroundColor, site.theme.textColor])
 
   const copyLink = async () => {
     if (!shareUrl) return false
@@ -109,7 +125,7 @@ export function ShareSection({ section, props }: SectionComponentProps) {
               </a>
             ) : <QrCode className="h-12 w-12 opacity-40" />}
             <p className="text-[10px] font-medium uppercase tracking-[0.16em] sb-muted">{props.qrLabel || 'Davetiyeyi QR ile aç'}</p>
-            <p className="text-[10px] sb-muted">İndirmek için QR koduna dokunun.</p>
+            <p className="text-[10px] sb-muted">{mode === 'live' ? 'İndirmek için QR koduna dokunun.' : 'Etkinlik yayınlandığında çalışan QR kodu burada gösterilir.'}</p>
           </Reveal>
         )}
       </div>
