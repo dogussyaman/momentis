@@ -342,7 +342,7 @@ export function AdminCampaignManager() {
         )}
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-border bg-white p-5 sm:p-7">
+      <section className="space-y-4 rounded-2xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-7">
         <div>
           <h2 className="font-serif text-xl text-midnight sm:text-2xl">Kredi kuponu oluştur</h2>
           <p className="mt-1 text-sm text-muted-foreground">Bu uygulama yalnızca ücretsiz kredi hediyesi kuponlarını destekler. Ödeme indirimi/indirim kodu mevcut değildir.</p>
@@ -367,7 +367,7 @@ export function AdminCampaignManager() {
                 />
                 <span>Premium</span>
               </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
+              <label className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-midnight transition hover:border-champagne cursor-pointer">
                 <input
                   type="checkbox"
                   checked={couponForm.packages.includes('atolye')}
@@ -377,7 +377,7 @@ export function AdminCampaignManager() {
                       : couponForm.packages.filter((p) => p !== 'atolye')
                     setCouponForm((cur) => ({ ...cur, packages: next }))
                   }}
-                  className="rounded border-border"
+                  className="h-4 w-4 rounded border-border accent-midnight"
                 />
                 <span>Atölye</span>
               </label>
@@ -457,7 +457,6 @@ export function AdminCampaignManager() {
             </tbody>
           </table>
           </div>
-        </div>
         {revokingCoupon && (
           <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
             <h3 className="text-sm font-semibold text-destructive">
@@ -510,10 +509,10 @@ export function AdminCampaignManager() {
           <h2 className="font-serif text-xl text-midnight sm:text-2xl">Toplu dağıtım geçmişi</h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-left text-sm">
-              <thead className="bg-ivory-50 text-xs text-muted-foreground"><tr><th className="px-3 py-3">Açıklama</th><th className="px-3 py-3">Kullanıcı</th><th className="px-3 py-3">Kişi başı</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
+              <thead className="bg-ivory-50 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-3 py-3">Açıklama</th><th className="px-3 py-3">Kullanıcı</th><th className="px-3 py-3">Kişi başı</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
               <tbody className="divide-y divide-border">
                 {batches.map((batch) => (
-                  <tr key={batch.id}>
+                  <tr key={batch.id} className="transition-colors hover:bg-ivory-50/70">
                     <td className="px-3 py-3">{batch.reason}</td>
                     <td className="px-3 py-3">{batch.userCount}</td>
                     <td className="px-3 py-3">{batch.amountPerUser}</td>
@@ -523,7 +522,6 @@ export function AdminCampaignManager() {
                 ))}
               </tbody>
             </table>
-          </div>
           </div>
           {batchReport && (
             <div className="space-y-3 rounded-xl border border-border bg-ivory-50 p-4">
