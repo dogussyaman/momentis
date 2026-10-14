@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Copy, ExternalLink, Users, MailCheck, UserX, Send, Trash2, Eye, EyeOff, Pencil, QrCode, Globe, Archive, ArchiveRestore } from 'lucide-react'
 import QRCode from 'qrcode'
+import { getPublicInvitationUrl } from '@/lib/site-builder/public-url'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -47,7 +48,8 @@ export function ProjectDetail() {
   useEffect(() => { load() }, [load])
 
   const copyLink = async () => {
-    try { await navigator.clipboard.writeText(project.url); toast.success('Bağlantı kopyalandı') } catch { toast.error('Kopyalanamadı') }
+    const url = typeof window !== 'undefined' ? getPublicInvitationUrl(window.location.origin, project.slug) : project.url
+    try { await navigator.clipboard.writeText(url); toast.success(normProject?.published ? 'Bağlantı kopyalandı' : 'Bağlantı kopyalandı; etkinlik yayınlanınca açılacaktır.') } catch { toast.error('Kopyalanamadı') }
   }
 
   const generateQr = async (url, title) => {
@@ -154,7 +156,7 @@ export function ProjectDetail() {
                 <Link href={`/panel/etkinlik/${id}/duzenle?mode=site`} data-testid="edit-project"><Pencil className="mr-2 h-3.5 w-3.5" /> Düzenle</Link>
               </Button>
               <Button variant="outline" onClick={copyLink} className="h-9 rounded-xl text-xs" data-testid="copy-link"><Copy className="mr-2 h-3.5 w-3.5" /> Link</Button>
-              <Button variant="outline" onClick={() => generateQr(normProject.url, 'Davetiye Sitesi QR Kodu')} className="h-9 rounded-xl text-xs"><QrCode className="mr-2 h-3.5 w-3.5" /> QR</Button>
+              <Button variant="outline" onClick={() => generateQr(getPublicInvitationUrl(window.location.origin, normProject.slug), 'Davetiye Sitesi QR Kodu')} disabled={!normProject.published} title={normProject.published ? 'QR kodu oluştur' : 'QR kodu etkinlik yayınlandıktan sonra kullanılabilir'} className="h-9 rounded-xl text-xs"><QrCode className="mr-2 h-3.5 w-3.5" /> QR</Button>
               <Button asChild variant="outline" className="h-9 rounded-xl text-xs">
                 <a href={`/d/${normProject.slug}`} target="_blank" rel="noreferrer" data-testid="open-site"><ExternalLink className="mr-2 h-3.5 w-3.5" /> Aç</a>
               </Button>
