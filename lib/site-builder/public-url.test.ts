@@ -31,3 +31,7 @@ test('hidden album sections are not selected for SiteViewer QR navigation', () =
 test('legacy invitation pages retain the #album anchor', () => {
   assert.equal(getAlbumSectionAnchor(null), 'album')
 })
+
+test('modern site data without sections does not fall back to the legacy album anchor', () => {
+  assert.equal(getAlbumSectionAnchor({ title: 'Site exists but has no section list' }), '')
+})
