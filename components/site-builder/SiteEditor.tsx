@@ -4,7 +4,14 @@ import { motion } from 'framer-motion'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { autosaveSite, useSiteEditorStore } from '@/store/site-editor-store'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type, AudioLines, HelpCircle, PanelLeft, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, Smartphone, Tablet, Monitor, LayoutTemplate, PlusCircle, Undo2, Redo2, Save, Eye, Layers, Cloud, Settings2, Type, AudioLines, HelpCircle, PanelLeft, SlidersHorizontal, Menu, MoreHorizontal, Check } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { createStarterSite, normalizeSiteForEditor } from '@/lib/site-builder/normalize-site'
 import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
@@ -154,10 +161,11 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
           </div>
         </div>
         
-        <div className="flex shrink-0 items-center gap-1">
-          {isSaving && <span aria-live="polite" className="hidden items-center gap-1 text-[9px] text-muted-foreground xl:flex"><Cloud className="h-3 w-3" /> Cihazda kaydediliyor…</span>}
-          {!isSaving && saveError && <span role="alert" className="hidden items-center gap-1 text-[9px] text-destructive xl:flex">{saveError}</span>}
-          {!isSaving && !saveError && lastSavedAt && <span aria-live="polite" title="Bu taslak yalnızca bu cihazın tarayıcısında saklanır." className="hidden items-center gap-1 text-[9px] text-muted-foreground xl:flex"><Cloud className="h-3 w-3" /> Bu cihazda taslak kaydedildi</span>}
+        {/* Desktop actions (sm and up) */}
+        <div className="hidden items-center gap-1 sm:flex">
+          {isSaving && <span aria-live="polite" className="items-center gap-1 text-[9px] text-muted-foreground sm:flex"><Cloud className="h-3 w-3" /> Cihazda kaydediliyor…</span>}
+          {!isSaving && saveError && <span role="alert" className="items-center gap-1 text-[9px] text-destructive sm:flex">{saveError}</span>}
+          {!isSaving && !saveError && lastSavedAt && <span aria-live="polite" title="Bu taslak yalnızca bu cihazın tarayıcısında saklanır. Sunucuya kaydetmek için Kaydet butonuna basın." className="items-center gap-1 text-[9px] text-muted-foreground sm:flex"><Cloud className="h-3 w-3" /> Cihaz taslağı</span>}
           {onSaveDraft && <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={isSaving || localSaving} aria-label="Taslak olarak kaydet" className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{localSaving ? 'Kaydediliyor…' : 'Taslak'}</span></Button>}
           <Button variant="outline" size="sm" onClick={handleSave} aria-label={saveButtonLabel || (isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet')} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? 'Kaydediliyor…' : (saveButtonLabel || (isUpdate ? 'Güncelle' : 'Kaydet'))}</span></Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreview(!isPreview)} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{isPreview ? 'Düzenle' : 'Önizle'}</span></Button>
@@ -175,7 +183,95 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
             </Button>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-ivory-50 p-0.5 sm:gap-1 sm:p-1">
+
+        {/* Mobile actions (< sm): Prominent Save + Hamburger/Overflow Menu */}
+        <div className="flex items-center gap-1.5 sm:hidden">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving || localSaving}
+            className="h-8 gap-1.5 rounded-full bg-champagne text-midnight hover:bg-champagne-light px-3 text-xs font-medium shadow-xs"
+          >
+            <Save className="h-3.5 w-3.5" />
+            <span>{(isSaving || localSaving) ? '...' : (saveButtonLabel || (isUpdate ? 'Güncelle' : 'Kaydet'))}</span>
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                title="Diğer işlemler"
+                aria-label="Diğer işlemler"
+                className="h-8 w-8 rounded-full border-border bg-white text-midnight hover:bg-ivory-100"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            {/* @ts-ignore */}
+            <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-lg">
+              {/* @ts-ignore */}
+              <DropdownMenuItem onClick={() => setIsPreview(!isPreview)}>
+                <Eye className="mr-2 h-4 w-4 text-champagne-dark" />
+                <span>{isPreview ? 'Düzenleme Moduna Dön' : 'Siteyi Önizle'}</span>
+              </DropdownMenuItem>
+              {onSaveDraft && (
+                /* @ts-ignore */
+                <DropdownMenuItem onClick={handleSaveDraft} disabled={isSaving || localSaving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  <span>Cihazda Taslak Kaydet</span>
+                </DropdownMenuItem>
+              )}
+              {onOpenHelp && (
+                /* @ts-ignore */
+                <DropdownMenuItem onClick={onOpenHelp}>
+                  <HelpCircle className="mr-2 h-4 w-4 text-champagne-dark" />
+                  <span>Kullanım Rehberi</span>
+                </DropdownMenuItem>
+              )}
+              {showSwitchToCard && (
+                /* @ts-ignore */
+                <DropdownMenuItem onClick={onSwitchToCard}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <span>Kart Tasarımına Geç</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Önizleme Cihazı
+              </div>
+              <div className="flex items-center justify-around gap-1 p-1">
+                <Button
+                  variant={device === 'mobile' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDevice('mobile')}
+                  className={cn('h-8 flex-1 rounded-md text-xs', device === 'mobile' ? 'bg-midnight text-ivory' : 'text-midnight/70')}
+                >
+                  <Smartphone className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant={device === 'tablet' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDevice('tablet')}
+                  className={cn('h-8 flex-1 rounded-md text-xs', device === 'tablet' ? 'bg-midnight text-ivory' : 'text-midnight/70')}
+                >
+                  <Tablet className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant={device === 'desktop' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDevice('desktop')}
+                  className={cn('h-8 flex-1 rounded-md text-xs', device === 'desktop' ? 'bg-midnight text-ivory' : 'text-midnight/70')}
+                >
+                  <Monitor className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Desktop Device Switcher */}
+        <div className="hidden shrink-0 items-center gap-0.5 rounded-full border border-border bg-ivory-50 p-0.5 sm:flex sm:gap-1 sm:p-1">
           <Button variant="ghost" size="sm" onClick={() => setDevice('mobile')} aria-label="Mobil önizleme" title="Mobil önizleme" className={cn('h-7 w-7 rounded-full p-0 sm:h-8 sm:w-8', device === 'mobile' ? 'bg-midnight text-ivory' : 'text-midnight/60 hover:text-midnight')}>
             <Smartphone className="h-4 w-4" />
           </Button>
@@ -290,15 +386,30 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
         </ResizableSidebar>}
 
         {/* Canvas / Preview */}
-        <div className="relative min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-3 pt-14 sm:p-8">
-          {compactLayout && <div className="absolute inset-x-3 top-2 z-10 flex items-center justify-between gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setMobilePanel('tools')} className="h-9 rounded-full bg-white/95 px-3 text-xs shadow-sm">
-              <PanelLeft className="mr-2 h-4 w-4" /> Araçlar
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setMobilePanel('settings')} className="h-9 rounded-full bg-white/95 px-3 text-xs shadow-sm">
-              <SlidersHorizontal className="mr-2 h-4 w-4" /> Düzenle
-            </Button>
-          </div>}
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(#d5d0c6_0.75px,transparent_0.75px)] [background-size:18px_18px] bg-[#f5f3ee] p-3 pb-20 sm:p-8">
+          {compactLayout && !isPreview && (
+            <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-border/80 bg-white/95 px-2.5 py-1.5 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.15)] backdrop-blur-md">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobilePanel('tools')}
+                className="h-8 rounded-full px-3 text-xs font-medium text-midnight hover:bg-champagne/15"
+              >
+                <PanelLeft className="mr-1.5 h-3.5 w-3.5 text-champagne-dark" /> Araçlar
+              </Button>
+              <div className="h-3.5 w-px bg-border" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobilePanel('settings')}
+                className="h-8 rounded-full px-3 text-xs font-medium text-midnight hover:bg-champagne/15"
+              >
+                <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5 text-champagne-dark" /> Düzenle
+              </Button>
+            </div>
+          )}
           <div ref={canvasViewportRef} className="flex min-h-full min-w-0 items-center justify-center">
             <div
               className="relative shrink-0 overflow-hidden rounded-xl"

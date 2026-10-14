@@ -175,7 +175,16 @@ const weddingPhotos = [
   "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&q=80"
 ];
 
-export function LeftSidebar() {
+interface LeftSidebarProps {
+  onSelectTemplate?: () => void
+  onItemSelect?: () => void
+}
+
+export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps = {}) {
+  const notifyItemSelect = () => {
+    onItemSelect?.()
+    onSelectTemplate?.()
+  }
   const [activeTab, setActiveTab] = useState('elements')
   const [iconSearch, setIconSearch] = useState('')
   const [uploadSearch, setUploadSearch] = useState('')
@@ -228,6 +237,7 @@ export function LeftSidebar() {
         ]
       }
     }))
+    notifyItemSelect()
   }
 
   const addImageToCanvas = (src: string, useAsTemplate = false) => {
@@ -281,6 +291,7 @@ export function LeftSidebar() {
       })
     }
     image.src = src
+    notifyItemSelect()
   }
 
   const addTextToCanvas = (text: string, fontSize: number, fontFamily = 'Playfair Display') => {
@@ -308,6 +319,7 @@ export function LeftSidebar() {
         ]
       }
     }))
+    notifyItemSelect()
   }
 
   const addComposition = (
@@ -369,6 +381,7 @@ export function LeftSidebar() {
         elements: [...state.design.elements, ...textElements, ...svgElements] as any
       }
     }))
+    notifyItemSelect()
   }
 
   const addEditorAssetToCanvas = (asset: EditorAsset) => {
@@ -401,6 +414,7 @@ export function LeftSidebar() {
         ]
       }
     }))
+    notifyItemSelect()
   }
 
   const addShapeToCanvas = (shapeType: string) => {
@@ -425,6 +439,7 @@ export function LeftSidebar() {
         ]
       }
     }))
+    notifyItemSelect()
   }
 
   const addIconToCanvas = (svgContent: string) => {
@@ -451,6 +466,7 @@ export function LeftSidebar() {
         ]
       }
     }))
+    notifyItemSelect()
   }
 
   const addLucideIconToCanvas = (iconName: string) => {
@@ -470,6 +486,7 @@ export function LeftSidebar() {
         background: color
       }
     }))
+    notifyItemSelect()
   }
 
   const addOrnamentToCanvas = (key: string) => {
@@ -508,6 +525,7 @@ export function LeftSidebar() {
         ]
       }
     }))
+    notifyItemSelect()
   }
 
   const applyTemplate = (sablonKey: string) => {
@@ -564,6 +582,7 @@ export function LeftSidebar() {
         elements: newElements
       }
     }))
+    notifyItemSelect()
   }
 
   return (
@@ -975,7 +994,10 @@ export function LeftSidebar() {
                     type="button"
                     className="group min-w-0 rounded-lg border border-border p-1 text-left transition-all hover:border-midnight/40"
                     aria-label={`${asset.label} davetiye şablonunu kullan`}
-                    onClick={() => addImageToCanvas(asset.src, true)}
+                    onClick={() => {
+                      addImageToCanvas(asset.src, true)
+                      onSelectTemplate?.()
+                    }}
                   >
                     <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded bg-ivory p-1">
                       <img src={asset.src} alt="" loading="lazy" className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]" />
@@ -1108,7 +1130,7 @@ export function LeftSidebar() {
           </div>
         )}
 
-        {activeTab === 'theme' && <ThemePalettePanel />}
+        {activeTab === 'theme' && <ThemePalettePanel onSelect={notifyItemSelect} />}
 
         {activeTab === 'photos' && (
            <div className="flex flex-col gap-4">

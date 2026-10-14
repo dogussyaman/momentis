@@ -93,11 +93,15 @@ can still modify MongoDB data directly.
   and audit entry is tied to an idempotent batch. Failed/skipped results remain
   available in the batch report; retrying a partial batch reprocesses failures without
   duplicating successful grants.
-- Coupons currently grant Premium event credits only. Coupon code, active window,
-  total-use limit, per-user limit, and terms are validated on the server; redemption,
-  grant, movement, usage counter, and campaign total commit in one MongoDB
-  transaction. User redemption is idempotent and rate limited. Payment discounts are
-  not implemented and are not offered by the UI.
+- Coupons grant event credits for selected packages (Premium, Atölye, or both) with
+  configurable credits per package. Coupon code, active window, package options,
+  total-use limit, per-user limit, test-coupon status, and terms are validated on the
+  server; redemption, grant, movement, usage counter, and campaign total commit in one
+  MongoDB transaction. User redemption is idempotent and rate limited. Test-only coupons
+  are strictly blocked in production unless the user is an admin or explicitly allowlisted
+  via `MOMENTIS_TEST_COUPON_ALLOWLIST`. Admins can revoke unused coupon credits without
+  affecting partially or fully spent grants. Payment discounts are not implemented and
+  are not offered by the UI.
 - Campaign and coupon data use `credit_campaigns`, `credit_coupons`,
   `admin_credit_batches`, `admin_credit_batch_results`, and `coupon_redemptions`.
   Unique indexes and Mongo transaction support are required. Bulk gifts run

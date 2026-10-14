@@ -57,7 +57,7 @@ function ColorFields({ colors, onChange }: { colors: PaletteColors; onChange: (k
   )
 }
 
-export function ThemePalettePanel() {
+export function ThemePalettePanel({ onSelect }: { onSelect?: () => void } = {}) {
   const { design, setDesign, setPalettePreview } = useEditorStore()
   const [mode, setMode] = useState<'presets' | 'custom'>('presets')
   const [category, setCategory] = useState<(typeof PALETTE_CATEGORIES)[number]>('Tümü')
@@ -109,6 +109,7 @@ export function ThemePalettePanel() {
     setActivePalette(palette)
     setDraftColors({ ...palette.colors })
     toast.success(`${palette.name} paleti davetiyeye uygulandı`)
+    onSelect?.()
   }
 
   const choosePalette = (palette: ColorPalette) => {

@@ -145,10 +145,10 @@ const INK = 'text-[color:var(--stepper-ink)]';
 const MUTED = 'text-[color:var(--stepper-muted)]';
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--stepper-ink)]';
 const ROOT_CLASS =
-  'relative box-border flex w-[min(100%,var(--stepper-width))] max-w-full min-w-0 rounded-[var(--stepper-radius)] text-[color:var(--stepper-ink)] [-webkit-tap-highlight-color:transparent] [--stepper-tile-radius:max(6px,calc(var(--stepper-well-radius)-4px))] [--stepper-well-radius:max(8px,calc(var(--stepper-radius)-8px))]';
+  'relative box-border flex w-[min(100%,var(--stepper-width))] max-w-full min-w-0 overflow-x-hidden rounded-[var(--stepper-radius)] text-[color:var(--stepper-ink)] [-webkit-tap-highlight-color:transparent] [--stepper-tile-radius:max(6px,calc(var(--stepper-well-radius)-4px))] [--stepper-well-radius:max(8px,calc(var(--stepper-radius)-8px))]';
 const FRAMED_CLASS =
   '[--stepper-bleed:20px] [--stepper-inset:12px] [--stepper-pad:8px] p-[var(--stepper-pad)] [background:var(--stepper-frame)] [box-shadow:var(--stepper-frame-shadow)] backdrop-blur-[20px] backdrop-saturate-[1.6]';
-const BARE_CLASS = '[--stepper-bleed:8px] [--stepper-inset:0px] [--stepper-pad:0px]';
+const BARE_CLASS = '[--stepper-bleed:0px] [--stepper-inset:0px] [--stepper-pad:0px]';
 const RIM_CLASS =
   'pointer-events-none absolute inset-0 z-[2] rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--stepper-frame-edge),inset_0_1px_0_var(--stepper-frame-highlight)]';
 const TRACK_CLASS = 'relative flex gap-1 rounded-[var(--stepper-well-radius)] p-1 [background:var(--stepper-well)]';
@@ -173,8 +173,8 @@ const VIEWPORT_CLASS = 'relative -my-1.5 mx-[calc(var(--stepper-bleed)*-1)] over
 const PANE_CLASS = 'box-border px-[var(--stepper-bleed)] py-1.5 outline-none';
 const LEAVING_CLASS = 'pointer-events-none absolute top-0 right-0 left-0';
 const FOOTER_WRAP_CLASS =
-  'group/footer grid grid-rows-[1fr] [transition:grid-template-rows_480ms_var(--stepper-spring),opacity_0.2s_ease] data-[hidden]:pointer-events-none data-[hidden]:grid-rows-[0fr] data-[hidden]:opacity-0 motion-reduce:[transition-duration:0.01ms]';
-const FOOTER_CLIP_CLASS = 'min-h-0 group-data-[hidden]/footer:overflow-hidden';
+  'group/footer grid grid-rows-[1fr] overflow-hidden [transition:grid-template-rows_480ms_var(--stepper-spring),opacity_0.2s_ease] data-[hidden]:pointer-events-none data-[hidden]:grid-rows-[0fr] data-[hidden]:opacity-0 motion-reduce:[transition-duration:0.01ms]';
+const FOOTER_CLIP_CLASS = 'min-h-0 overflow-hidden';
 const FOOTER_CLASS = 'flex items-center justify-between gap-3 pt-5';
 const BUTTON_CLASS = `inline-flex h-[38px] flex-none cursor-pointer items-center gap-1.5 rounded-[max(8px,calc(var(--stepper-radius)*0.5))] border-none px-3.5 font-[inherit] text-[13.5px] leading-none font-semibold [transition:filter_0.2s_ease,transform_0.2s_ease,opacity_0.2s_ease] disabled:cursor-not-allowed disabled:opacity-40 active:enabled:[filter:var(--stepper-press)] active:enabled:[transform:scale(0.96)] active:enabled:duration-0 ${FOCUS}`;
 const BACK_CLASS = `pl-2.5 ${INK} [background:var(--stepper-tile)] [box-shadow:inset_0_0_0_1px_var(--stepper-tile-edge),inset_0_1px_0_var(--stepper-tile-highlight),var(--stepper-tile-shadow)] hover:enabled:[filter:var(--stepper-hover)] data-[hidden]:invisible data-[hidden]:opacity-0 data-[hidden]:[transition:opacity_0.2s_ease,visibility_0s_0.2s]`;

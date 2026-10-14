@@ -84,7 +84,7 @@ const ADMIN_NAV_GROUPS = [
   },
 ]
 
-function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed }) {
+function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed, navSummary }) {
   const isAdmin = ['super_admin', 'admin', 'support'].includes(user?.role)
   const navGroups = isAdmin
     ? ADMIN_NAV_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) =>
@@ -119,6 +119,35 @@ function SidebarContent({ pathname, user, onLogout, onNavigate, isCollapsed }) {
             )}
           </AnimatePresence>
         </div>
+
+        {navSummary?.status === 'ready' && !isCollapsed && (
+          <div className="mx-4 mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-ivory/10 bg-ivory/5 p-2">
+            <Link
+              href="/panel/paketim"
+              onClick={onNavigate}
+              className="flex flex-col rounded-xl bg-ivory/5 p-2.5 transition hover:bg-ivory/10 group"
+            >
+              <div className="flex items-center gap-1.5 text-champagne">
+                <CreditCard className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium text-ivory/70 group-hover:text-ivory">Kalan Kredi</span>
+              </div>
+              <span className="mt-1 text-sm font-semibold text-ivory tabular-nums">{navSummary.credits}</span>
+            </Link>
+            <Link
+              href={isAdmin ? "/panel/admin/vip-talepler" : "/panel/vip-taleplerim"}
+              onClick={onNavigate}
+              className="flex flex-col rounded-xl bg-ivory/5 p-2.5 transition hover:bg-ivory/10 group"
+            >
+              <div className="flex items-center gap-1.5 text-champagne">
+                <Gift className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium text-ivory/70 truncate group-hover:text-ivory">{isAdmin ? "Bekleyen VIP" : "VIP Talepleri"}</span>
+              </div>
+              <span className="mt-1 text-sm font-semibold text-ivory tabular-nums">
+                {isAdmin ? navSummary.pendingVip : navSummary.vipTotal}
+              </span>
+            </Link>
+          </div>
+        )}
         
         <nav className={cn("sb-no-scrollbar relative min-h-0 flex-1 space-y-7 overflow-y-auto overflow-x-hidden py-7 transition-all duration-300", isCollapsed ? "px-3" : "px-4")}>
           {navGroups.map((group) => (
@@ -350,6 +379,7 @@ export function DashboardShell({ children }) {
             user={user} 
             onLogout={onLogout} 
             isCollapsed={isCollapsed}
+            navSummary={navSummary}
           />
         </div>
       </motion.aside>
@@ -367,19 +397,19 @@ export function DashboardShell({ children }) {
           <div className="flex items-center gap-1.5 sm:gap-2">
             {navSummary.status === 'ready' && (
               isAdmin ? (
-                <Link href="/panel/admin/vip-talepler" className="inline-flex h-9 items-center gap-2 rounded-xl border border-midnight/10 bg-white px-2.5 text-xs font-medium text-midnight shadow-sm transition hover:border-champagne/70 hover:bg-champagne/10 sm:px-3">
+                <Link href="/panel/admin/vip-talepler" className="hidden md:inline-flex h-9 items-center gap-2 rounded-xl border border-midnight/10 bg-white px-2.5 text-xs font-medium text-midnight shadow-sm transition hover:border-champagne/70 hover:bg-champagne/10 sm:px-3">
                   <Gift className="h-4 w-4 text-champagne-dark" />
                   <span className="hidden sm:inline">Bekleyen VIP</span>
                   <span className="font-semibold tabular-nums">{navSummary.pendingVip}</span>
                 </Link>
               ) : (
                 <>
-                  <Link href="/panel/paketim" className="inline-flex h-9 items-center gap-2 rounded-xl border border-midnight/10 bg-white px-2.5 text-xs font-medium text-midnight shadow-sm transition hover:border-champagne/70 hover:bg-champagne/10 sm:px-3">
+                  <Link href="/panel/paketim" className="hidden md:inline-flex h-9 items-center gap-2 rounded-xl border border-midnight/10 bg-white px-2.5 text-xs font-medium text-midnight shadow-sm transition hover:border-champagne/70 hover:bg-champagne/10 sm:px-3">
                     <CreditCard className="h-4 w-4 text-champagne-dark" />
                     <span className="hidden sm:inline">Kalan kredi</span>
                     <span className="font-semibold tabular-nums">{navSummary.credits}</span>
                   </Link>
-                  <Link href="/panel/vip-taleplerim" className="inline-flex h-9 items-center gap-2 rounded-xl border border-midnight/10 bg-white px-2.5 text-xs font-medium text-midnight shadow-sm transition hover:border-champagne/70 hover:bg-champagne/10 sm:px-3">
+                  <Link href="/panel/vip-taleplerim" className="hidden md:inline-flex h-9 items-center gap-2 rounded-xl border border-midnight/10 bg-white px-2.5 text-xs font-medium text-midnight shadow-sm transition hover:border-champagne/70 hover:bg-champagne/10 sm:px-3">
                     <Gift className="h-4 w-4 text-champagne-dark" />
                     <span className="hidden sm:inline">VIP talepleri</span>
                     <span className="font-semibold tabular-nums">{navSummary.vipTotal}</span>
@@ -398,7 +428,7 @@ export function DashboardShell({ children }) {
                 <SheetTrigger asChild><Button variant="ghost" size="icon" aria-label="Menü"><Menu className="h-5 w-5" /></Button></SheetTrigger>
                 <SheetContent side="left" className="w-[280px] border-0 bg-midnight p-0">
                   <SheetTitle className="sr-only">Menü</SheetTitle>
-                  <SidebarContent pathname={pathname} user={user} onLogout={onLogout} onNavigate={() => setMobileMenuOpen(false)} isCollapsed={false} />
+                  <SidebarContent pathname={pathname} user={user} onLogout={onLogout} onNavigate={() => setMobileMenuOpen(false)} isCollapsed={false} navSummary={navSummary} />
                 </SheetContent>
               </Sheet>
             </div>

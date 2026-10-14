@@ -172,3 +172,11 @@ test('syncSiteEventData hydrates event and schedule sections that start empty', 
   assert.equal(synced.sections[1].props.items[0].title, 'Karşılama')
   assert.equal(synced.sections[1].props.items[0].time, '19:00')
 })
+
+test('resolveTokens safely strips leftover unknown tokens and handles partial event data', () => {
+  const { resolveTokens } = require('./event-tokens')
+  const text = 'Sayın {{guestName}}, {{coupleNames}} düğününe davetlisiniz. {{unknownToken}}'
+  const resolved = resolveTokens(text, { couple: { bride: 'Zeynep', groom: 'Barış' } })
+  assert.equal(resolved, 'Sayın , Zeynep & Barış düğününe davetlisiniz. ')
+})
+

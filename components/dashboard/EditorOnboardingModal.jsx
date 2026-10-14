@@ -39,7 +39,7 @@ export function EditorOnboardingModal({ open, onOpenChange }) {
             </span>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pr-0.5">
             <Stepper
               initialStep={1}
               theme="light"
@@ -52,7 +52,7 @@ export function EditorOnboardingModal({ open, onOpenChange }) {
               completeButtonText="Anladım, Başlayalım"
               onFinalStepCompleted={() => onOpenChange(false)}
               contentClassName="py-2"
-              footerClassName="flex-wrap gap-2"
+              footerClassName="flex-wrap gap-2 pb-1"
             >
             {/* ── ADIM 1: GENEL BAKIŞ ── */}
             <Step title="Başlangıç" description="Genel bakış">

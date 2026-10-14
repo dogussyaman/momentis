@@ -36,13 +36,17 @@ export function AdminCampaignManager() {
   const [packages, setPackages] = useState([])
   const [couponForm, setCouponForm] = useState({
     code: '',
-    credits: '1',
+    credits_per_package: '1',
+    packages: ['premium'],
+    is_test_only: false,
     startsAt: defaultDate(),
     endsAt: defaultDate(14),
     totalLimit: '',
     perUserLimit: '1',
     terms: '',
   })
+  const [revokingCoupon, setRevokingCoupon] = useState(null)
+  const [revokeReason, setRevokeReason] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
@@ -140,25 +144,60 @@ export function AdminCampaignManager() {
 
   const createCoupon = async (event) => {
     event.preventDefault()
+    if (!couponForm.packages?.length) {
+      setError('En az bir paket seçmelisiniz (Premium veya Atölye)')
+      return
+    }
     setBusy('coupon')
     setError('')
     setNotice('')
     try {
       await submit('/api/admin/coupons', {
         kind: 'credit_gift',
-        ...couponForm,
-        credits: Number(couponForm.credits),
+        code: couponForm.code,
+        credits_per_package: Number(couponForm.credits_per_package),
+        packages: couponForm.packages,
+        is_test_only: Boolean(couponForm.is_test_only),
         startsAt: new Date(couponForm.startsAt).toISOString(),
         endsAt: new Date(couponForm.endsAt).toISOString(),
         totalLimit: couponForm.totalLimit ? Number(couponForm.totalLimit) : null,
         perUserLimit: Number(couponForm.perUserLimit),
+        terms: couponForm.terms || '',
         active: true,
       })
       setCouponForm((current) => ({ ...current, code: '', terms: '' }))
-      setNotice('Kredi kuponu oluşturuldu.')
+      setNotice('Kredi kuponu başarıyla oluşturuldu.')
       await load()
     } catch (couponError) {
       setError(couponError.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const revokeUnusedCredits = async (coupon) => {
+    if (!revokeReason || revokeReason.trim().length < 10) {
+      setError('İptal işlemi için en az 10 karakterlik gerekçe zorunludur')
+      return
+    }
+    setBusy(`revoke-${coupon.id}`)
+    setError('')
+    setNotice('')
+    try {
+      const response = await fetch(`/api/admin/coupons/${encodeURIComponent(coupon.id)}/revoke-unused`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: revokeReason.trim() }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Kupon kredileri geri alınamadı')
+      setNotice(data.message || `${data.revokedCount} adet kullanılmamış kredi paketi geri alındı.`)
+      setRevokingCoupon(null)
+      setRevokeReason('')
+      await load()
+    } catch (revokeError) {
+      setError(revokeError.message)
     } finally {
       setBusy('')
     }
@@ -310,9 +349,53 @@ export function AdminCampaignManager() {
         </div>
         <form onSubmit={createCoupon} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <label className="space-y-1 text-xs text-muted-foreground">Benzersiz kod<Input required minLength={3} maxLength={32} pattern="[A-Za-z0-9_-]+" value={couponForm.code} onChange={(event) => setCouponForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} /></label>
-          <label className="space-y-1 text-xs text-muted-foreground">Kredi hediyesi<Input required type="number" min="1" max="1000" value={couponForm.credits} onChange={(event) => setCouponForm((current) => ({ ...current, credits: event.target.value }))} /></label>
+          <label className="space-y-1 text-xs text-muted-foreground">Paket başına kredi<Input required type="number" min="1" max="1000" value={couponForm.credits_per_package} onChange={(event) => setCouponForm((current) => ({ ...current, credits_per_package: event.target.value }))} /></label>
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <span className="block font-medium">Uygulanacak paketler</span>
+            <div className="flex gap-4 pt-1">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={couponForm.packages.includes('premium')}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...couponForm.packages, 'premium']
+                      : couponForm.packages.filter((p) => p !== 'premium')
+                    setCouponForm((cur) => ({ ...cur, packages: next }))
+                  }}
+                  className="rounded border-border"
+                />
+                <span>Premium</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={couponForm.packages.includes('atolye')}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...couponForm.packages, 'atolye']
+                      : couponForm.packages.filter((p) => p !== 'atolye')
+                    setCouponForm((cur) => ({ ...cur, packages: next }))
+                  }}
+                  className="rounded border-border"
+                />
+                <span>Atölye</span>
+              </label>
+            </div>
+          </div>
           <label className="space-y-1 text-xs text-muted-foreground">Toplam kullanım limiti (boş = sınırsız)<Input type="number" min="1" max="1000000" value={couponForm.totalLimit} onChange={(event) => setCouponForm((current) => ({ ...current, totalLimit: event.target.value }))} /></label>
           <label className="space-y-1 text-xs text-muted-foreground">Kullanıcı başına limit<Input required type="number" min="1" max="10" value={couponForm.perUserLimit} onChange={(event) => setCouponForm((current) => ({ ...current, perUserLimit: event.target.value }))} /></label>
+          <div className="flex items-center pt-5">
+            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer text-midnight">
+              <input
+                type="checkbox"
+                checked={couponForm.is_test_only}
+                onChange={(e) => setCouponForm((cur) => ({ ...cur, is_test_only: e.target.checked }))}
+                className="rounded border-border"
+              />
+              <span>Yalnızca test kuponu (Üretim ortamında genel kullanıcılara kapalı)</span>
+            </label>
+          </div>
           <label className="space-y-1 text-xs text-muted-foreground">Başlangıç<Input required type="datetime-local" value={couponForm.startsAt} onChange={(event) => setCouponForm((current) => ({ ...current, startsAt: event.target.value }))} /></label>
           <label className="space-y-1 text-xs text-muted-foreground">Bitiş<Input required type="datetime-local" value={couponForm.endsAt} onChange={(event) => setCouponForm((current) => ({ ...current, endsAt: event.target.value }))} /></label>
           <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2 xl:col-span-3">Koşullar / açıklama<textarea rows={2} maxLength={500} value={couponForm.terms} onChange={(event) => setCouponForm((current) => ({ ...current, terms: event.target.value }))} className="w-full rounded-xl border border-border bg-white p-3 text-sm outline-none focus:border-champagne focus:ring-1 focus:ring-champagne" /></label>
@@ -324,16 +407,40 @@ export function AdminCampaignManager() {
         <h2 className="font-serif text-2xl text-midnight">Kuponlar ve kampanya raporu</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-ivory-50 text-xs text-muted-foreground"><tr><th className="px-3 py-3">Kod / kampanya</th><th className="px-3 py-3">Tip</th><th className="px-3 py-3">Dağıtılan kredi</th><th className="px-3 py-3">Kullanım</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
+            <thead className="bg-ivory-50 text-xs text-muted-foreground"><tr><th className="px-3 py-3">Kod / kampanya</th><th className="px-3 py-3">Tip / Paket</th><th className="px-3 py-3">Dağıtılan kredi</th><th className="px-3 py-3">Kullanım</th><th className="px-3 py-3">Durum</th><th className="px-3 py-3" /></tr></thead>
             <tbody className="divide-y divide-border">
               {coupons.map((coupon) => (
                 <tr key={coupon.id}>
-                  <td className="px-3 py-3 font-medium">{coupon.code}</td>
-                  <td className="px-3 py-3">Kredi hediyesi ({coupon.credits})</td>
+                  <td className="px-3 py-3 font-medium">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>{coupon.code}</span>
+                      {coupon.is_test_only && <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 bg-amber-50">Test</Badge>}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="text-xs space-y-0.5">
+                      <p>Kredi: {coupon.credits_per_package || coupon.credits} / paket</p>
+                      <p className="text-muted-foreground capitalize">{(coupon.packages || ['premium']).join(', ')}</p>
+                    </div>
+                  </td>
                   <td className="px-3 py-3">{report?.find((item) => item.id === coupon.campaign_id)?.distributedCredits || 0}</td>
                   <td className="px-3 py-3">{coupon.redemption_count}{coupon.total_limit ? ` / ${coupon.total_limit}` : ''}</td>
                   <td className="px-3 py-3"><Badge variant={coupon.active ? 'secondary' : 'outline'}>{coupon.active ? 'Etkin' : 'Pasif'}</Badge></td>
-                  <td className="px-3 py-3 text-right"><div className="flex justify-end gap-2"><Button variant="outline" size="sm" disabled={busy === coupon.id} onClick={() => openCouponHistory(coupon)}>Geçmiş</Button><Button variant="outline" size="sm" disabled={busy === coupon.id} onClick={() => toggleCoupon(coupon)}>{coupon.active ? 'Pasifleştir' : 'Etkinleştir'}</Button></div></td>
+                  <td className="px-3 py-3 text-right">
+                    <div className="flex justify-end gap-2 flex-wrap">
+                      <Button variant="outline" size="sm" disabled={busy === coupon.id} onClick={() => openCouponHistory(coupon)}>Geçmiş</Button>
+                      <Button variant="outline" size="sm" disabled={busy === coupon.id} onClick={() => toggleCoupon(coupon)}>{coupon.active ? 'Pasifleştir' : 'Etkinleştir'}</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10"
+                        disabled={busy.startsWith('revoke-')}
+                        onClick={() => { setRevokingCoupon(coupon); setRevokeReason('') }}
+                      >
+                        Kullanılmayanları Geri Al
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {campaigns.filter((campaign) => campaign.kind === 'admin_gift').map((campaign) => (
@@ -350,6 +457,43 @@ export function AdminCampaignManager() {
             </tbody>
           </table>
         </div>
+        {revokingCoupon && (
+          <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <h3 className="text-sm font-semibold text-destructive">
+              Kullanılmamış Kredileri Geri Al: {revokingCoupon.code}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Bu işlem, bu kupon kullanılarak tanımlanmış ve <strong>henüz hiçbir projeye atanmamış ve harcanmamış</strong> kredileri iptal eder.
+              Projeye atanmış veya kısmen kullanılmış haklar kullanıcı verisi bütünlüğünü korumak için muhafaza edilir.
+            </p>
+            <textarea
+              value={revokeReason}
+              onChange={(e) => setRevokeReason(e.target.value)}
+              placeholder="İptal gerekçesi (en az 10 karakter)"
+              rows={2}
+              className="w-full rounded-xl border border-border bg-white p-3 text-sm outline-none focus:border-champagne"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={busy === `revoke-${revokingCoupon.id}` || revokeReason.trim().length < 10}
+                onClick={() => revokeUnusedCredits(revokingCoupon)}
+              >
+                {busy === `revoke-${revokingCoupon.id}` && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Onayla ve Geri Al
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy === `revoke-${revokingCoupon.id}`}
+                onClick={() => { setRevokingCoupon(null); setRevokeReason('') }}
+              >
+                Vazgeç
+              </Button>
+            </div>
+          </div>
+        )}
         {couponUsage && (
           <div className="space-y-2 rounded-xl border border-border bg-ivory-50 p-4">
             <h3 className="text-sm font-medium">{couponUsage.code} kullanım geçmişi</h3>

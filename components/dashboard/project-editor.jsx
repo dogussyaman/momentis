@@ -414,7 +414,7 @@ export function ProjectEditor() {
         host_a: form.host_a,
         date: form.date,
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
-        canvas_design: isManual ? canvasDesign : (canvasDesign || form.canvas_design || project?.canvas_design || null),
+        canvas_design: isManual ? canvasDesign : (form.canvas_design ?? null),
         site_data: useSiteEditorStore.getState().site
           ? syncSiteEventData(useSiteEditorStore.getState().site, project?.event_data, eventData)
           : (form.site_data ? syncSiteEventData(form.site_data, project?.event_data, eventData) : form.site_data),
@@ -461,7 +461,7 @@ export function ProjectEditor() {
           },
           invitation: {
             ...(selectedDeliverables.invitation || {}),
-            enabled: Boolean(selectedDeliverables.invitation?.enabled || form.canvas_design || canvasDesign || false),
+            enabled: selectedDeliverables.invitation?.enabled === true || Boolean(form.canvas_design),
             status: asDraft ? 'draft' : (published ? 'published' : 'draft'),
           },
         },
@@ -470,7 +470,6 @@ export function ProjectEditor() {
         palette: form.palette && Object.keys(form.palette).length === 4 ? form.palette : null,
         slug: siteData?.slug || form.slug,
         site_data: siteData,
-        canvas_design: canvasDesign || form.canvas_design || project?.canvas_design || null,
         ...(isUnsavedProject || project?.id === 'new' ? { billing_package_id: project?.billing_package_id || 'baslangic' } : {}),
       }
       const isCreating = isUnsavedProject || project?.id === 'new'

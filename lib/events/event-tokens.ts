@@ -55,16 +55,17 @@ export function getStoredTokenValue(token, eventData, eventTypeLabel = 'Etkinlik
   }
 }
 
-// Replace all tokens in a text string
 export function resolveTokens(text, eventData, eventTypeLabel = eventData?.eventTypeLabel || 'Etkinlik') {
   if (typeof text !== 'string') return text
   let result = text
   for (const token of EVENT_TOKENS) {
     if (result.includes(token)) {
       const value = getStoredTokenValue(token, eventData, eventTypeLabel)
-      result = result.split(token).join(value)
+      result = result.split(token).join(value || '')
     }
   }
+  // Strip any remaining {{token}} placeholders so raw tokens never leak to public pages
+  result = result.replace(/\{\{[a-zA-Z0-9_ -]+\}\}/g, '')
   return result
 }
 

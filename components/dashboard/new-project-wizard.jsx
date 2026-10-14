@@ -118,7 +118,7 @@ export function NewProjectWizard() {
   const hasDeliverableRights = (deliverables, packageId = selectedPackage, snapshot = billingSnapshot) => {
     if (!snapshot) return false
     const credits = snapshot.grants
-      .filter((grant) => grant.package_id === packageId)
+      .filter((grant) => grant.package_id === packageId && (grant.status || 'active') === 'active')
       .reduce((total, grant) => total + (grant.remaining_event_credits || 0), 0)
     const projectAvailable = packageId === 'baslangic'
       ? availablePackageIds?.includes(packageId) && (snapshot.usage.free_projects || 0) < snapshot.quotas.freeProjects
