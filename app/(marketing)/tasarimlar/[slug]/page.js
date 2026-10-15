@@ -10,6 +10,7 @@ import { TemplateStartButton } from '@/components/templates/template-start-butto
 import { Reveal } from '@/components/shared/reveal'
 import { TEMPLATES, getTemplateBySlug } from '@/lib/data/templates'
 import { getEventType, getStyle } from '@/lib/data/events'
+import { buildMarketingMetadata } from '@/lib/seo'
 
 export async function generateStaticParams() {
   return TEMPLATES.map((t) => ({ slug: t.slug }))
@@ -19,7 +20,11 @@ export async function generateMetadata({ params }) {
   const { slug } = await params
   const t = getTemplateBySlug(slug)
   if (!t) return { title: 'Tasarım bulunamadı | MOMENTIS' }
-  return { title: `${t.name} | MOMENTIS Tasarımlar`, description: t.description }
+  return buildMarketingMetadata({
+    title: `${t.name} | MOMENTIS Tasarımlar`,
+    description: t.description,
+    path: `/tasarimlar/${slug}`,
+  })
 }
 
 export default async function TemplateDetailPage({ params }) {

@@ -54,6 +54,7 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
+    robots: { index: false, follow: false },
     openGraph: { title, description, type: 'website', images },
     twitter: { card: images.length ? 'summary_large_image' : 'summary', title, description, images },
   }

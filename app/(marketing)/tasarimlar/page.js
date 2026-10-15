@@ -5,11 +5,13 @@ import { ArrowRight, Sparkles } from 'lucide-react'
 import { TemplateGallery } from '@/components/templates/template-gallery'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TEMPLATES as SITE_TEMPLATES } from '@/lib/site-builder/templates'
+import { buildMarketingMetadata } from '@/lib/seo'
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
   title: 'Tasarımlar | MOMENTIS',
   description: 'Düğün, nişan, kına ve özel günler için editoryal dijital davetiye tasarımları.',
-}
+  path: '/tasarimlar',
+})
 
 export default function TemplatesPage() {
   const siteTemplates = SITE_TEMPLATES

@@ -3,11 +3,13 @@ import { Features } from '@/components/marketing/features'
 import { EditorialSplit } from '@/components/marketing/editorial-split'
 import { CTA } from '@/components/marketing/cta'
 import { IMAGES } from '@/lib/data/site'
+import { buildMarketingMetadata } from '@/lib/seo'
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
   title: 'Nasıl Çalışır | MOMENTIS',
   description: 'Üç adımda dijital davetiyenizi oluşturun, paylaşın ve yönetin.',
-}
+  path: '/nasil-calisir',
+})
 
 export default function HowItWorksPage() {
   return (

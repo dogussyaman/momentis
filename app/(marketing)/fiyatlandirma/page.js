@@ -4,13 +4,15 @@ import { CTA } from '@/components/marketing/cta'
 import { Reveal } from '@/components/shared/reveal'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { FAQ_ITEMS } from '@/lib/data/faq'
+import { buildMarketingMetadata } from '@/lib/seo'
 
 const pricingFaqItems = FAQ_ITEMS.filter(({ id }) => ['package-differences', 'credits', 'unused-credits'].includes(id))
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
   title: 'Fiyatlandırma | MOMENTIS',
   description: 'Tek seferlik, şeffaf fiyatlar. Abonelik yok, gizli ücret yok.',
-}
+  path: '/fiyatlandirma',
+})
 
 export default function PricingPage() {
   return (

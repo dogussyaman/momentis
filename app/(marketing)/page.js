@@ -7,10 +7,29 @@ import { EditorialSplit } from '@/components/marketing/editorial-split'
 import { PricingSection } from '@/components/marketing/pricing-section'
 import { CTA } from '@/components/marketing/cta'
 import { IMAGES } from '@/lib/data/site'
+import { buildMarketingMetadata, siteUrl } from '@/lib/seo'
+
+const title = 'MOMENTIS | Premium Dijital Davetiye Stüdyosu'
+const description = 'Düğün, nişan ve özel günler için zarif dijital davetiyeler. RSVP, konuk yönetimi ve QR anı albümü tek bir yerde.'
+
+export const metadata = buildMarketingMetadata({ title, description, path: '/' })
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'MOMENTIS',
+  url: siteUrl('/'),
+  inLanguage: 'tr-TR',
+  description,
+}
 
 export default function HomePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd).replace(/</g, '\\u003c') }}
+      />
       <Hero />
       <TrustStrip />
       <HowItWorks />

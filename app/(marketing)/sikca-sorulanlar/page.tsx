@@ -1,15 +1,14 @@
 import { FaqPage } from '@/components/marketing/faq-page'
 import { buildFaqJsonLd, FAQ_ITEMS } from '@/lib/data/faq'
+import { buildMarketingMetadata } from '@/lib/seo'
 
 const faqJsonLd = buildFaqJsonLd(FAQ_ITEMS)
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
   title: 'Sıkça Sorulan Sorular | MOMENTIS',
   description: 'MOMENTIS dijital davetiye, davet sitesi, RSVP, VIP tasarım, paketler ve hesap kullanımı hakkında merak edilenler.',
-  alternates: {
-    canonical: 'https://momentis.app/sikca-sorulanlar',
-  },
-}
+  path: '/sikca-sorulanlar',
+})
 
 export default function FrequentlyAskedQuestionsPage() {
   return (

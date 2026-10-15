@@ -2,8 +2,11 @@ import Script from 'next/script'
 import './globals.css'
 import { Providers } from './providers'
 import { Toaster } from '@/components/ui/sonner'
+import { SITE_ORIGIN } from '@/lib/seo'
 
 export const metadata = {
+  metadataBase: new URL(SITE_ORIGIN),
+  applicationName: 'MOMENTIS',
   title: 'MOMENTIS | Premium Dijital Davetiye Stüdyosu',
   description: 'Düğün, nişan, kına ve özel günler için editoryal zarafette dijital davetiyeler. RSVP, konuk yönetimi ve QR anı albümü tek bir yerde.',
 }

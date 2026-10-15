@@ -2,11 +2,13 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Check, Heart, Images, Sparkles } from 'lucide-react'
 import { VipInvitationCard } from '@/components/vip-design/VipInvitationCard'
 import { VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES } from '@/lib/vip-design/mock-data.mjs'
+import { buildMarketingMetadata } from '@/lib/seo'
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
   title: 'VIP Kişiye Özel Tasarımlar | MOMENTIS',
   description: 'Beş VIP site konseptini ve beş ayrı hediye davetiye tasarımını inceleyin.',
-}
+  path: '/tasarimlar/vip',
+})
 
 const steps = [
   'VIP site konseptinizi seçin.',
