@@ -14,6 +14,7 @@ test('locked sections reject editing, visibility, deletion, duplication and reor
   const originalProps = structuredClone(originalSections[0].props)
 
   store.updateSection(lockedId, { visible: false })
+  store.updateSection(lockedId, { locked: false, props: { title: 'Changed while unlocking' } })
   store.updateSectionProps(lockedId, { title: 'Changed' })
   store.updateSectionStyle(lockedId, { paddingY: 999 })
   store.updateSectionAnimation(lockedId, { duration: 99 })
@@ -22,6 +23,8 @@ test('locked sections reject editing, visibility, deletion, duplication and reor
   store.duplicateSection(lockedId)
   store.moveSection(0, 1)
   store.reorderSections([...originalSections].reverse())
+  const changedLockedSection = { ...originalSections[0], props: { ...originalProps, title: 'Reordered mutation' } }
+  store.reorderSections([changedLockedSection, ...originalSections.slice(1)])
 
   const unchanged = useSiteEditorStore.getState().site!.sections
   assert.deepEqual(unchanged, originalSections)
