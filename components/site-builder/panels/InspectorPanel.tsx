@@ -49,24 +49,27 @@ export function InspectorPanel(){
  const groups=(def?.fields||[]).reduce((a:any,f)=>{const g=f.group||'Genel';(a[g]??=[]).push(f);return a},{})
  const style=section?.style||{}
  return <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-white">
-   <div className="border-b bg-ivory-50/60 p-3"><div className="flex items-center justify-between"><div><h3 className="text-xs font-semibold uppercase tracking-wider">{section?def?.name:'Site Ayarları'}</h3><p className="mt-1 text-[10px] text-muted-foreground">{section?def?.description:'Genel site ve yayın ayarları'}</p></div>{section&&<div className="flex gap-1"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleVisibility(section.id)}>{section.visible?<Eye className="h-3.5 w-3.5"/>:<EyeOff className="h-3.5 w-3.5"/>}</Button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleLock(section.id)}>{section.locked?<Lock className="h-3.5 w-3.5"/>:<Unlock className="h-3.5 w-3.5"/>}</Button></div>}</div>
+   <div className="border-b bg-ivory-50/60 p-3"><div className="flex items-center justify-between"><div><h3 className="text-xs font-semibold uppercase tracking-wider">{section?def?.name:'Site Ayarları'}</h3><p className="mt-1 text-[10px] text-muted-foreground">{section?def?.description:'Genel site ve yayın ayarları'}</p></div>{section&&<div className="flex gap-1"><Button variant="ghost" size="icon" className="h-7 w-7" disabled={section.locked} aria-label={section.locked?'Kilitli bölümün görünürlüğü değiştirilemez':section.visible?'Bölümü gizle':'Bölümü göster'} onClick={()=>toggleVisibility(section.id)}>{section.visible?<Eye className="h-3.5 w-3.5"/>:<EyeOff className="h-3.5 w-3.5"/>}</Button><Button variant="ghost" size="icon" className="h-7 w-7" aria-label={section.locked?'Bölüm kilidini aç':'Bölümü kilitle'} onClick={()=>toggleLock(section.id)}>{section.locked?<Lock className="h-3.5 w-3.5"/>:<Unlock className="h-3.5 w-3.5"/>}</Button></div>}</div>
    {section && (
       <Tabs value={inspectorTab} onValueChange={(val: any) => setInspectorTab(val)} className="mt-3">
         <TabsList className="grid w-full grid-cols-3 gap-1 rounded-lg bg-white p-1 h-auto border border-border/50">
           <TabsTrigger
             value="content"
+            disabled={!!section.locked}
             className="rounded-md py-1.5 text-xs font-medium text-midnight/60 hover:text-midnight data-[state=active]:bg-midnight data-[state=active]:text-white data-[state=active]:shadow-sm"
           >
             İçerik
           </TabsTrigger>
           <TabsTrigger
             value="style"
+            disabled={!!section.locked}
             className="rounded-md py-1.5 text-xs font-medium text-midnight/60 hover:text-midnight data-[state=active]:bg-midnight data-[state=active]:text-white data-[state=active]:shadow-sm"
           >
             Tasarım
           </TabsTrigger>
           <TabsTrigger
             value="animation"
+            disabled={!!section.locked}
             className="rounded-md py-1.5 text-xs font-medium text-midnight/60 hover:text-midnight data-[state=active]:bg-midnight data-[state=active]:text-white data-[state=active]:shadow-sm"
           >
             Anim.
@@ -75,7 +78,7 @@ export function InspectorPanel(){
       </Tabs>
     )}</div>
    <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3">
-   {!section?<SiteSettings site={site} updateSite={useSiteEditorStore.getState().updateSite} updateTheme={updateTheme} updateSettings={updateSettings} applyFontToAll={useSiteEditorStore.getState().applyFontToAll}/>:inspectorTab==='content'?<div className="space-y-5"><FreeformOverlayControls section={section} selectedOverlayId={selectedOverlayId} selectOverlay={selectOverlay} updateSectionProps={updateSectionProps}/>{Object.entries(groups).map(([g,fs]:any)=><div key={g} className="space-y-3"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{g}</h4>{fs.map((f:FieldDef)=>field(f))}</div>)}</div>:inspectorTab==='style'?<StylePanel style={style} update={p=>updateSectionStyle(section.id,p)}/>:<AnimationPanel animation={section.animation||{type:'fade',duration:.8,delay:0}} update={p=>updateSectionAnimation(section.id,p)}/>}
+   {section?.locked?<div role="status" className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950"><div className="flex items-center gap-2 font-medium"><Lock className="h-4 w-4"/>Bu bölüm kilitli</div><p className="leading-relaxed">İçerik, tasarım, görünürlük ve sıralama değişiklikleri kilit açılana kadar devre dışıdır.</p><Button type="button" variant="outline" size="sm" onClick={()=>toggleLock(section.id)}><Unlock className="mr-2 h-3.5 w-3.5"/>Kilidi aç</Button></div>:!section?<SiteSettings site={site} updateSite={useSiteEditorStore.getState().updateSite} updateTheme={updateTheme} updateSettings={updateSettings} applyFontToAll={useSiteEditorStore.getState().applyFontToAll}/>:inspectorTab==='content'?<div className="space-y-5"><FreeformOverlayControls section={section} selectedOverlayId={selectedOverlayId} selectOverlay={selectOverlay} updateSectionProps={updateSectionProps}/>{Object.entries(groups).map(([g,fs]:any)=><div key={g} className="space-y-3"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{g}</h4>{fs.map((f:FieldDef)=>field(f))}</div>)}</div>:inspectorTab==='style'?<StylePanel style={style} update={p=>updateSectionStyle(section.id,p)}/>:<AnimationPanel animation={section.animation||{type:'fade',duration:.8,delay:0}} update={p=>updateSectionAnimation(section.id,p)}/>}
    </div>
  </div>
 }

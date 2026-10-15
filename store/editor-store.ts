@@ -127,19 +127,27 @@ export const useEditorStore = create<EditorState>()(
       })),
       clearSelection: () => set({ selectedIds: [] }),
 
-      updateElement: (id, updates) => set((state) => ({
-        design: {
-          ...state.design,
-          elements: state.design.elements.map(el => 
-            el.id === id ? { ...el, ...updates } : el
-          )
+      updateElement: (id, updates) => set((state) => {
+        const element = state.design.elements.find((el) => el.id === id)
+        if (!element || (element.locked && updates.locked !== false)) return state
+        return {
+          design: {
+            ...state.design,
+            elements: state.design.elements.map(el =>
+              el.id === id ? { ...el, ...updates } : el
+            )
+          }
         }
-      })),
+      }),
       
-      deleteElement: (id) => set((state) => ({
-        design: { ...state.design, elements: state.design.elements.filter(el => el.id !== id) },
-        selectedIds: state.selectedIds.filter(sid => sid !== id)
-      })),
+      deleteElement: (id) => set((state) => {
+        const { design, removedIds } = removeUnlockedElements(state.design, [id])
+        if (!removedIds.length) return state
+        return {
+          design,
+          selectedIds: state.selectedIds.filter(sid => !removedIds.includes(sid))
+        }
+      }),
 
       deleteElements: (ids) => set((state) => {
         const { design, removedIds } = removeUnlockedElements(state.design, ids)

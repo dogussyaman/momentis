@@ -34,7 +34,7 @@ export function editableTextAttributes(section: SiteSection, key: string, mode: 
   return {
     'data-editable-section': section.id,
     'data-editable-key': key,
-    contentEditable: mode === 'editor',
+    contentEditable: mode === 'editor' && !section.locked,
     suppressContentEditableWarning: true,
     spellCheck: false,
   }
@@ -305,7 +305,7 @@ function FreeformOverlayLayer({ section, elements, mode }: {
               isSelected && 'bg-blue-500/5 outline outline-2 outline-dashed outline-blue-500 outline-offset-2',
             )}
             {...editorAttributes}
-            contentEditable={mode === 'editor'}
+            contentEditable={mode === 'editor' && !section.locked}
             suppressContentEditableWarning
             spellCheck={false}
             data-editable-overlay="true"
@@ -544,7 +544,7 @@ export function SiteButton({ button, size = 'md', className, section, buttonInde
           'data-editable-section': section.id,
           'data-editable-key': 'buttons',
           'data-editable-index': buttonIndex,
-          contentEditable: mode === 'editor',
+          contentEditable: mode === 'editor' && !section.locked,
           suppressContentEditableWarning: true,
           spellCheck: false,
         } : {})}

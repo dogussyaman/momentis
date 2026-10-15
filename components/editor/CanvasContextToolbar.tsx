@@ -55,6 +55,26 @@ export function CanvasContextToolbar() {
 
   if (!selectedIds.length) return null
 
+  if (allSelectedLocked) {
+    return (
+      <div className="pointer-events-auto flex max-w-full items-center gap-2 rounded-2xl border border-[#E8E1D5] bg-white/95 p-2 text-xs text-muted-foreground shadow-sm">
+        <span role="status">Seçili öğe kilitli. Düzenlemek için kilidini açın.</span>
+        {selectedIds.length === 1 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Kilitli öğeyi çoğalt"
+            aria-label="Kilitli öğeyi çoğalt"
+            className="h-7 w-7 shrink-0"
+            onClick={() => duplicateElement(selectedIds[0])}
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-between gap-1.5 rounded-2xl border border-[#E8E1D5] bg-white/95 p-1.5 shadow-[0_8px_24px_-10px_rgba(16,24,39,0.25)] backdrop-blur sm:gap-2 sm:p-2">
       {selectedElement?.type === 'text' && (

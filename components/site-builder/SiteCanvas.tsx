@@ -29,6 +29,11 @@ function SortableSection({ section, onSelectElement }: { section: SiteSection; o
   const hidden = !section.visible
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (section.locked) {
+      onSelectElement(null)
+      store.selectSection(section.id)
+      return
+    }
     const target = event.target as HTMLElement
     const editableImage = target.closest<HTMLElement>('[data-editable-image-section]')
     if (editableImage) {
@@ -78,6 +83,7 @@ function SortableSection({ section, onSelectElement }: { section: SiteSection; o
       <div className={cn('absolute right-2 top-2 z-30 flex items-center gap-1 rounded-lg border bg-white/95 p-1 shadow-lg backdrop-blur', selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}>
         <button
           type="button"
+          disabled={section.locked}
           draggable={!section.locked}
           onClick={(event) => event.stopPropagation()}
           onDragStart={(event) => {
@@ -89,16 +95,16 @@ function SortableSection({ section, onSelectElement }: { section: SiteSection; o
             event.dataTransfer.effectAllowed = 'move'
             event.dataTransfer.setData('text/momentis-section', section.id)
           }}
-          className="cursor-grab rounded p-1.5 hover:bg-ivory-50"
-          title="Bölümü taşı"
-          aria-label="Bölümü taşımak için sürükleyin"
+          className="cursor-grab rounded p-1.5 hover:bg-ivory-50 disabled:cursor-not-allowed disabled:opacity-40"
+          title={section.locked ? 'Kilitli bölüm taşınamaz' : 'Bölümü taşı'}
+          aria-label={section.locked ? 'Kilitli bölüm taşınamaz' : 'Bölümü taşımak için sürükleyin'}
         >
           <GripVertical className="h-3.5 w-3.5" />
         </button>
-        <button onClick={(event) => { event.stopPropagation(); store.toggleVisibility(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded" title="Gizle/Göster">{hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}</button>
-        <button onClick={(event) => { event.stopPropagation(); store.toggleLock(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded" title="Kilitle/Kilidi aç">{section.locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}</button>
-        <button onClick={(event) => { event.stopPropagation(); store.duplicateSection(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded" title="Çoğalt"><Copy className="w-3.5 h-3.5" /></button>
-        <button onClick={(event) => { event.stopPropagation(); store.removeSection(section.id) }} className="p-1.5 hover:bg-red-50 rounded text-red-500" title="Sil"><Trash2 className="w-3.5 h-3.5" /></button>
+        <button disabled={section.locked} onClick={(event) => { event.stopPropagation(); store.toggleVisibility(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded disabled:cursor-not-allowed disabled:opacity-40" title={section.locked ? 'Kilitli bölümün görünürlüğü değiştirilemez' : 'Gizle/Göster'} aria-label={section.locked ? 'Kilitli bölümün görünürlüğü değiştirilemez' : hidden ? 'Bölümü göster' : 'Bölümü gizle'}>{hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}</button>
+        <button onClick={(event) => { event.stopPropagation(); store.toggleLock(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded" title={section.locked ? 'Kilidi aç' : 'Kilitle'} aria-label={section.locked ? 'Bölüm kilidini aç' : 'Bölümü kilitle'}>{section.locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}</button>
+        <button disabled={section.locked} onClick={(event) => { event.stopPropagation(); store.duplicateSection(section.id) }} className="p-1.5 hover:bg-ivory-50 rounded disabled:cursor-not-allowed disabled:opacity-40" title={section.locked ? 'Kilitli bölüm çoğaltılamaz' : 'Çoğalt'} aria-label={section.locked ? 'Kilitli bölüm çoğaltılamaz' : 'Bölümü çoğalt'}><Copy className="w-3.5 h-3.5" /></button>
+        <button disabled={section.locked} onClick={(event) => { event.stopPropagation(); store.removeSection(section.id) }} className="p-1.5 hover:bg-red-50 rounded text-red-500 disabled:cursor-not-allowed disabled:opacity-40" title={section.locked ? 'Kilitli bölüm silinemez' : 'Sil'} aria-label={section.locked ? 'Kilitli bölüm silinemez' : 'Bölümü sil'}><Trash2 className="w-3.5 h-3.5" /></button>
       </div>
       {hidden ? <div className="min-h-20 flex items-center justify-center border border-dashed bg-white text-xs text-muted-foreground">Bu bölüm gizli</div> : (() => {
         const Component = sectionRegistry[section.type]?.component
@@ -353,6 +359,7 @@ export function SiteCanvas() {
   const selectedOverlay = selection?.kind === 'overlay'
     ? site.sections.find((section) => section.id === selection.sectionId)?.props.overlayElements?.find((item: SiteOverlayElement) => item.id === selection.key)
     : null
+  const selectionLocked = selection ? site.sections.find((section) => section.id === selection.sectionId)?.locked === true : false
 
   const updateSelectedOverlay = (patch: Partial<SiteOverlayElement>) => {
     if (!selection || selection.kind !== 'overlay') return
@@ -408,11 +415,12 @@ export function SiteCanvas() {
       ?? target.closest<HTMLElement>('[data-site-overlay-type="button"][data-site-overlay-id][data-site-overlay-section]')
     const section = element?.closest<HTMLElement>('[data-overlay-canvas]')
     if (!element || !section) return
-    event.preventDefault()
-    event.stopPropagation()
     const sectionId = element.dataset.siteOverlaySection
     const overlayId = element.dataset.siteOverlayId
-    if (!sectionId || !overlayId) return
+    const sectionData = useSiteEditorStore.getState().site?.sections.find(item => item.id === sectionId)
+    if (!sectionId || !overlayId || sectionData?.locked) return
+    event.preventDefault()
+    event.stopPropagation()
     const bounds = section.getBoundingClientRect()
     if (!bounds.width || !bounds.height) return
     setSelection({ sectionId, key: overlayId, element, kind: 'overlay' })
@@ -462,6 +470,12 @@ export function SiteCanvas() {
     const sectionId = drag.element.dataset.siteOverlaySection
     const overlayId = drag.element.dataset.siteOverlayId
     const section = useSiteEditorStore.getState().site?.sections.find(item => item.id === sectionId)
+    if (section?.locked) {
+      drag.element.style.left = `${drag.x}%`
+      drag.element.style.top = `${drag.y}%`
+      overlayDragRef.current = null
+      return
+    }
     if (sectionId && overlayId && section && Array.isArray(section.props.overlayElements)) {
       updateSectionProps(sectionId, {
         overlayElements: section.props.overlayElements.map((item: Record<string, any>) =>
@@ -512,12 +526,12 @@ export function SiteCanvas() {
             <div><p className="text-sm font-medium">Henüz bölüm yok</p><p className="mt-2 text-xs">Soldan bir bölüm ekleyin veya bir şablon seçin.</p></div>
           </div>
         )}
-        {selection?.kind === 'text' && toolbarPosition && (
+        {selection?.kind === 'text' && !selectionLocked && toolbarPosition && (
           <div style={{ position: 'fixed', left: toolbarPosition.left, top: toolbarPosition.top, transform: 'translateX(-50%)', zIndex: 100 }}>
             <InlineTextToolbar selection={selection} onStyleChange={applyInlineStyle} onClose={() => setSelection(null)} />
           </div>
         )}
-        {selection?.kind === 'overlay' && selectedOverlay?.type === 'button' && toolbarPosition && (
+        {selection?.kind === 'overlay' && !selectionLocked && selectedOverlay?.type === 'button' && toolbarPosition && (
           <div style={{ position: 'fixed', left: toolbarPosition.left, top: toolbarPosition.top, transform: 'translateX(-50%)', zIndex: 100 }}>
             <OverlayQuickToolbar
               overlay={selectedOverlay}
@@ -526,7 +540,7 @@ export function SiteCanvas() {
             />
           </div>
         )}
-        {selection?.kind === 'image' && (
+        {selection?.kind === 'image' && !selectionLocked && (
           <div className="fixed left-1/2 top-4 z-[100] flex -translate-x-1/2 items-center gap-2 rounded-xl border border-midnight/10 bg-white px-4 py-2.5 text-xs text-midnight shadow-lg" data-testid="inline-image-toolbar">
             Görsel seçildi · Ayarları sağ panelden düzenleyin
             <button type="button" onClick={() => setSelection(null)} className="ml-1 text-midnight/45 hover:text-midnight" aria-label="Seçimi kapat">×</button>

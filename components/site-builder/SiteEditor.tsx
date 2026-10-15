@@ -47,6 +47,7 @@ interface SiteEditorProps {
 export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, initialSite, eventData, saveButtonLabel, showSwitchToCard = true, autoSaveEnabled = true, onOpenHelp, canUsePremiumTemplates = false }: SiteEditorProps) {
   const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, saveError, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
+  const [localSaveError, setLocalSaveError] = useState<string | null>(null);
   // Version (updatedAt) of the site as last loaded/saved on the server. Undo/redo restore exact
   // snapshots, so returning to the saved state correctly clears the dirty flag.
   const [savedVersion, setSavedVersion] = useState<{ id: string; version: string } | null>(null);
@@ -73,12 +74,15 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
     if (localSaving) return
     if (onSave && site) {
       setLocalSaving(true);
+      setLocalSaveError(null);
       try {
         const result = await onSave(site);
         // Callers resolve `false` when the server rejected the save; keep the dirty state then.
         if (result !== false) setSavedVersion({ id: site.id, version: site.updatedAt });
+        else setLocalSaveError('Kaydetme başarısız oldu. Lütfen tekrar deneyin.');
       } catch (error) {
         console.error('[site-editor] save failed', error);
+        setLocalSaveError(error instanceof Error ? error.message : 'Kaydetme başarısız oldu. Lütfen tekrar deneyin.');
       } finally {
         setLocalSaving(false);
       }
@@ -94,19 +98,18 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
   const handleSaveDraft = async () => {
     if (!onSaveDraft || !site || localSaving) return
     setLocalSaving(true)
+    setLocalSaveError(null)
     try {
       const result = await onSaveDraft(site)
       if (result !== false) setSavedVersion({ id: site.id, version: site.updatedAt })
+      else setLocalSaveError('Taslak kaydedilemedi. Lütfen tekrar deneyin.')
     } catch (error) {
       console.error('[site-editor] draft save failed', error)
+      setLocalSaveError(error instanceof Error ? error.message : 'Taslak kaydedilemedi. Lütfen tekrar deneyin.')
     } finally {
       setLocalSaving(false)
     }
   }
-
-  useEffect(() => {
-    if (site && savedVersion?.id !== site.id) setSavedVersion({ id: site.id, version: site.updatedAt })
-  }, [site, savedVersion])
 
   const warnBeforeUnload = shouldWarnBeforeUnload({ serverBacked, dirty })
   useEffect(() => {
@@ -119,7 +122,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
     return () => window.removeEventListener('beforeunload', handler)
   }, [warnBeforeUnload])
 
-  const saveStatus = getSaveStatus({ serverBacked, isSaving: isSaving || localSaving, saveError, dirty, lastSavedAt })
+  const saveStatus = getSaveStatus({ serverBacked, isSaving: isSaving || localSaving, saveError: serverBacked ? localSaveError : saveError, dirty, lastSavedAt })
 
   useEffect(() => {
     if (initialSite) {
@@ -127,6 +130,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
       if (!site || site.id !== hydrated.id) {
         initSite(hydrated)
       }
+      if (savedVersion?.id !== hydrated.id) setSavedVersion({ id: hydrated.id, version: hydrated.updatedAt })
       return
     }
 
@@ -141,7 +145,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
       }
       initSite(starter)
     }
-  }, [initialSite, site, initSite, eventData]);
+  }, [initialSite, site, initSite, eventData, savedVersion]);
 
   // The localStorage draft is only meaningful (and only written) when there is no server save
   // handler. In server-backed mode it used to write a single global key that nothing ever read.
@@ -291,6 +295,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
                   variant={device === 'mobile' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setDevice('mobile')}
+                  aria-label="Mobil önizleme"
                   className={cn('h-8 flex-1 rounded-md text-xs', device === 'mobile' ? 'bg-midnight text-ivory' : 'text-midnight/70')}
                 >
                   <Smartphone className="h-3.5 w-3.5" />
@@ -299,6 +304,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
                   variant={device === 'tablet' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setDevice('tablet')}
+                  aria-label="Tablet önizleme"
                   className={cn('h-8 flex-1 rounded-md text-xs', device === 'tablet' ? 'bg-midnight text-ivory' : 'text-midnight/70')}
                 >
                   <Tablet className="h-3.5 w-3.5" />
@@ -307,6 +313,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
                   variant={device === 'desktop' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setDevice('desktop')}
+                  aria-label="Masaüstü önizleme"
                   className={cn('h-8 flex-1 rounded-md text-xs', device === 'desktop' ? 'bg-midnight text-ivory' : 'text-midnight/70')}
                 >
                   <Monitor className="h-3.5 w-3.5" />

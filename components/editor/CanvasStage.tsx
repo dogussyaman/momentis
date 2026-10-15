@@ -29,6 +29,7 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
   
   const verticalGuideRef = useRef<any>(null)
   const horizontalGuideRef = useRef<any>(null)
+  const cancelledTextEditRef = useRef<string | null>(null)
 
   useEffect(() => {
     const handleClick = () => setContextMenu(prev => ({ ...prev, visible: false }))
@@ -397,10 +398,10 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
     }
   }
 
-  const commitTextEdit = () => {
+  const commitTextEdit = (reason: 'commit' | 'escape' = 'commit') => {
     if (!editingText) return
     const current = design.elements.find((el: any) => el.id === editingText.id)
-    if (current && shouldCommitTextEdit(current.text, editingText.text)) {
+    if (current && shouldCommitTextEdit(current.text, editingText.text, reason)) {
       updateElement(editingText.id, { text: editingText.text })
     }
     setEditingText(null)
@@ -552,8 +553,10 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
                   }}
                   onDblClick={(e) => {
                     e.cancelBubble = true
+                    if (el.locked) return
                     const textNode = e.target
                     const absPos = textNode.getAbsolutePosition()
+                    cancelledTextEditRef.current = null
                     setEditingText({
                       id: el.id,
                       text: el.text || '',
@@ -575,8 +578,10 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
                   }}
                   onDblTap={(e) => {
                     e.cancelBubble = true
+                    if (el.locked) return
                     const textNode = e.target
                     const absPos = textNode.getAbsolutePosition()
+                    cancelledTextEditRef.current = null
                     setEditingText({
                       id: el.id,
                       text: el.text || '',
@@ -754,11 +759,17 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
           value={editingText.text}
           onChange={(e) => setEditingText({ ...editingText, text: e.target.value })}
           onBlur={() => {
+            if (cancelledTextEditRef.current === editingText.id) {
+              cancelledTextEditRef.current = null
+              return
+            }
             commitTextEdit()
           }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
-              commitTextEdit()
+              e.preventDefault()
+              cancelledTextEditRef.current = editingText.id
+              commitTextEdit('escape')
             }
           }}
           style={{

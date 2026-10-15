@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Check, ChevronsUpDown, Type, Image as ImageIcon, Sparkles, Shapes, Move, Maximize2, RotateCw, Palette, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Layers, ArrowUpToLine, ArrowDownToLine, ArrowUp, ArrowDown } from 'lucide-react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Lock } from 'lucide-react'
 
 function DebouncedColorPicker({ value, onChange, className }: { value: string, onChange: (v: string) => void, className?: string }) {
   const [color, setColor] = React.useState(value);
@@ -50,6 +51,18 @@ export function RightSidebar() {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-midnight/70">Hızlı ipucu</p>
           <p className="mt-1 text-[10px] leading-relaxed">Bir öğeyi seçip sürükleyerek yerini değiştirin; köşelerinden tutup boyutlandırın.</p>
         </div>
+      </div>
+    )
+  }
+
+  if (selectedElement.locked) {
+    return (
+      <div className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-3 bg-white p-6 text-center">
+        <Lock className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+        <p className="text-sm font-medium text-midnight">Bu öğe kilitli</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Düzenlemek için tuvalde öğeye sağ tıklayıp kilidini açın.
+        </p>
       </div>
     )
   }

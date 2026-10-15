@@ -337,7 +337,7 @@ export function ProjectEditor() {
     const state = useSiteEditorStore.getState()
     if (!state.site || state.site.id !== siteDataMemo.id) return
     const synchronized = syncSiteEventData(state.site, project?.event_data, eventData)
-    if (JSON.stringify(synchronized) !== JSON.stringify(state.site)) state.initSite(synchronized)
+    if (JSON.stringify(synchronized) !== JSON.stringify(state.site)) state.initSite({ ...synchronized, updatedAt: new Date().toISOString() })
   }, [designTarget, eventData, project?.event_data, siteDataMemo])
 
   const hasNextStep = isNewFlow && designTarget === 'site' && project?.deliverables?.invitation?.enabled
