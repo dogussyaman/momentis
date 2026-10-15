@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
 const TYPE_LABELS = { invitation: 'Davetiye', rsvp: 'RSVP Onayı', reminder: 'Hatırlatma' }
@@ -53,14 +54,25 @@ export function SendTab({ projectId, project, onSent }) {
       <div className="lg:col-span-5">
         <div className="border border-border bg-ivory p-8">
           <p className="text-[11px] uppercase tracking-[0.3em] text-champagne-dark">Kanal</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {[{ id: 'email', label: 'E-posta', icon: Mail }, { id: 'sms', label: 'SMS', icon: MessageSquare }].map((c) => (
-              <button key={c.id} type="button" onClick={() => setChannel(c.id)} data-testid={`send-channel-${c.id}`} className={cn('flex items-center justify-center gap-2 border px-4 py-3 text-[11px] uppercase tracking-[0.18em] transition-colors', channel === c.id ? 'border-midnight bg-midnight text-ivory' : 'border-border text-midnight/70 hover:border-midnight/40')}>
-                <c.icon className="h-4 w-4" /> {c.label}
-                <span className={cn('ml-1 h-1.5 w-1.5 rounded-full', status?.[c.id]?.configured ? 'bg-sage' : 'bg-destructive')} />
-              </button>
-            ))}
-          </div>
+          <Tabs value={channel} onValueChange={setChannel} className="mt-3">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-none bg-transparent p-0">
+              {[{ id: 'email', label: 'E-posta', icon: Mail }, { id: 'sms', label: 'SMS', icon: MessageSquare }].map((c) => (
+                <TabsTrigger
+                  key={c.id}
+                  value={c.id}
+                  data-testid={`send-channel-${c.id}`}
+                  className={cn(
+                    'flex h-11 items-center justify-center gap-2 rounded-none border border-border bg-transparent px-4 py-3 text-[11px] uppercase tracking-[0.18em] transition-colors',
+                    'hover:border-midnight/40 text-midnight/70',
+                    'data-[state=active]:border-midnight data-[state=active]:bg-midnight data-[state=active]:text-ivory data-[state=active]:shadow-none'
+                  )}
+                >
+                  <c.icon className="h-4 w-4" /> {c.label}
+                  <span className={cn('ml-1 h-1.5 w-1.5 rounded-full', status?.[c.id]?.configured ? 'bg-sage' : 'bg-destructive')} />
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
           {!configured && <p className="mt-3 text-xs text-destructive" data-testid="send-not-configured">{channel === 'sms' ? 'SMS kanalı henüz yapılandırılmadı (Twilio kimlik bilgileri bekleniyor).' : 'E-posta kanalı yapılandırılmadı.'}</p>}
 
           <p className="mt-8 text-[11px] uppercase tracking-[0.3em] text-champagne-dark">Mesaj Türü</p>

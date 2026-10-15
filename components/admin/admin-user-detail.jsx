@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { LuxuryLoader } from '@/components/ui/luxury-loader'
 
 const ROLE_LABELS = { user: 'Kullanıcı', support: 'Destek', admin: 'Admin', super_admin: 'Super admin' }
 const EMPTY_DETAIL = {
@@ -171,7 +172,11 @@ export function AdminUserDetail() {
   }
 
   if (authStatus === 'loading') {
-    return <div className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="h-5 w-5 animate-spin" /> Yetki doğrulanıyor</div>
+    return (
+      <div className="py-16">
+        <LuxuryLoader variant="card" title="Yönetici Yetkisi Doğrulanıyor…" subtitle="MOMENTIS ADMIN · GÜVENLİK KONTROLÜ" />
+      </div>
+    )
   }
 
   if (currentUser?.role !== 'super_admin') {
@@ -179,7 +184,11 @@ export function AdminUserDetail() {
   }
 
   if (loading) {
-    return <div className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="h-5 w-5 animate-spin" /> Kullanıcı yükleniyor</div>
+    return (
+      <div className="py-16">
+        <LuxuryLoader variant="card" title="Kullanıcı Profili ve Hakları Yükleniyor…" subtitle="MOMENTIS ADMIN · KULLANICI YÖNETİMİ" />
+      </div>
+    )
   }
 
   if (!detail.user) {

@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { getEventType } from '@/lib/data/events'
 import { useAuth } from '@/components/auth/auth-provider'
+import { CardGridSkeleton } from '@/components/ui/luxury-loader'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
 export function PageHeader({ eyebrow, title, description, action }) {
@@ -93,7 +94,9 @@ export function ProjectsList({ view = 'active' }) {
       {loadError ? (
         <div role="alert" className="mt-12 rounded-2xl border border-destructive/20 bg-destructive/5 p-6 text-sm text-destructive">{loadError}</div>
       ) : items === null ? (
-        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-64 rounded-2xl" />)}</div>
+        <div className="mt-12">
+          <CardGridSkeleton count={6} columns="grid gap-6 md:grid-cols-2 xl:grid-cols-3" />
+        </div>
       ) : items.length === 0 ? (
         <div className="mt-12 border border-dashed border-border bg-ivory-50 px-8 py-24 text-center" data-testid="projects-empty">
           <CalendarDays className="mx-auto h-10 w-10 text-champagne" strokeWidth={1.2} />

@@ -17,6 +17,7 @@ import { createStarterSite, normalizeSiteForEditor } from '@/lib/site-builder/no
 import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
 import type { WeddingSite } from '@/lib/site-builder/schema'
 import type { LeftTab } from '@/store/site-editor-store'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { SectionsPanel } from './panels/SectionsPanel'
 import { InspectorPanel } from './panels/InspectorPanel'
@@ -319,39 +320,30 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
         {!compactLayout && <ResizableSidebar id="site-left" label="Site araç paneli" side="left" initialWidth={360} minWidth={280} maxWidth={560} className="border-r border-border bg-white">
           {/* Nav Strip */}
           <div className="w-[68px] shrink-0 border-r border-border bg-white py-3">
-            <div className="flex flex-col items-center gap-1.5">
-             {([
-               { key: 'add', label: 'Ekle', icon: PlusCircle, title: 'Bölüm ekle' },
-               { key: 'templates', label: 'Şablon', icon: LayoutTemplate, title: 'Şablonlar' },
-               { key: 'music', label: 'Ses', icon: AudioLines, title: 'Site müziği' },
-               { key: 'layers', label: 'Katman', icon: Layers, title: 'Katmanlar' },
-             ] as Array<{ key: LeftTab; label: string; icon: typeof PlusCircle; title: string }>).map(({ key, label, icon: Icon, title }) => {
-               const active = leftTab === key
-               return (
-                 <motion.button
+            <Tabs value={leftTab} onValueChange={(val) => useSiteEditorStore.getState().setLeftTab(val as LeftTab)}>
+              <TabsList aria-label="Site araçları" className="flex h-auto w-full flex-col items-center gap-1.5 bg-transparent p-0">
+               {([
+                 { key: 'add', label: 'Ekle', icon: PlusCircle, title: 'Bölüm ekle' },
+                 { key: 'templates', label: 'Şablon', icon: LayoutTemplate, title: 'Şablonlar' },
+                 { key: 'music', label: 'Ses', icon: AudioLines, title: 'Site müziği' },
+                 { key: 'layers', label: 'Katman', icon: Layers, title: 'Katmanlar' },
+               ] as Array<{ key: LeftTab; label: string; icon: typeof PlusCircle; title: string }>).map(({ key, label, icon: Icon, title }) => (
+                 <TabsTrigger
                    key={key}
-                   type="button"
+                   value={key}
                    title={title}
-                   onClick={() => useSiteEditorStore.getState().setLeftTab(key)}
-                   whileHover={{ y: -1 }}
-                   whileTap={{ scale: 0.98 }}
-                   className={cn(
-                     'relative flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-all duration-200',
-                     active
-                       ? 'bg-[#111827] text-[#f8f5f1] shadow-[0_14px_30px_-18px_rgba(17,24,39,0.85)] ring-1 ring-[#111827]/10'
-                       : 'text-midnight/55 hover:bg-[#f5f1eb] hover:text-midnight'
-                   )}
+                   className="relative flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium transition-all duration-200 text-midnight/55 hover:bg-[#f5f1eb] hover:text-midnight data-[state=active]:bg-[#111827] data-[state=active]:text-[#f8f5f1] data-[state=active]:shadow-[0_14px_30px_-18px_rgba(17,24,39,0.85)] data-[state=active]:ring-1 data-[state=active]:ring-[#111827]/10"
                  >
                    <Icon className="h-5 w-5" />
                    <span>{label}</span>
-                 </motion.button>
-               )
-             })}
-             <button title="Site ayarları" onClick={() => { useSiteEditorStore.getState().selectSection(null); useSiteEditorStore.getState().setLeftTab('add') }} className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55 transition-colors hover:bg-ivory-50 hover:text-midnight">
-               <Settings2 className="w-5 h-5" />
-               Site ayarı
-             </button>
-            </div>
+                 </TabsTrigger>
+               ))}
+               <button type="button" title="Site ayarları" onClick={() => { useSiteEditorStore.getState().selectSection(null); useSiteEditorStore.getState().setLeftTab('add') }} className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55 transition-colors hover:bg-ivory-50 hover:text-midnight">
+                 <Settings2 className="w-5 h-5" />
+                 Site ayarı
+               </button>
+              </TabsList>
+            </Tabs>
           </div>
           <div className="min-w-0 flex-1 overflow-hidden">
              {leftTab === 'add' && <SectionsPanel />}
@@ -448,31 +440,34 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
           </DrawerHeader>
           <div className="min-h-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0">
-              <div className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 border-r border-border bg-white py-3">
-                {([
-                  { key: 'add', label: 'Ekle', icon: PlusCircle },
-                  { key: 'templates', label: 'Şablon', icon: LayoutTemplate },
-                  { key: 'music', label: 'Ses', icon: AudioLines },
-                  { key: 'layers', label: 'Katman', icon: Layers },
-                ] as Array<{ key: LeftTab; label: string; icon: typeof PlusCircle }>).map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => useSiteEditorStore.getState().setLeftTab(key)}
-                    className={cn('flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium', leftTab === key ? 'bg-midnight text-ivory' : 'text-midnight/55')}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => { useSiteEditorStore.getState().selectSection(null); useSiteEditorStore.getState().setLeftTab('add') }}
-                  className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55"
-                >
-                  <Settings2 className="h-5 w-5" />
-                  <span>Ayarlar</span>
-                </button>
+              <div className="w-[68px] shrink-0 border-r border-border bg-white py-3">
+                <Tabs value={leftTab} onValueChange={(val) => useSiteEditorStore.getState().setLeftTab(val as LeftTab)}>
+                  <TabsList aria-label="Site araçları mobil" className="flex h-auto w-full flex-col items-center gap-1.5 bg-transparent p-0">
+                    {([
+                      { key: 'add', label: 'Ekle', icon: PlusCircle },
+                      { key: 'templates', label: 'Şablon', icon: LayoutTemplate },
+                      { key: 'music', label: 'Ses', icon: AudioLines },
+                      { key: 'layers', label: 'Katman', icon: Layers },
+                    ] as Array<{ key: LeftTab; label: string; icon: typeof PlusCircle }>).map(({ key, label, icon: Icon }) => (
+                      <TabsTrigger
+                        key={key}
+                        value={key}
+                        className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55 data-[state=active]:bg-midnight data-[state=active]:text-ivory"
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span>{label}</span>
+                      </TabsTrigger>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => { useSiteEditorStore.getState().selectSection(null); useSiteEditorStore.getState().setLeftTab('add') }}
+                      className="flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[8px] font-medium text-midnight/55 transition-colors hover:bg-ivory-50 hover:text-midnight"
+                    >
+                      <Settings2 className="h-5 w-5" />
+                      <span>Ayarlar</span>
+                    </button>
+                  </TabsList>
+                </Tabs>
               </div>
               <div className="min-w-0 flex-1 overflow-hidden">
                 {leftTab === 'add' && <SectionsPanel />}

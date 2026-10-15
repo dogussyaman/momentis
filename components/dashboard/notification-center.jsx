@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Bell, Check, LoaderCircle, Mail, MailWarning } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Button } from '@/components/ui/button'
+import { TableSkeleton } from '@/components/ui/luxury-loader'
 
 const ADMIN_ROLES = ['super_admin', 'admin', 'support']
 const MAIL_STATUS = {
@@ -165,45 +166,46 @@ export function NotificationCenter() {
       {error && <p role="alert" className="mt-5 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
       {success && <p role="status" className="mt-5 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p>}
 
-      <div className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 p-12 text-sm text-muted-foreground">
-            <LoaderCircle className="h-4 w-4 animate-spin" /> Bildirimler yükleniyor
-          </div>
-        ) : items.length ? (
-          <ul className="divide-y">
-            {items.map((item) => (
-              <li key={item.id} className={`flex flex-wrap items-start gap-4 p-5 ${item.readAt ? '' : 'bg-champagne/5'}`}>
-                <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${item.readAt ? 'bg-muted' : 'bg-champagne'}`} aria-hidden="true" />
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => openItem(item)} disabled={busyId === item.id}>
-                  <span className="block font-medium text-midnight">{item.title}</span>
-                  <span className="mt-1 block text-sm leading-6 text-muted-foreground">{item.message}</span>
-                  <span className="mt-2 block text-xs text-muted-foreground">{formatDate(item.createdAt)}</span>
-                </button>
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  {item.email?.status && (
-                    <span className={`text-xs ${item.email.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      {MAIL_STATUS[item.email.status] || `E-posta: ${item.email.status}`}
-                    </span>
-                  )}
-                  {canRetryEmail && emailStatus?.configured && item.audience === 'admin' && canRetryEmailNow(item) && (
-                    <Button size="sm" variant="outline" disabled={busyId === item.id} onClick={() => retryEmail(item)}>
-                      {busyId === item.id ? <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Mail className="mr-2 h-3.5 w-3.5" />}
-                      Yeniden gönder
-                    </Button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="flex flex-col items-center p-12 text-center">
-            <Bell className="h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-3 font-medium text-midnight">Henüz bildiriminiz yok</p>
-            <p className="mt-1 text-sm text-muted-foreground">Önemli hesap, proje ve talep güncellemeleri burada görünür.</p>
-          </div>
-        )}
-      </div>
+      {loading ? (
+        <TableSkeleton rows={4} columns={3} />
+      ) : (
+        <div className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
+          {items.length ? (
+            <ul className="divide-y">
+              {items.map((item) => (
+                <li key={item.id} className={`flex flex-wrap items-start gap-4 p-5 ${item.readAt ? '' : 'bg-champagne/5'}`}>
+                  <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${item.readAt ? 'bg-muted' : 'bg-champagne'}`} aria-hidden="true" />
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => openItem(item)} disabled={busyId === item.id}>
+                    <span className="block font-medium text-midnight">{item.title}</span>
+                    <span className="mt-1 block text-sm leading-6 text-muted-foreground">{item.message}</span>
+                    <span className="mt-2 block text-xs text-muted-foreground">{formatDate(item.createdAt)}</span>
+                  </button>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    {item.email?.status && (
+                      <span className={`text-xs ${item.email.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {MAIL_STATUS[item.email.status] || `E-posta: ${item.email.status}`}
+                      </span>
+                    )}
+                    {canRetryEmail && emailStatus?.configured && item.audience === 'admin' && canRetryEmailNow(item) && (
+                      <Button size="sm" variant="outline" disabled={busyId === item.id} onClick={() => retryEmail(item)}>
+                        {busyId === item.id ? <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Mail className="mr-2 h-3.5 w-3.5" />}
+                        Yeniden gönder
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-col items-center p-12 text-center">
+              <Bell className="h-8 w-8 text-muted-foreground/50" />
+              <p className="mt-3 font-medium text-midnight">Henüz bildiriminiz yok</p>
+              <p className="mt-1 text-sm text-muted-foreground">Önemli hesap, proje ve talep güncellemeleri burada görünür.</p>
+            </div>
+          )}
+        </div>
+      )}
+
     </section>
   )
 }

@@ -89,10 +89,26 @@ export function VipMyRequestDetail({ requestId }) {
         </section>
       )}
       <section className="grid gap-4 md:grid-cols-2">
-        <Info title="Çift ve etkinlik" value={`${request.eventDetails.brideName} & ${request.eventDetails.groomName} · ${request.eventDetails.eventType}`} detail={`${request.eventDetails.date} ${request.eventDetails.time || ''} · ${request.eventDetails.venue} · ${request.eventDetails.address || 'Adres belirtilmedi'}`} />
-        <Info title="Tasarım tercihleri" value={`${request.preferences.style} · ${request.preferences.colors || 'Renk belirtilmedi'}`} detail={`${request.preferences.sections.join(', ')} ${request.preferences.description ? `· ${request.preferences.description}` : ''}`} />
-        <Info title="QR albümü" value={request.albumPreferences.wantsAlbum ? 'Talep edildi' : 'Talep edilmedi'} detail={request.albumPreferences.guestPhotoSharing ? 'Misafir fotoğraf paylaşımı istendi.' : 'Misafir paylaşımı istenmedi.'} />
-        <Info title="Yüklenen fotoğraflar" value={`${request.uploadedPhotoMetadata.length} dosya`} detail={request.uploadedPhotoMetadata.map((photo) => photo.uploaded ? `${photo.name} (${Math.round(photo.size / 1024)} KB)` : `${photo.name} (yüklenemedi)`).join(', ') || 'Fotoğraf eklenmedi.'} />
+        <Info
+          title="Çift ve etkinlik"
+          value={`${[request.eventDetails?.brideName, request.eventDetails?.groomName].filter(Boolean).join(' & ') || 'İsimsiz Etkinlik'} · ${request.eventDetails?.eventType || 'Özel Etkinlik'}`}
+          detail={`${request.eventDetails?.date || 'Belirtilmedi'} ${request.eventDetails?.time || ''} · ${request.eventDetails?.venue || 'Mekân belirtilmedi'} · ${request.eventDetails?.address || 'Adres belirtilmedi'}`}
+        />
+        <Info
+          title="Tasarım tercihleri"
+          value={`${request.preferences?.style || 'Standart'} · ${request.preferences?.colors || 'Renk belirtilmedi'}`}
+          detail={`${request.preferences?.sections?.join(', ') || 'Belirtilmedi'} ${request.preferences?.description ? `· ${request.preferences.description}` : ''}`}
+        />
+        <Info
+          title="QR albümü"
+          value={request.albumPreferences?.wantsAlbum ? 'Talep edildi' : 'Talep edilmedi'}
+          detail={request.albumPreferences?.guestPhotoSharing ? 'Misafir fotoğraf paylaşımı istendi.' : 'Misafir paylaşımı istenmedi.'}
+        />
+        <Info
+          title="Yüklenen fotoğraflar"
+          value={`${request.uploadedPhotoMetadata?.length || 0} dosya`}
+          detail={request.uploadedPhotoMetadata?.map((photo) => photo.uploaded ? `${photo.name} (${Math.round(photo.size / 1024)} KB)` : `${photo.name} (yüklenemedi)`).join(', ') || 'Fotoğraf eklenmedi.'}
+        />
       </section>
       {request.uploadedPhotoMetadata.some((photo) => photo.uploaded) && <section className="rounded-3xl border border-midnight/10 bg-white p-5 shadow-sm"><h2 className="font-serif text-xl text-midnight">Eklenen dosyalar</h2><ul className="mt-3 flex flex-wrap gap-2">{request.uploadedPhotoMetadata.filter((photo) => photo.uploaded).map((photo) => <li key={photo.photoId}><a href={`/api/vip/requests/${encodeURIComponent(request.id)}/photos/${encodeURIComponent(photo.photoId)}`} className="inline-flex min-h-10 items-center rounded-xl border border-midnight/10 px-3 text-xs font-medium transition hover:bg-ivory" download>{photo.name} · İndir</a></li>)}</ul></section>}
       <section className="rounded-3xl border border-midnight/10 bg-white p-5 shadow-sm sm:p-7">

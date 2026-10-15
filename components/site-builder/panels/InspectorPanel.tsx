@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Eye, EyeOff, Lock, Unlock, Plus, Trash2, ChevronDown, ChevronRight, Type, MousePointerClick, Clock3 } from 'lucide-react'
 import { ACTION_OPTIONS, ACTION_TARGET_HINT } from '@/lib/site-builder/actions'
 import { BODY_FONTS, HEADING_FONTS, SCRIPT_FONTS } from '@/lib/site-builder/fonts'
@@ -49,7 +50,30 @@ export function InspectorPanel(){
  const style=section?.style||{}
  return <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-white">
    <div className="border-b bg-ivory-50/60 p-3"><div className="flex items-center justify-between"><div><h3 className="text-xs font-semibold uppercase tracking-wider">{section?def?.name:'Site Ayarları'}</h3><p className="mt-1 text-[10px] text-muted-foreground">{section?def?.description:'Genel site ve yayın ayarları'}</p></div>{section&&<div className="flex gap-1"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleVisibility(section.id)}>{section.visible?<Eye className="h-3.5 w-3.5"/>:<EyeOff className="h-3.5 w-3.5"/>}</Button><Button variant="ghost" size="icon" className="h-7 w-7" onClick={()=>toggleLock(section.id)}>{section.locked?<Lock className="h-3.5 w-3.5"/>:<Unlock className="h-3.5 w-3.5"/>}</Button></div>}</div>
-   {section&&<div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-white p-1"><button onClick={()=>setInspectorTab('content')} className={tab(inspectorTab==='content')}>İçerik</button><button onClick={()=>setInspectorTab('style')} className={tab(inspectorTab==='style')}>Tasarım</button><button onClick={()=>setInspectorTab('animation')} className={tab(inspectorTab==='animation')}>Anim.</button></div>}</div>
+   {section && (
+      <Tabs value={inspectorTab} onValueChange={(val: any) => setInspectorTab(val)} className="mt-3">
+        <TabsList className="grid w-full grid-cols-3 gap-1 rounded-lg bg-white p-1 h-auto border border-border/50">
+          <TabsTrigger
+            value="content"
+            className="rounded-md py-1.5 text-xs font-medium text-midnight/60 hover:text-midnight data-[state=active]:bg-midnight data-[state=active]:text-white data-[state=active]:shadow-sm"
+          >
+            İçerik
+          </TabsTrigger>
+          <TabsTrigger
+            value="style"
+            className="rounded-md py-1.5 text-xs font-medium text-midnight/60 hover:text-midnight data-[state=active]:bg-midnight data-[state=active]:text-white data-[state=active]:shadow-sm"
+          >
+            Tasarım
+          </TabsTrigger>
+          <TabsTrigger
+            value="animation"
+            className="rounded-md py-1.5 text-xs font-medium text-midnight/60 hover:text-midnight data-[state=active]:bg-midnight data-[state=active]:text-white data-[state=active]:shadow-sm"
+          >
+            Anim.
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    )}</div>
    <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3">
    {!section?<SiteSettings site={site} updateSite={useSiteEditorStore.getState().updateSite} updateTheme={updateTheme} updateSettings={updateSettings} applyFontToAll={useSiteEditorStore.getState().applyFontToAll}/>:inspectorTab==='content'?<div className="space-y-5"><FreeformOverlayControls section={section} selectedOverlayId={selectedOverlayId} selectOverlay={selectOverlay} updateSectionProps={updateSectionProps}/>{Object.entries(groups).map(([g,fs]:any)=><div key={g} className="space-y-3"><h4 className="border-b pb-1 text-[10px] font-semibold uppercase tracking-wider">{g}</h4>{fs.map((f:FieldDef)=>field(f))}</div>)}</div>:inspectorTab==='style'?<StylePanel style={style} update={p=>updateSectionStyle(section.id,p)}/>:<AnimationPanel animation={section.animation||{type:'fade',duration:.8,delay:0}} update={p=>updateSectionAnimation(section.id,p)}/>}
    </div>

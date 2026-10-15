@@ -1,12 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, RefreshCw, TicketPercent, UsersRound } from 'lucide-react'
+import { CheckCircle2, CheckSquare, Globe, Loader2, RefreshCw, TicketPercent, UsersRound } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { LuxuryLoader } from '@/components/ui/luxury-loader'
 
 function defaultDate(days = 0) {
   const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
@@ -20,6 +21,7 @@ function CampaignError({ children }) {
 
 export function AdminCampaignManager() {
   const { user, status: authStatus } = useAuth()
+  const [targetMode, setTargetMode] = useState('all') // 'all' | 'filter' | 'selected'
   const [query, setQuery] = useState('')
   const [role, setRole] = useState('all')
   const [packageId, setPackageId] = useState('all')
@@ -34,6 +36,12 @@ export function AdminCampaignManager() {
   const [batchReport, setBatchReport] = useState(null)
   const [couponUsage, setCouponUsage] = useState(null)
   const [packages, setPackages] = useState([])
+  const [users, setUsers] = useState([])
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [selectedUserIds, setSelectedUserIds] = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [showUserList, setShowUserList] = useState(false)
+  const [sendEmail, setSendEmail] = useState(true)
   const [couponForm, setCouponForm] = useState({
     code: '',
     credits_per_package: '1',
@@ -51,6 +59,27 @@ export function AdminCampaignManager() {
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+
+  const loadUsers = useCallback(async () => {
+    if (user?.role !== 'super_admin') return
+    try {
+      setLoadingUsers(true)
+      const params = new URLSearchParams({ limit: '100', status: 'active' })
+      if (query.trim()) params.set('q', query.trim())
+      if (role !== 'all') params.set('role', role)
+      if (packageId !== 'all') params.set('package', packageId)
+      const res = await fetch(`/api/admin/users?${params}`, { credentials: 'include', cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setUsers(data.items || [])
+        setTotalUsers(data.total || 0)
+      }
+    } catch {
+      // sessizce geç
+    } finally {
+      setLoadingUsers(false)
+    }
+  }, [user?.role, query, role, packageId])
 
   const load = useCallback(async () => {
     if (user?.role !== 'super_admin') return
@@ -75,14 +104,16 @@ export function AdminCampaignManager() {
       setBatches(campaignData.batches || [])
       setReport(reportData.items || [])
       setPackages(packageData.items || [])
+      await loadUsers()
     } catch (loadError) {
       setError(loadError.message || 'Kampanya verileri yüklenemedi')
     } finally {
       setLoading(false)
     }
-  }, [user?.role])
+  }, [user?.role, loadUsers])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadUsers() }, [loadUsers])
 
   const submit = async (url, body, requestKey = null) => {
     const response = await fetch(url, {
@@ -99,16 +130,43 @@ export function AdminCampaignManager() {
     return data
   }
 
+  const toggleSelectUser = (userId) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    )
+    setPreview(null)
+  }
+
+  const toggleSelectAllUsers = () => {
+    if (users.length > 0 && users.every((u) => selectedUserIds.includes(u.id))) {
+      setSelectedUserIds([])
+    } else {
+      setSelectedUserIds(users.map((u) => u.id))
+    }
+    setPreview(null)
+  }
+
   const previewCredits = async () => {
     setBusy('preview')
     setError('')
     setNotice('')
     try {
-      const data = await submit('/api/admin/campaigns/bulk-preview', {
-        filters: { q: query, role, package: packageId },
+      const payload = {
         creditsPerUser: Number(credits),
         reason,
-      })
+        sendEmail,
+      }
+      if (targetMode === 'all') {
+        payload.all = true
+      } else if (targetMode === 'selected') {
+        if (!selectedUserIds.length) {
+          throw new Error('Lütfen listeden en az bir kullanıcı seçin veya "Tüm Aktif Kullanıcılar" sekmesine geçin.')
+        }
+        payload.userIds = selectedUserIds
+      } else {
+        payload.filters = { q: query, role, package: packageId }
+      }
+      const data = await submit('/api/admin/campaigns/bulk-preview', payload)
       setPreview(data)
       setDistributionKey(window.crypto.randomUUID())
     } catch (previewError) {
@@ -125,11 +183,13 @@ export function AdminCampaignManager() {
     setError('')
     setNotice('')
     try {
-      const data = await submit('/api/admin/campaigns/credit-batch', {
+      const payload = {
         userIds: preview.userIds,
         creditsPerUser: Number(credits),
         reason,
-      }, distributionKey || window.crypto.randomUUID())
+        sendEmail,
+      }
+      const data = await submit('/api/admin/campaigns/credit-batch', payload, distributionKey || window.crypto.randomUUID())
       setNotice(`Dağıtım tamamlandı: ${data.summary.succeeded} başarılı, ${data.summary.failed} başarısız, ${data.summary.skipped} atlandı. Toplam ${data.summary.succeeded * Number(credits)} kredi.`)
       setBatchReport(data)
       setPreview(null)
@@ -272,7 +332,11 @@ export function AdminCampaignManager() {
   }
 
   if (authStatus === 'loading') {
-    return <div className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="h-5 w-5 animate-spin" /> Kampanyalar yükleniyor</div>
+    return (
+      <div className="py-16">
+        <LuxuryLoader variant="card" title="Yönetici Yetkisi Doğrulanıyor…" subtitle="MOMENTIS ADMIN · KAMPANYA YÖNETİMİ" icon={TicketPercent} />
+      </div>
+    )
   }
 
   if (user?.role !== 'super_admin') {
@@ -280,7 +344,11 @@ export function AdminCampaignManager() {
   }
 
   if (loading && !report) {
-    return <div className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="h-5 w-5 animate-spin" /> Kampanyalar yükleniyor</div>
+    return (
+      <div className="py-16">
+        <LuxuryLoader variant="card" title="Kampanya Raporları Hazırlanıyor…" subtitle="MOMENTIS ADMIN · VERİ ANALİTİĞİ" icon={TicketPercent} />
+      </div>
+    )
   }
 
   return (
@@ -297,46 +365,303 @@ export function AdminCampaignManager() {
       <CampaignError>{error}</CampaignError>
       {notice && <p role="status" className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
 
-      <section className="space-y-4 rounded-2xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-7">
-        <div>
-          <h2 className="font-serif text-xl text-midnight sm:text-2xl">Toplu kredi hediyesi</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Filtreye uyan en fazla 100 etkin hesabın her birine Premium etkinlik kredisi verilir. Büyük işler için dağıtım sınırı bilinçli olarak uygulanır.</p>
+      <section className="space-y-5 rounded-2xl border border-border bg-white p-4 shadow-sm shadow-midnight/[0.025] sm:p-6 lg:p-7">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-serif text-xl text-midnight sm:text-2xl">Toplu kredi hediyesi</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sistemdeki tüm aktif kullanıcılara veya filtrelediğiniz hesaplara toplu Premium etkinlik kredisi tanımlayın.
+            </p>
+          </div>
+          {totalUsers > 0 && (
+            <Badge variant="secondary" className="self-start text-xs font-normal">
+              Toplam {totalUsers} aktif kullanıcı
+            </Badge>
+          )}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Input value={query} onChange={(event) => { setQuery(event.target.value); setPreview(null) }} placeholder="Ad veya e-posta ara" aria-label="Kullanıcı ara" />
-          <Select value={role} onValueChange={(value) => { setRole(value); setPreview(null) }}>
-            <SelectTrigger aria-label="Rol filtresi"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm roller</SelectItem>
-              <SelectItem value="user">Kullanıcı</SelectItem>
-              <SelectItem value="support">Destek</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="super_admin">Super admin</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={packageId} onValueChange={(value) => { setPackageId(value); setPreview(null) }}>
-            <SelectTrigger aria-label="Paket filtresi"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm paketler</SelectItem>
-              {packages.map((plan) => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Input type="number" min="1" max="1000" value={credits} onChange={(event) => { setCredits(event.target.value); setPreview(null) }} aria-label="Kullanıcı başına kredi" />
+
+        {/* Hedef Kitle Seçimi Sekmeleri */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Hedef Kitle Seçimi
+          </label>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => { setTargetMode('all'); setPreview(null) }}
+              className={`flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all ${
+                targetMode === 'all'
+                  ? 'border-champagne bg-champagne/10 ring-2 ring-champagne/20'
+                  : 'border-border bg-white hover:border-champagne/50 hover:bg-ivory-50/50'
+              }`}
+            >
+              <Globe className={`mt-0.5 h-5 w-5 shrink-0 ${targetMode === 'all' ? 'text-midnight' : 'text-muted-foreground'}`} />
+              <div>
+                <span className="block text-sm font-medium text-midnight">Tüm Aktif Kullanıcılar</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Sistemdeki tüm kayıtlı ve aktif hesaplar ({totalUsers || 'Tüm'} kullanıcı)
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setTargetMode('filter'); setPreview(null) }}
+              className={`flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all ${
+                targetMode === 'filter'
+                  ? 'border-champagne bg-champagne/10 ring-2 ring-champagne/20'
+                  : 'border-border bg-white hover:border-champagne/50 hover:bg-ivory-50/50'
+              }`}
+            >
+              <UsersRound className={`mt-0.5 h-5 w-5 shrink-0 ${targetMode === 'filter' ? 'text-midnight' : 'text-muted-foreground'}`} />
+              <div>
+                <span className="block text-sm font-medium text-midnight">Filtreye Göre</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Rol, paket veya isim/e-posta filtrelerine uyanlar
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTargetMode('selected')
+                setPreview(null)
+                setShowUserList(true)
+                if (selectedUserIds.length === 0 && users.length > 0) {
+                  setSelectedUserIds(users.map((u) => u.id))
+                }
+              }}
+              className={`flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all ${
+                targetMode === 'selected'
+                  ? 'border-champagne bg-champagne/10 ring-2 ring-champagne/20'
+                  : 'border-border bg-white hover:border-champagne/50 hover:bg-ivory-50/50'
+              }`}
+            >
+              <CheckSquare className={`mt-0.5 h-5 w-5 shrink-0 ${targetMode === 'selected' ? 'text-midnight' : 'text-muted-foreground'}`} />
+              <div>
+                <span className="block text-sm font-medium text-midnight">Listeden Kullanıcı Seç</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {selectedUserIds.length > 0 ? `${selectedUserIds.length} kullanıcı seçili` : 'Kullanıcıları tek tek veya toplu seçin'}
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
-        <textarea value={reason} onChange={(event) => { setReason(event.target.value); setPreview(null) }} maxLength={500} minLength={10} rows={3} placeholder="Açıklama / kampanya gerekçesi (10–500 karakter)" className="w-full min-h-24 rounded-xl border border-border bg-white p-3 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-champagne focus:ring-2 focus:ring-champagne/25" />
-        <Button variant="outline" onClick={previewCredits} disabled={busy !== '' || reason.trim().length < 10 || Number(credits) < 1}>
+
+        {/* Filtre ve Arama Alanları */}
+        {(targetMode === 'filter' || targetMode === 'selected') && (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <Input
+              value={query}
+              onChange={(event) => { setQuery(event.target.value); setPreview(null) }}
+              placeholder="Ad veya e-posta ara"
+              aria-label="Kullanıcı ara"
+            />
+            <Select value={role} onValueChange={(value) => { setRole(value); setPreview(null) }}>
+              <SelectTrigger aria-label="Rol filtresi"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm roller</SelectItem>
+                <SelectItem value="user">Kullanıcı</SelectItem>
+                <SelectItem value="support">Destek</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="super_admin">Super admin</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={packageId} onValueChange={(value) => { setPackageId(value); setPreview(null) }}>
+              <SelectTrigger aria-label="Paket filtresi"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tüm paketler</SelectItem>
+                {packages.map((plan) => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Kullanıcı Listesi / Tablosu (Listeden Seç veya İncele) */}
+        {(targetMode === 'selected' || showUserList) && (
+          <div className="space-y-3 rounded-xl border border-border bg-ivory-50/40 p-3 sm:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="select-all-users"
+                  checked={users.length > 0 && users.every((u) => selectedUserIds.includes(u.id))}
+                  onChange={toggleSelectAllUsers}
+                  className="h-4 w-4 rounded border-border accent-midnight"
+                />
+                <label htmlFor="select-all-users" className="cursor-pointer text-xs font-semibold text-midnight">
+                  Tümünü Seç / Kaldır ({selectedUserIds.length} / {users.length} kullanıcı seçili)
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => { setSelectedUserIds(users.map((u) => u.id)); setPreview(null) }}
+                >
+                  Tümünü Seç
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground"
+                  onClick={() => { setSelectedUserIds([]); setPreview(null) }}
+                >
+                  Seçimi Temizle
+                </Button>
+              </div>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto rounded-lg border border-border bg-white">
+              {loadingUsers ? (
+                <div className="flex items-center justify-center p-6 text-xs text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Kullanıcılar yükleniyor...
+                </div>
+              ) : users.length === 0 ? (
+                <p className="p-6 text-center text-xs text-muted-foreground">Filtreye uyan kullanıcı bulunamadı.</p>
+              ) : (
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-ivory-50 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                    <tr>
+                      <th className="w-10 px-3 py-2" />
+                      <th className="px-3 py-2">Kullanıcı</th>
+                      <th className="px-3 py-2">Rol</th>
+                      <th className="px-3 py-2">Paket</th>
+                      <th className="px-3 py-2">Kredi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {users.map((account) => {
+                      const isSelected = selectedUserIds.includes(account.id)
+                      return (
+                        <tr
+                          key={account.id}
+                          onClick={() => toggleSelectUser(account.id)}
+                          className={`cursor-pointer transition-colors hover:bg-ivory-50 ${isSelected ? 'bg-champagne/10' : ''}`}
+                        >
+                          <td className="px-3 py-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectUser(account.id)}
+                              className="h-3.5 w-3.5 rounded border-border accent-midnight"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <p className="font-medium text-midnight truncate max-w-[200px]">{account.name || 'İsimsiz'}</p>
+                            <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">{account.email}</p>
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge variant="outline" className="text-[10px]">{account.role}</Badge>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {account.package?.name || 'Başlangıç'}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {account.quota?.remainingCredits ?? 0}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bilgilendirme ve Liste Açma Butonu (Tüm Kullanıcılar Modunda) */}
+        {targetMode === 'all' && (
+          <div className="flex items-center justify-between rounded-xl border border-champagne/30 bg-champagne/5 p-3 text-xs text-midnight">
+            <span className="flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              Sistemdeki tüm aktif kullanıcılar ({totalUsers} kullanıcı) hedefleniyor.
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setShowUserList(!showUserList)}
+            >
+              {showUserList ? 'Listeyi Gizle' : 'Kullanıcı Listesini İncele'}
+            </Button>
+          </div>
+        )}
+
+        {/* Kredi ve Açıklama Alanları */}
+        <div className="grid gap-3 sm:grid-cols-4">
+          <div className="sm:col-span-1 space-y-1">
+            <label className="text-xs text-muted-foreground">Kullanıcı başına kredi</label>
+            <Input
+              type="number"
+              min="1"
+              max="1000"
+              value={credits}
+              onChange={(event) => { setCredits(event.target.value); setPreview(null) }}
+              aria-label="Kullanıcı başına kredi"
+            />
+          </div>
+          <div className="sm:col-span-3 space-y-1">
+            <label className="text-xs text-muted-foreground">Kampanya açıklaması / gerekçe (10-500 karakter)</label>
+            <Input
+              value={reason}
+              onChange={(event) => { setReason(event.target.value); setPreview(null) }}
+              maxLength={500}
+              placeholder="Örn: Tüm kullanıcılara kampanya hediye kredisi"
+            />
+          </div>
+        </div>
+
+        {/* E-posta Bildirimi Seçeneği */}
+        <div className="flex items-start gap-3 rounded-xl border border-border bg-ivory-50/50 p-3.5 transition-colors hover:border-champagne">
+          <input
+            type="checkbox"
+            id="send-email-checkbox"
+            checked={sendEmail}
+            onChange={(e) => { setSendEmail(e.target.checked); setPreview(null) }}
+            className="mt-0.5 h-4 w-4 rounded border-border accent-midnight cursor-pointer"
+          />
+          <label htmlFor="send-email-checkbox" className="cursor-pointer select-none text-xs leading-relaxed text-midnight">
+            <span className="font-semibold block">Kullanıcılara e-posta bildirimi gönder</span>
+            <span className="text-muted-foreground block text-[11px]">
+              Kredi tanımlandığında kullanıcılara &quot;Hediye etkinlik kredisi hesabınıza eklendi&quot; konulu bilgilendirme e-postası iletilir.
+            </span>
+          </label>
+        </div>
+
+        <Button
+          variant="outline"
+          onClick={previewCredits}
+          disabled={busy !== '' || reason.trim().length < 10 || Number(credits) < 1 || (targetMode === 'selected' && selectedUserIds.length === 0)}
+        >
           {busy === 'preview' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UsersRound className="mr-2 h-4 w-4" />} Önizleme oluştur
         </Button>
+
         {preview && (
           <div className="space-y-3 rounded-2xl border border-champagne/50 bg-champagne/10 p-4 sm:p-5">
-            <div className="grid gap-3 text-sm sm:grid-cols-3">
-              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">Hedef kullanıcı <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.userCount}</strong></p>
-              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">Kişi başı kredi <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.creditsPerUser}</strong></p>
-              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">Toplam dağıtım <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.totalCredits}</strong></p>
+            <div className="grid gap-3 text-sm sm:grid-cols-4">
+              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">
+                Hedef kullanıcı <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.userCount}</strong>
+              </p>
+              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">
+                Kişi başı kredi <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.creditsPerUser}</strong>
+              </p>
+              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">
+                Toplam dağıtım <strong className="mt-1 block font-serif text-2xl text-midnight">{preview.totalCredits}</strong>
+              </p>
+              <p className="rounded-xl border border-champagne/30 bg-white/70 p-3 text-xs text-muted-foreground">
+                E-posta bildirimi <strong className={`mt-1 block font-serif text-base ${preview.sendEmail ? 'text-emerald-700' : 'text-muted-foreground'}`}>{preview.sendEmail ? '✉️ Gönderilecek' : '🚫 Kapalı'}</strong>
+              </p>
             </div>
             <p className="text-xs text-muted-foreground">Açıklama: {preview.reason}</p>
             <Button onClick={distributeCredits} disabled={busy !== '' || !preview.userCount}>
-              {busy === 'distribution' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Onayla ve dağıt
+              {busy === 'distribution' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Onayla ve dağıt ({preview.totalCredits} Kredi)
             </Button>
           </div>
         )}

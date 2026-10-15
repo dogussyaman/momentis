@@ -27,7 +27,7 @@ const inputClass = 'mt-1 h-11 rounded-xl border-midnight/15 bg-white'
 
 function initialForm(siteSlug, invitationSlug) {
   const site = VIP_SITE_TEMPLATES.find((item) => item.slug === siteSlug)
-  const invitation = VIP_INVITATION_TEMPLATES.find((item) => item.slug === invitationSlug)
+  const invitation = VIP_INVITATION_TEMPLATES.find((item) => item.slug === invitationSlug || item.legacySlug === invitationSlug || item.id === invitationSlug)
   return {
     siteId: site?.id || '',
     invitationId: invitation?.id || '',

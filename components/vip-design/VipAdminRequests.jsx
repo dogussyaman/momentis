@@ -10,6 +10,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { canManageAdmin, canReadAdmin } from '@/lib/admin/authorization'
 import { fetchVipApi } from '@/lib/vip-design/api-client.mjs'
 import { VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES, VIP_WORKFLOW_STATUSES } from '@/lib/vip-design/mock-data.mjs'
+import { LuxuryLoader, TableSkeleton } from '@/components/ui/luxury-loader'
 
 export function VipAdminRequests() {
   const { user, status: authStatus } = useAuth()
@@ -57,7 +58,13 @@ export function VipAdminRequests() {
     }
   }, [user, status, query, page])
 
-  if (authStatus === 'loading') return <p className="py-16 text-center text-sm text-muted-foreground">Admin oturumu doğrulanıyor…</p>
+  if (authStatus === 'loading') {
+    return (
+      <div className="py-16">
+        <LuxuryLoader variant="card" title="Admin Oturumu Doğrulanıyor…" subtitle="MOMENTIS ADMIN · VIP İŞ AKIŞI" />
+      </div>
+    )
+  }
   if (!canReadAdmin(user)) return <div className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-white p-8 text-center"><ShieldAlert className="mx-auto h-7 w-7 text-red-700" /><h1 className="mt-3 font-serif text-2xl">Erişim izni gerekli</h1><p className="mt-2 text-sm text-muted-foreground">VIP talepleri yalnızca mevcut admin/support rolleriyle görüntülenebilir.</p></div>
 
   return (
@@ -89,7 +96,7 @@ export function VipAdminRequests() {
         </TabsList>
       </Tabs>
       {error && <p className="mt-5 rounded-xl bg-red-50 p-4 text-xs text-red-700" role="alert">{error}</p>}
-      {loading && <div className="flex min-h-40 items-center justify-center gap-2 rounded-3xl border border-midnight/10 bg-white text-sm text-muted-foreground"><FileSearch className="h-4 w-4 animate-pulse" /> Talepler yükleniyor…</div>}
+      {loading && <TableSkeleton rows={5} columns={5} />}
       {!loading && !error && requests.length === 0 && <div className="rounded-3xl border border-dashed border-midnight/20 bg-white p-10 text-center"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-ivory text-muted-foreground"><FileSearch className="h-5 w-5" /></span><p className="mt-4 font-serif text-2xl">Talep bulunamadı</p><p className="mt-2 text-sm text-muted-foreground">Seçili filtrelerle eşleşen VIP talebi yok.</p></div>}
       {!loading && requests.length > 0 && (
         <div className="overflow-hidden rounded-3xl border border-midnight/10 bg-white shadow-sm">
@@ -99,7 +106,28 @@ export function VipAdminRequests() {
               const site = VIP_SITE_TEMPLATES.find((item) => item.id === request.selectedSiteTemplateId)
               const invite = VIP_INVITATION_TEMPLATES.find((item) => item.id === request.selectedInvitationTemplateId)
               const label = VIP_WORKFLOW_STATUSES.find((item) => item.id === request.status)?.label || request.status
-              return <li key={request.id} className="grid gap-3 p-4 transition hover:bg-ivory/40 lg:grid-cols-[1.15fr_1fr_1fr_1fr_0.75fr_auto] lg:items-center lg:px-5"><div><Link href={`/panel/admin/vip-talepler/${encodeURIComponent(request.id)}`} className="text-xs font-semibold text-midnight underline-offset-4 hover:underline">{request.user_snapshot?.name || 'İsimsiz'} <ArrowRight className="ml-1 inline h-3 w-3" /></Link><p className="mt-1 text-[10px] text-muted-foreground">{request.user_snapshot?.email} · {request.id}</p></div><p className="text-xs">{request.eventDetails.brideName} & {request.eventDetails.groomName}<span className="block text-[10px] text-muted-foreground">{request.eventDetails.date}</span></p><p className="text-xs">{site?.title || '—'}</p><p className="text-xs">{invite?.title || '—'}</p><p className="text-xs">{new Date(request.createdAt).toLocaleDateString('tr-TR')}</p><span className="w-fit rounded-full bg-champagne/20 px-2.5 py-1.5 text-[10px] font-medium">{label}</span></li>
+              const event = request.eventDetails || {}
+              const coupleName = [event.brideName, event.groomName].filter(Boolean).join(' & ') || request.title || 'İsimsiz Etkinlik'
+              const eventDate = event.date || 'Tarih belirtilmedi'
+
+              return (
+                <li key={request.id} className="grid gap-3 p-4 transition hover:bg-ivory/40 lg:grid-cols-[1.15fr_1fr_1fr_1fr_0.75fr_auto] lg:items-center lg:px-5">
+                  <div>
+                    <Link href={`/panel/admin/vip-talepler/${encodeURIComponent(request.id)}`} className="text-xs font-semibold text-midnight underline-offset-4 hover:underline">
+                      {request.user_snapshot?.name || 'İsimsiz'} <ArrowRight className="ml-1 inline h-3 w-3" />
+                    </Link>
+                    <p className="mt-1 text-[10px] text-muted-foreground">{request.user_snapshot?.email} · {request.id}</p>
+                  </div>
+                  <p className="text-xs font-medium text-midnight">
+                    {coupleName}
+                    <span className="block text-[10px] text-muted-foreground font-normal">{eventDate}</span>
+                  </p>
+                  <p className="text-xs">{site?.title || '—'}</p>
+                  <p className="text-xs">{invite?.title || '—'}</p>
+                  <p className="text-xs">{new Date(request.createdAt).toLocaleDateString('tr-TR')}</p>
+                  <span className="w-fit rounded-full bg-champagne/20 px-2.5 py-1.5 text-[10px] font-medium">{label}</span>
+                </li>
+              )
             })}
           </ul>
         </div>

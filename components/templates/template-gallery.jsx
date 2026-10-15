@@ -7,6 +7,7 @@ import { Search, SlidersHorizontal } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TemplateCard } from './template-card'
 import { EVENT_TYPES, TEMPLATE_STYLES } from '@/lib/data/events'
 import { cn } from '@/lib/utils'
@@ -67,24 +68,24 @@ export function TemplateGallery() {
   return (
     <div data-testid="template-gallery">
       <div className="flex flex-col gap-6 border-y border-border py-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Etkinlik türü">
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              role="tab"
-              aria-selected={category === c.id}
-              onClick={() => onCategory(c.id)}
-              data-testid={`filter-category-${c.id}`}
-              className={cn(
-                'border px-4 py-2 text-[11px] uppercase tracking-[0.2em] transition-all duration-300',
-                category === c.id ? 'border-midnight bg-midnight text-ivory' : 'border-border bg-transparent text-midnight/70 hover:border-midnight/50 hover:text-midnight'
-              )}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
+        <Tabs value={category} onValueChange={onCategory} className="w-full lg:w-auto">
+          <TabsList aria-label="Etkinlik türü" className="h-auto w-wrap flex-wrap justify-start gap-2 rounded-xl bg-transparent p-0">
+            {categories.map((c) => (
+              <TabsTrigger
+                key={c.id}
+                value={c.id}
+                data-testid={`filter-category-${c.id}`}
+                className={cn(
+                  'rounded-none border px-4 py-2 text-[11px] uppercase tracking-[0.2em] transition-all duration-300',
+                  'border-border bg-transparent text-midnight/70 hover:border-midnight/50 hover:text-midnight',
+                  'data-[state=active]:border-midnight data-[state=active]:bg-midnight data-[state=active]:text-ivory data-[state=active]:shadow-none'
+                )}
+              >
+                {c.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative">

@@ -15,6 +15,7 @@ import {
   Layers,
   Sparkles,
 } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function Ozel1MapLocation() {
   const [copied, setCopied] = useState(false)
@@ -48,26 +49,22 @@ export function Ozel1MapLocation() {
 
           {/* Map Controls */}
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-[#e2d8cb] bg-white p-0.5 text-[10px]">
-              <button
-                type="button"
-                onClick={() => setActiveTab('map')}
-                className={`rounded-md px-2.5 py-1 font-medium transition ${
-                  activeTab === 'map' ? 'bg-[#a98756] text-white shadow-xs' : 'text-midnight/60 hover:text-midnight'
-                }`}
-              >
-                Harita
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('satellite')}
-                className={`rounded-md px-2.5 py-1 font-medium transition ${
-                  activeTab === 'satellite' ? 'bg-[#a98756] text-white shadow-xs' : 'text-midnight/60 hover:text-midnight'
-                }`}
-              >
-                Uydu
-              </button>
-            </div>
+            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'map' | 'satellite')}>
+              <TabsList className="h-auto rounded-lg border border-[#e2d8cb] bg-white p-0.5 text-[10px]">
+                <TabsTrigger
+                  value="map"
+                  className="rounded-md px-2.5 py-1 text-[10px] font-medium transition text-midnight/60 hover:text-midnight data-[state=active]:bg-[#a98756] data-[state=active]:text-white data-[state=active]:shadow-xs"
+                >
+                  Harita
+                </TabsTrigger>
+                <TabsTrigger
+                  value="satellite"
+                  className="rounded-md px-2.5 py-1 text-[10px] font-medium transition text-midnight/60 hover:text-midnight data-[state=active]:bg-[#a98756] data-[state=active]:text-white data-[state=active]:shadow-xs"
+                >
+                  Uydu
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             <button
               type="button"

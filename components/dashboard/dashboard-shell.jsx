@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { canManageSuperAdmin } from '@/lib/admin/authorization'
 import { NotificationBell } from '@/components/dashboard/notification-bell'
+import { LuxuryLoader } from '@/components/ui/luxury-loader'
 
 const NAV_GROUPS = [
   {
@@ -340,18 +341,27 @@ export function DashboardShell({ children }) {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ivory">
-        <div className="text-center">
-          <Logo />
-          {status === 'error' ? (
-            <>
-              <p className="mt-6 text-sm text-muted-foreground">Oturum doğrulanamadı. Bağlantınızı kontrol edip yeniden deneyin.</p>
-              <Button variant="outline" onClick={refresh} className="mt-4">Yeniden dene</Button>
-            </>
-          ) : (
-            <p className="mt-6 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">{user === null ? 'Oturum kontrol ediliyor…' : 'Yönlendiriliyor…'}</p>
-          )}
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-ivory px-4">
+        {status === 'error' ? (
+          <div className="max-w-md rounded-3xl border border-destructive/20 bg-white p-8 text-center shadow-lg">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive mb-4">
+              <Logo />
+            </div>
+            <h2 className="font-serif text-2xl text-midnight">Oturum Doğrulanamadı</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bağlantınızı kontrol edip lütfen yeniden deneyin.
+            </p>
+            <Button variant="outline" onClick={refresh} className="mt-6 rounded-xl border-midnight/20">
+              Yeniden Dene
+            </Button>
+          </div>
+        ) : (
+          <LuxuryLoader
+            variant="page"
+            title={user === null ? 'Oturum Doğrulanıyor…' : 'Panele Yönlendiriliyor…'}
+            subtitle="MOMENTIS · GÜVENLİ ERİŞİM"
+          />
+        )}
       </div>
     )
   }

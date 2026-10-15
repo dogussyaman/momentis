@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/components/auth/auth-provider'
+import { LuxuryLoader, TableSkeleton } from '@/components/ui/luxury-loader'
 
 const ROLE_LABELS = { user: 'Kullanıcı', support: 'Destek', admin: 'Admin', super_admin: 'Super admin' }
 
@@ -115,7 +116,11 @@ export function AdminUserManager() {
   }
 
   if (authStatus === 'loading') {
-    return <div className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="h-5 w-5 animate-spin" /> Yetki doğrulanıyor</div>
+    return (
+      <div className="py-12">
+        <LuxuryLoader variant="card" title="Yönetici Yetkisi Doğrulanıyor…" subtitle="MOMENTIS ADMIN · GÜVENLİK PROTOKOLÜ" />
+      </div>
+    )
   }
 
   if (user?.role !== 'super_admin') {
@@ -172,7 +177,7 @@ export function AdminUserManager() {
       </div>
 
       {loading ? (
-        <div className="flex min-h-40 items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="h-5 w-5 animate-spin" /> Kullanıcılar yükleniyor</div>
+        <TableSkeleton rows={6} columns={4} />
       ) : (
         <>
           {selectedIds.length > 0 && (

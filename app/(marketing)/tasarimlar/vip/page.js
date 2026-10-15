@@ -102,7 +102,7 @@ export default function VipDesignLandingPage() {
           <div><p className="text-[10px] uppercase tracking-[0.24em] text-champagne-dark">B · Hediye davetiye konseptleri</p><h2 id="vip-invitations" className="mt-3 font-serif text-3xl md:text-4xl">Bağımsız davetiye seçkisi</h2></div>
           <p className="max-w-md text-xs leading-5 text-muted-foreground">Site ve davetiye seçimleri birbirinden bağımsızdır; aynı numaralı tasarımları seçme zorunluluğu yoktur.</p>
         </div>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {VIP_INVITATION_TEMPLATES.map((template) => <VipInvitationCard key={template.id} template={template} href={`/tasarimlar/vip/talep/yeni?invitation=${template.slug}`} />)}
         </div>
       </section>

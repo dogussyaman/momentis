@@ -146,10 +146,26 @@ export function VipAdminRequestDetail({ requestId }) {
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Info title="Seçilen VIP site" value={site?.title} detail={site?.description} href={site ? `/tasarimlar/vip/${site.slug}` : undefined} linkLabel="VIP sayfa demosunu aç" />
         <Info title="Seçilen hediye davetiye" value={invitation?.title} detail={invitation?.description} />
-        <Info title="Çift ve etkinlik" value={`${request.eventDetails.brideName} & ${request.eventDetails.groomName} · ${request.eventDetails.eventType}`} detail={`Tarih: ${request.eventDetails.date} ${request.eventDetails.time || ''} · Mekân: ${request.eventDetails.venue} · Adres: ${request.eventDetails.address || 'Belirtilmedi'} · Aile: ${request.eventDetails.familyInfo || 'Belirtilmedi'} · Davet notu: ${request.eventDetails.invitationText || 'Belirtilmedi'}`} />
-        <Info title="Tasarım tercihleri" value={`${request.preferences.style} · ${request.preferences.colors || 'Renk belirtilmedi'}`} detail={`Bölümler: ${request.preferences.sections.join(', ') || 'Belirtilmedi'} · Referanslar: ${request.preferences.referenceNotes || 'Yok'} · Ek istek: ${request.preferences.description || 'Yok'}`} />
-        <Info title="QR albüm tercihleri" value={request.albumPreferences.wantsAlbum ? 'Albüm isteniyor' : 'Albüm istenmiyor'} detail={request.albumPreferences.guestPhotoSharing ? 'Misafir QR fotoğraf paylaşımı isteniyor' : 'Misafir paylaşımı istenmiyor'} />
-        <Info title="Yüklenen fotoğraflar" value={`${request.uploadedPhotoMetadata.length} dosya`} detail={request.uploadedPhotoMetadata.map((photo) => `${photo.name} · ${photo.type} · ${Math.round(photo.size / 1024)} KB`).join(' | ') || 'Fotoğraf eklenmedi.'} />
+        <Info
+          title="Çift ve etkinlik"
+          value={`${[request.eventDetails?.brideName, request.eventDetails?.groomName].filter(Boolean).join(' & ') || 'İsimsiz Etkinlik'} · ${request.eventDetails?.eventType || 'Özel Etkinlik'}`}
+          detail={`Tarih: ${request.eventDetails?.date || 'Belirtilmedi'} ${request.eventDetails?.time || ''} · Mekân: ${request.eventDetails?.venue || 'Belirtilmedi'} · Adres: ${request.eventDetails?.address || 'Belirtilmedi'} · Aile: ${request.eventDetails?.familyInfo || 'Belirtilmedi'} · Davet notu: ${request.eventDetails?.invitationText || 'Belirtilmedi'}`}
+        />
+        <Info
+          title="Tasarım tercihleri"
+          value={`${request.preferences?.style || 'Standart'} · ${request.preferences?.colors || 'Renk belirtilmedi'}`}
+          detail={`Bölümler: ${request.preferences?.sections?.join(', ') || 'Belirtilmedi'} · Referanslar: ${request.preferences?.referenceNotes || 'Yok'} · Ek istek: ${request.preferences?.description || 'Yok'}`}
+        />
+        <Info
+          title="QR albüm tercihleri"
+          value={request.albumPreferences?.wantsAlbum ? 'Albüm isteniyor' : 'Albüm istenmiyor'}
+          detail={request.albumPreferences?.guestPhotoSharing ? 'Misafir QR fotoğraf paylaşımı isteniyor' : 'Misafir paylaşımı istenmiyor'}
+        />
+        <Info
+          title="Yüklenen fotoğraflar"
+          value={`${request.uploadedPhotoMetadata?.length || 0} dosya`}
+          detail={request.uploadedPhotoMetadata?.map((photo) => `${photo.name} · ${photo.type} · ${Math.round(photo.size / 1024)} KB`).join(' | ') || 'Fotoğraf eklenmedi.'}
+        />
       </div>
       <section className="flex flex-wrap items-center justify-between gap-5 rounded-3xl border border-champagne/50 bg-white p-5 shadow-sm sm:p-7">
         <div className="max-w-2xl">

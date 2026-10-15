@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/auth/auth-provider'
 import { fetchVipApi } from '@/lib/vip-design/api-client.mjs'
 import { VIP_INVITATION_TEMPLATES, VIP_SITE_TEMPLATES, VIP_WORKFLOW_STATUSES } from '@/lib/vip-design/mock-data.mjs'
+import { LuxuryLoader } from '@/components/ui/luxury-loader'
 
 export function VipMyRequests() {
   const { user, status: authStatus } = useAuth()
@@ -37,7 +38,13 @@ export function VipMyRequests() {
     return () => { active = false }
   }, [user])
 
-  if (authStatus === 'loading') return <p className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> Talepler yükleniyor…</p>
+  if (authStatus === 'loading') {
+    return (
+      <div className="py-16">
+        <LuxuryLoader variant="card" title="VIP Hesabı Doğrulanıyor…" subtitle="MOMENTIS VIP · GÜVENLİ ERİŞİM" icon={Gift} />
+      </div>
+    )
+  }
   if (!user) return <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm">VIP taleplerinizi görüntülemek için giriş yapın.</p>
 
   return (
@@ -62,8 +69,14 @@ export function VipMyRequests() {
         <SummaryCard icon={Sparkles} label="Hizmet kapsamı" value="Ayrı değerlendirme" detail="Talep gönderimi satın alma veya ücretsiz hizmet onayı değildir" tone="gold" />
       </div>
 
-      {error && <p className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive" role="alert">{error}</p>}
-      {state === 'loading' && <div className="flex min-h-40 items-center justify-center gap-2 rounded-3xl border border-midnight/10 bg-white text-sm text-muted-foreground"><LoaderCircle className="h-4 w-4 animate-spin" /> Talepler yükleniyor…</div>}
+      {state === 'loading' && (
+        <LuxuryLoader
+          variant="card"
+          title="VIP Talepleriniz Yükleniyor…"
+          subtitle="MOMENTIS VIP · TALEP TAKİBİ"
+          icon={Gift}
+        />
+      )}
       {state === 'ready' && requests.length === 0 && (
         <div className="rounded-3xl border border-dashed border-midnight/20 bg-white px-6 py-12 text-center shadow-sm">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-champagne/20 text-champagne-dark"><Gift className="h-6 w-6" /></span>

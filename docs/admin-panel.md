@@ -88,11 +88,11 @@ can still modify MongoDB data directly.
   only with the anonymized user ID. Available credits are closed and an append-only
   forfeiture movement is written. The final active admin cannot self-delete. MongoDB
   transaction support is required for this operation.
-- `/panel/admin/campaigns` provides a previewed credit gift for filtered active users,
-  capped at 100 recipients per request. Each grant, movement, per-user result, campaign,
-  and audit entry is tied to an idempotent batch. Failed/skipped results remain
-  available in the batch report; retrying a partial batch reprocesses failures without
-  duplicating successful grants.
+- `/panel/admin/campaigns` provides a previewed credit gift for all active users,
+  filtered criteria, or selected accounts (supporting up to 10,000 recipients per request).
+  Each grant, movement, per-user result, campaign, and audit entry is tied to an idempotent batch.
+  Failed/skipped results remain available in the batch report; retrying a partial batch reprocesses
+  failures without duplicating successful grants.
 - Coupons grant event credits for selected packages (Premium, Atölye, or both) with
   configurable credits per package. Coupon code, active window, package options,
   total-use limit, per-user limit, test-coupon status, and terms are validated on the

@@ -9,6 +9,7 @@ import { DavetiyeKart } from '@/components/shared/davetiye-kart'
 import { EDITOR_ASSETS, EDITOR_ASSET_CATEGORIES, EditorAsset } from '@/lib/editor-assets'
 import { ThemePalettePanel } from './ThemePalettePanel'
 import { SITE_SVG_LIBRARY, WEDDING_MEDIA_LIBRARY } from '@/lib/site-builder/media'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const EDITOR_DRAG_EVENT = 'momentis-editor-sidebar-drop'
 
@@ -586,27 +587,24 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
   }
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-row bg-white">
-      <div className="flex w-[68px] flex-col items-center gap-1.5 overflow-y-auto border-r border-border bg-[#faf9f6] py-3">
-        {tabs.map(tab => {
-          const isActive = activeTab === tab.id
-          const Icon = tab.icon
-          return (
-            <motion.button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              title={tab.label}
-              aria-current={isActive ? 'page' : undefined}
-              whileHover={{ y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              className={`relative mx-1 flex w-[58px] flex-col items-center gap-1.5 rounded-xl px-1 py-2.5 transition-all duration-200 ${isActive ? 'bg-[#111827] text-[#f8f5f1] shadow-[0_14px_30px_-18px_rgba(17,24,39,0.85)] ring-1 ring-[#111827]/10' : 'text-midnight/60 hover:bg-[#f5f1eb] hover:text-midnight'}`}
-            >
-              <Icon className="h-[18px] w-[18px]" />
-              <span className="text-[8px] font-medium">{tab.label}</span>
-            </motion.button>
-          )
-        })}
+    <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="flex h-full w-full min-w-0 flex-row bg-white">
+      <div className="w-[68px] shrink-0 overflow-y-auto border-r border-border bg-[#faf9f6] py-3">
+        <TabsList aria-label="Davetiye araçları" className="flex h-auto w-full flex-col items-center gap-1.5 bg-transparent p-0">
+          {tabs.map(tab => {
+            const Icon = tab.icon
+            return (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                title={tab.label}
+                className="relative mx-1 flex w-[58px] flex-col items-center gap-1.5 rounded-xl px-1 py-2.5 transition-all duration-200 text-midnight/60 hover:bg-[#f5f1eb] hover:text-midnight data-[state=active]:bg-[#111827] data-[state=active]:text-[#f8f5f1] data-[state=active]:shadow-[0_14px_30px_-18px_rgba(17,24,39,0.85)] data-[state=active]:ring-1 data-[state=active]:ring-[#111827]/10"
+              >
+                <Icon className="h-[18px] w-[18px]" />
+                <span className="text-[8px] font-medium">{tab.label}</span>
+              </TabsTrigger>
+            )
+          })}
+        </TabsList>
       </div>
       <div className="min-w-0 flex-1 overflow-y-auto bg-white p-4">
         <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-6 border-b border-border bg-white/95 px-4 py-4 backdrop-blur">
@@ -1151,6 +1149,6 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
            </div>
         )}
       </div>
-    </div>
+    </Tabs>
   )
 }

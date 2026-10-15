@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Copy, Dice5, Palette, Search, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useEditorStore } from '@/store/editor-store'
 import {
   COLOR_PALETTES,
@@ -202,16 +203,22 @@ export function ThemePalettePanel({ onSelect }: { onSelect?: () => void } = {}) 
         </button>
       </div>
 
-      <div className="grid grid-cols-2 rounded-lg border border-[#EAE5DC] bg-[#F7F5F0] p-1">
-        {([
-          ['presets', 'Hazır paletler'],
-          ['custom', 'Özel renkler'],
-        ] as const).map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setMode(key)} className={`rounded-md px-2 py-2 text-[9px] font-medium transition ${mode === key ? 'bg-white text-midnight shadow-sm' : 'text-midnight/50 hover:text-midnight'}`}>
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={mode} onValueChange={(val) => setMode(val as 'presets' | 'custom')}>
+        <TabsList className="grid w-full grid-cols-2 rounded-lg border border-[#EAE5DC] bg-[#F7F5F0] p-1 h-auto">
+          {([
+            ['presets', 'Hazır paletler'],
+            ['custom', 'Özel renkler'],
+          ] as const).map(([key, label]) => (
+            <TabsTrigger
+              key={key}
+              value={key}
+              className="rounded-md px-2 py-2 text-[9px] font-medium transition text-midnight/50 hover:text-midnight data-[state=active]:bg-white data-[state=active]:text-midnight data-[state=active]:shadow-sm"
+            >
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <AnimatePresence mode="wait" initial={false}>
         {mode === 'presets' ? (

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { LuxuryLoader } from '@/components/ui/luxury-loader'
 
 const FIELD_DEFINITIONS = [
   { key: 'subject', label: 'E-posta konusu', maxLength: 180 },
@@ -154,7 +155,11 @@ export function AdminEmailTemplateManager() {
   }
 
   if (loading && !items.length) {
-    return <div className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="h-5 w-5 animate-spin" /> E-posta şablonları yükleniyor</div>
+    return (
+      <div className="py-16">
+        <LuxuryLoader variant="card" title="E-Posta Şablonları Hazırlanıyor…" subtitle="MOMENTIS ADMIN · BİLDİRİM SİSTEMİ" icon={Mail} />
+      </div>
+    )
   }
 
   return (
