@@ -93,8 +93,12 @@ export function AlbumTab({ projectId, project, onChanged }) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url; a.download = `momentis-album-${project.slug}.zip`
-      document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(url)
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      // Browsers may start reading the blob after the click handler returns.
+      // Keep the object URL alive briefly so larger ZIP downloads aren't interrupted.
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
       toast.success('Albüm indiriliyor')
     } catch { toast.error('İndirilemedi') } finally { setZipping(false) }
   }
