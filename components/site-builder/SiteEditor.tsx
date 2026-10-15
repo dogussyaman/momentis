@@ -18,6 +18,7 @@ import { resolveTokens, syncSiteEventData } from '@/lib/events/event-tokens'
 import type { WeddingSite } from '@/lib/site-builder/schema'
 import type { LeftTab } from '@/store/site-editor-store'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getSaveStatus, isSiteDirty, shouldWarnBeforeUnload } from '@/lib/site-builder/save-status'
 
 import { SectionsPanel } from './panels/SectionsPanel'
 import { InspectorPanel } from './panels/InspectorPanel'
@@ -32,8 +33,8 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 interface SiteEditorProps {
   onSwitchToCard: () => void;
   isUpdate?: boolean;
-  onSave?: (site: any) => Promise<void>;
-  onSaveDraft?: (site: any) => Promise<void>;
+  onSave?: (site: any) => Promise<void | boolean>;
+  onSaveDraft?: (site: any) => Promise<void | boolean>;
   initialSite?: WeddingSite | null;
   eventData?: any;
   saveButtonLabel?: string;
@@ -46,6 +47,11 @@ interface SiteEditorProps {
 export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, initialSite, eventData, saveButtonLabel, showSwitchToCard = true, autoSaveEnabled = true, onOpenHelp, canUsePremiumTemplates = false }: SiteEditorProps) {
   const { initSite, site, device, setDevice, leftTab, undo, redo, canUndo, canRedo, save, isSaving, lastSavedAt, saveError, setIsPreview, isPreview } = useSiteEditorStore();
   const [localSaving, setLocalSaving] = useState(false);
+  // Version (updatedAt) of the site as last loaded/saved on the server. Undo/redo restore exact
+  // snapshots, so returning to the saved state correctly clears the dirty flag.
+  const [savedVersion, setSavedVersion] = useState<{ id: string; version: string } | null>(null);
+  const serverBacked = Boolean(onSave);
+  const dirty = isSiteDirty(site, savedVersion);
   const [previewTextScale, setPreviewTextScale] = useState(100);
   const [compactLayout, setCompactLayout] = useState(false)
   const canvasViewportRef = useRef<HTMLDivElement>(null)
@@ -64,10 +70,15 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
   }, [])
 
   const handleSave = async () => {
+    if (localSaving) return
     if (onSave && site) {
       setLocalSaving(true);
       try {
-        await onSave(site);
+        const result = await onSave(site);
+        // Callers resolve `false` when the server rejected the save; keep the dirty state then.
+        if (result !== false) setSavedVersion({ id: site.id, version: site.updatedAt });
+      } catch (error) {
+        console.error('[site-editor] save failed', error);
       } finally {
         setLocalSaving(false);
       }
@@ -81,14 +92,34 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
   }
 
   const handleSaveDraft = async () => {
-    if (!onSaveDraft || !site) return
+    if (!onSaveDraft || !site || localSaving) return
     setLocalSaving(true)
     try {
-      await onSaveDraft(site)
+      const result = await onSaveDraft(site)
+      if (result !== false) setSavedVersion({ id: site.id, version: site.updatedAt })
+    } catch (error) {
+      console.error('[site-editor] draft save failed', error)
     } finally {
       setLocalSaving(false)
     }
   }
+
+  useEffect(() => {
+    if (site && savedVersion?.id !== site.id) setSavedVersion({ id: site.id, version: site.updatedAt })
+  }, [site, savedVersion])
+
+  const warnBeforeUnload = shouldWarnBeforeUnload({ serverBacked, dirty })
+  useEffect(() => {
+    if (!warnBeforeUnload) return
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [warnBeforeUnload])
+
+  const saveStatus = getSaveStatus({ serverBacked, isSaving: isSaving || localSaving, saveError, dirty, lastSavedAt })
 
   useEffect(() => {
     if (initialSite) {
@@ -112,14 +143,17 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
     }
   }, [initialSite, site, initSite, eventData]);
 
+  // The localStorage draft is only meaningful (and only written) when there is no server save
+  // handler. In server-backed mode it used to write a single global key that nothing ever read.
+  const localAutosave = autoSaveEnabled && !onSave
   useEffect(() => {
-    if (autoSaveEnabled && site) autosaveSite()
-  }, [site, autoSaveEnabled]);
+    if (localAutosave && site) autosaveSite()
+  }, [site, localAutosave]);
 
   useEffect(() => () => {
-    if (autoSaveEnabled) autosaveSite.flush()
+    if (localAutosave) autosaveSite.flush()
     else autosaveSite.cancel()
-  }, [autoSaveEnabled])
+  }, [localAutosave])
 
   useEffect(() => {
     const viewport = canvasViewportRef.current
@@ -164,11 +198,21 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
         
         {/* Desktop actions (sm and up) */}
         <div className="hidden items-center gap-1 sm:flex">
-          {isSaving && <span aria-live="polite" className="items-center gap-1 text-[9px] text-muted-foreground sm:flex"><Cloud className="h-3 w-3" /> Cihazda kaydediliyor…</span>}
-          {!isSaving && saveError && <span role="alert" className="items-center gap-1 text-[9px] text-destructive sm:flex">{saveError}</span>}
-          {!isSaving && !saveError && lastSavedAt && <span aria-live="polite" title="Bu taslak yalnızca bu cihazın tarayıcısında saklanır. Sunucuya kaydetmek için Kaydet butonuna basın." className="items-center gap-1 text-[9px] text-muted-foreground sm:flex"><Cloud className="h-3 w-3" /> Cihaz taslağı</span>}
+          {saveStatus.kind !== 'idle' && (
+            <span
+              role={saveStatus.kind === 'error' ? 'alert' : 'status'}
+              aria-live="polite"
+              title={saveStatus.description}
+              className={cn(
+                'items-center gap-1 text-[9px] sm:flex',
+                saveStatus.kind === 'error' ? 'text-destructive' : saveStatus.kind === 'dirty' ? 'font-medium text-amber-700' : 'text-muted-foreground',
+              )}
+            >
+              {saveStatus.kind === 'saved' ? <Check className="h-3 w-3" /> : <Cloud className="h-3 w-3" />} {saveStatus.label}
+            </span>
+          )}
           {onSaveDraft && <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={isSaving || localSaving} aria-label="Taslak olarak kaydet" className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{localSaving ? 'Kaydediliyor…' : 'Taslak'}</span></Button>}
-          <Button variant="outline" size="sm" onClick={handleSave} aria-label={saveButtonLabel || (isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet')} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? 'Kaydediliyor…' : (saveButtonLabel || (isUpdate ? 'Güncelle' : 'Kaydet'))}</span></Button>
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving || localSaving} aria-label={saveButtonLabel || (isUpdate ? 'Siteyi güncelle' : 'Siteyi kaydet')} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{(isSaving || localSaving) ? 'Kaydediliyor…' : (saveButtonLabel || (isUpdate ? 'Güncelle' : 'Kaydet'))}</span></Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreview(!isPreview)} className="h-8 gap-1.5 rounded-full px-2.5 text-[10px] sm:px-3"><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{isPreview ? 'Düzenle' : 'Önizle'}</span></Button>
           {onOpenHelp && (
             <Button
@@ -187,6 +231,7 @@ export function SiteEditor({ onSwitchToCard, isUpdate, onSave, onSaveDraft, init
 
         {/* Mobile actions (< sm): Prominent Save + Hamburger/Overflow Menu */}
         <div className="flex items-center gap-1.5 sm:hidden">
+          {serverBacked && dirty && <span role="status" aria-label="Kaydedilmemiş değişiklikler var" title="Kaydedilmemiş değişiklikler var" className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500" />}
           <Button
             size="sm"
             onClick={handleSave}

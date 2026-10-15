@@ -46,10 +46,12 @@ function DebouncedColorPicker({
 }
 
 export function CanvasContextToolbar() {
-  const { selectedIds, design, updateElement, duplicateElement, deleteElement } = useEditorStore()
+  const { selectedIds, design, updateElement, duplicateElement, deleteElements } = useEditorStore()
   const selectedElement = selectedIds.length === 1
     ? design.elements.find(element => element.id === selectedIds[0])
     : null
+
+  const allSelectedLocked = selectedIds.length > 0 && selectedIds.every(id => design.elements.find(element => element.id === id)?.locked)
 
   if (!selectedIds.length) return null
 
@@ -200,7 +202,8 @@ export function CanvasContextToolbar() {
           title="Sil (Delete)"
           aria-label="Seçili öğeleri sil"
           className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={() => selectedIds.forEach(deleteElement)}
+          disabled={allSelectedLocked}
+          onClick={() => deleteElements(selectedIds)}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>

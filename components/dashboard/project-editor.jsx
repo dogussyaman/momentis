@@ -442,8 +442,9 @@ export function ProjectEditor() {
   }
 
   const handleSiteSave = async (siteData, asDraft = false) => {
+    if (saving) return false
     const missingField = missingRequiredProjectField(form, eventData)
-    if (missingField) { toast.error(`${missingField} zorunludur`); return }
+    if (missingField) { toast.error(`${missingField} zorunludur`); return false }
     setSaving(true)
     try {
       const selectedDeliverables = project?.deliverables || {}
@@ -489,7 +490,8 @@ export function ProjectEditor() {
       } else if (isNewFlow) {
          router.replace(asDraft || !data.project.published ? '/panel/taslaklar' : '/panel')
       }
-    } catch (e) { toast.error(e.message) } finally { setSaving(false) }
+      return true
+    } catch (e) { toast.error(e.message); return false } finally { setSaving(false) }
   }
 
   const applyEventDataToInvitation = () => {

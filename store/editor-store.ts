@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { temporal } from 'zundo'
+import { removeUnlockedElements } from '@/lib/editor/element-ops'
 
 export type ElementType = 'text' | 'image' | 'svg' | 'rect' | 'circle' | 'line' | 'group' | 'icon'
 export type EditorTool = 'select' | 'pen' | 'line' | 'rectangle' | 'note' | 'text' | 'table'
@@ -54,6 +55,7 @@ interface EditorState {
   clearSelection: () => void
   updateElement: (id: string, updates: Partial<CanvasElement>) => void
   deleteElement: (id: string) => void
+  deleteElements: (ids: string[]) => void
   duplicateElement: (id: string) => void
   arrangeElement: (id: string, action: 'up' | 'down' | 'front' | 'back') => void
   setZoom: (zoom: number) => void
@@ -139,11 +141,20 @@ export const useEditorStore = create<EditorState>()(
         selectedIds: state.selectedIds.filter(sid => sid !== id)
       })),
 
+      deleteElements: (ids) => set((state) => {
+        const { design, removedIds } = removeUnlockedElements(state.design, ids)
+        if (!removedIds.length) return state
+        return {
+          design,
+          selectedIds: state.selectedIds.filter(sid => !removedIds.includes(sid))
+        }
+      }),
+
       duplicateElement: (id) => set((state) => {
         const el = state.design.elements.find(e => e.id === id)
         if (!el) return state
         const newId = `${el.type}_${Math.random().toString(36).substr(2, 9)}`
-        const newEl = { ...el, id: newId, x: el.x + 20, y: el.y + 20 }
+        const newEl = { ...el, id: newId, x: el.x + 20, y: el.y + 20, locked: false }
         return {
           design: { ...state.design, elements: [...state.design.elements, newEl] },
           selectedIds: [newId]
@@ -184,6 +195,9 @@ export const useEditorStore = create<EditorState>()(
   ),
   {
     partialize: (state) => ({ design: state.design }), // zundo only tracks design changes
+    // Without this every set() (selection, zoom, tool changes) pushed an identical snapshot
+    // into history. All design edits create a new `design` object, so reference equality is exact.
+    equality: (past, current) => past.design === current.design,
     limit: 50
   }
 )

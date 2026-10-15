@@ -1,16 +1,17 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Stage, Layer, Group, Rect, Text, Circle, Line } from 'react-konva'
+import { Stage, Layer, Group, Rect, Text, Circle, Line, Image as KonvaImage } from 'react-konva'
 import { useEditorStore } from '@/store/editor-store'
 import { SelectionTransformer } from './SelectionTransformer'
 import { fontStack } from '@/lib/editor-fonts'
+import { shouldCommitTextEdit } from '@/lib/editor/element-ops'
 import { SEMBOLLER, GRADYANLAR } from '@/lib/davetiye-svg'
 import { applyPaletteToDesign } from '@/lib/themes/color-palettes'
 import type { Stage as KonvaStage } from 'konva/lib/Stage'
 
 export default function CanvasStage({ onStageChange }: { onStageChange?: (stage: KonvaStage | null) => void }) {
-  const { design, palettePreview, selectElement, clearSelection, updateElement, deleteElement, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor, toolStrokeWidth } = useEditorStore()
+  const { design, palettePreview, selectElement, clearSelection, updateElement, deleteElements, duplicateElement, arrangeElement, zoom, selectedIds, activeTool, toolColor, toolStrokeWidth } = useEditorStore()
   const displayDesign = palettePreview ? applyPaletteToDesign(design, palettePreview) : design
   const stageRef = useRef<KonvaStage | null>(null)
   const handleStageRef = useCallback((stage: KonvaStage | null) => {
@@ -52,8 +53,9 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.length > 0) {
-          selectedIds.forEach((id: string) => deleteElement(id))
-          clearSelection()
+          // Locked elements are skipped by the store; one history step for the whole selection.
+          e.preventDefault()
+          deleteElements(selectedIds)
         }
       }
 
@@ -78,7 +80,7 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedIds, editingText, deleteElement, duplicateElement, clearSelection])
+  }, [selectedIds, editingText, deleteElements, duplicateElement, clearSelection])
 
   // Font loading mechanism for Canvas
   useEffect(() => {
@@ -393,6 +395,15 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
     } else {
       setContextMenu({ visible: false, x: 0, y: 0, elementId: null })
     }
+  }
+
+  const commitTextEdit = () => {
+    if (!editingText) return
+    const current = design.elements.find((el: any) => el.id === editingText.id)
+    if (current && shouldCommitTextEdit(current.text, editingText.text)) {
+      updateElement(editingText.id, { text: editingText.text })
+    }
+    setEditingText(null)
   }
 
   // Calculate scaling so document fits within container with margin
@@ -743,13 +754,11 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
           value={editingText.text}
           onChange={(e) => setEditingText({ ...editingText, text: e.target.value })}
           onBlur={() => {
-            updateElement(editingText.id, { text: editingText.text })
-            setEditingText(null)
+            commitTextEdit()
           }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
-              updateElement(editingText.id, { text: editingText.text })
-              setEditingText(null)
+              commitTextEdit()
             }
           }}
           style={{
@@ -805,7 +814,11 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
           <div className="h-px bg-border my-1 w-full" />
           <button onClick={() => duplicateElement(contextMenu.elementId!)} className="w-full text-left px-4 py-2 hover:bg-black/5 text-midnight">Çoğalt</button>
           <div className="h-px bg-border my-1 w-full" />
-          <button onClick={() => deleteElement(contextMenu.elementId!)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-medium">Sil</button>
+          {design.elements.find((e: any) => e.id === contextMenu.elementId)?.locked ? (
+            <button disabled title="Kilitli öğe silinemez. Önce kilidi açın." className="w-full cursor-not-allowed px-4 py-2 text-left font-medium text-red-600/40">Sil (kilitli)</button>
+          ) : (
+            <button onClick={() => { deleteElements([contextMenu.elementId!]); setContextMenu({ ...contextMenu, visible: false }) }} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-medium">Sil</button>
+          )}
         </div>
       )}
     </div>
@@ -814,29 +827,66 @@ export default function CanvasStage({ onStageChange }: { onStageChange?: (stage:
 
 function CanvasImage({ element, activeTool, onDragMove, onDragEnd }: { element: any, activeTool: string, onDragMove: any, onDragEnd: any }) {
   const { selectElement, updateElement } = useEditorStore()
-  const [image] = React.useMemo(() => {
-    if (typeof window === 'undefined') return [null]
+  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  // Single effect keyed by src: resets state when the source changes and attaches handlers
+  // before the request starts so a fast/cached load can never be missed.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    let cancelled = false
+    setImage(null)
+    setFailed(false)
+    if (!element.src) { setFailed(true); return }
     const img = new window.Image()
-    img.src = element.src
     img.crossOrigin = 'Anonymous'
-    return [img]
+    img.onload = () => { if (!cancelled) setImage(img) }
+    img.onerror = () => { if (!cancelled) setFailed(true) }
+    img.src = element.src
+    return () => {
+      cancelled = true
+      img.onload = null
+      img.onerror = null
+    }
   }, [element.src])
 
-  const [loaded, setLoaded] = useState(false)
-  
-  useEffect(() => {
-    if (image) {
-      image.onload = () => setLoaded(true)
-    }
-  }, [image])
-
-  // Need a generic Image component, we can import from react-konva if not already
-  const { Image: KonvaImage } = require('react-konva')
-  
   const width = element.width || (image ? image.width : 100)
   const height = element.height || (image ? image.height : 100)
-  
-  if (!loaded || !image) return null;
+
+  if (failed) {
+    // Visible placeholder so a broken asset can be found, replaced or deleted.
+    return (
+      <Rect
+        id={element.id}
+        x={element.x}
+        y={element.y}
+        offsetX={element.centered ? width / 2 : 0}
+        offsetY={element.centered ? height / 2 : 0}
+        width={width}
+        height={height}
+        rotation={element.rotation || 0}
+        fill="rgba(220,38,38,0.06)"
+        stroke="#DC2626"
+        strokeWidth={2}
+        dash={[10, 6]}
+        draggable={activeTool === 'select' && !element.locked}
+        onClick={(e: any) => { e.cancelBubble = true; if (activeTool === 'select') selectElement(element.id) }}
+        onTap={(e: any) => { e.cancelBubble = true; if (activeTool === 'select') selectElement(element.id) }}
+        onDragMove={onDragMove}
+        onDragEnd={onDragEnd}
+        onTransformEnd={(e: any) => {
+          const node = e.target
+          const scaleX = node.scaleX()
+          const scaleY = node.scaleY()
+          node.scaleX(1)
+          node.scaleY(1)
+          updateElement(element.id, { x: node.x(), y: node.y(), width: Math.max(5, node.width() * scaleX), height: Math.max(5, node.height() * scaleY), rotation: node.rotation() })
+        }}
+      />
+    )
+  }
+
+  if (!image) return null;
 
   return (
     <KonvaImage
@@ -892,8 +942,6 @@ function CanvasIcon({ element, activeTool, onDragMove, onDragEnd }: { element: a
     img.onload = () => setImage(img)
   }, [element.svgContent, element.fill])
 
-  const { Image: KonvaImage } = require('react-konva')
-  
   const width = element.width || 50
   const height = element.height || 50
   

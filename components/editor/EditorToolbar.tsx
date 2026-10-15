@@ -1,6 +1,7 @@
 import React from 'react'
-import { ZoomIn, ZoomOut, Maximize, Undo2, Redo2, Eye, Download } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize, Undo2, Redo2, Eye, Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useEditorStore } from '@/store/editor-store'
 import { toast } from 'sonner'
 import type { Stage as KonvaStage } from 'konva/lib/Stage'
@@ -8,27 +9,50 @@ import { getCanvasExportOptions } from '@/lib/editor/canvas-export'
 
 export function EditorToolbar({ topbarLeft, topbarRight, projectId, stage }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null, stage: KonvaStage | null }) {
   const { zoom, setZoom, design } = useEditorStore()
+  // Guards against double clicks: every export POST consumes an export credit.
+  const [exporting, setExporting] = React.useState(false)
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
 
-  const handleDownload = async () => {
-    if (!projectId) { toast.error('Dışa aktarmadan önce etkinliği kaydedin'); return }
+  // Renders the design at native size with the selection handles hidden.
+  const renderDesignImage = (): string | null => {
     const layer = stage?.getLayers()[0]
-    if (!stage || !layer) { toast.error('Davetiye dışa aktarılamadı'); return }
-    let dataURL: string
+    if (!stage || !layer) return null
     const transformer = stage.findOne('Transformer')
     const transformerWasVisible = transformer?.visible() ?? false
     try {
       transformer?.visible(false)
       layer.batchDraw()
-      dataURL = stage.toDataURL(getCanvasExportOptions(design, layer))
-    } catch {
-      toast.error('Davetiye görseli oluşturulamadı')
-      return
+      return stage.toDataURL(getCanvasExportOptions(design, layer))
     } finally {
       if (transformer) {
         transformer.visible(transformerWasVisible)
         layer.batchDraw()
       }
     }
+  }
+
+  const handlePreview = () => {
+    try {
+      const dataURL = renderDesignImage()
+      if (!dataURL) { toast.error('Önizleme oluşturulamadı'); return }
+      setPreviewUrl(dataURL)
+    } catch {
+      toast.error('Önizleme oluşturulamadı')
+    }
+  }
+
+  const handleDownload = async () => {
+    if (exporting) return
+    if (!projectId) { toast.error('Dışa aktarmadan önce etkinliği kaydedin'); return }
+    let dataURL: string | null
+    try {
+      dataURL = renderDesignImage()
+    } catch {
+      toast.error('Davetiye görseli oluşturulamadı')
+      return
+    }
+    if (!dataURL) { toast.error('Davetiye dışa aktarılamadı'); return }
+    setExporting(true)
     try {
       const response = await fetch(`/api/projects/${projectId}/exports`, {
         method: 'POST',
@@ -43,6 +67,8 @@ export function EditorToolbar({ topbarLeft, topbarRight, projectId, stage }: { t
       a.click()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Davetiye indirilemedi')
+    } finally {
+      setExporting(false)
     }
   }
   
@@ -69,16 +95,16 @@ export function EditorToolbar({ topbarLeft, topbarRight, projectId, stage }: { t
       
       <div className="flex w-full shrink-0 items-center justify-end gap-1 sm:gap-2 lg:w-auto">
         <span className="hidden text-[10px] text-muted-foreground xl:inline">{design.width} × {design.height} px</span>
-        <Button variant="outline" size="icon" title="PNG indir" aria-label="PNG indir" className="h-8 w-8 sm:hidden" onClick={handleDownload} disabled={!projectId}>
-          <Download className="h-4 w-4" />
+        <Button variant="outline" size="icon" title="PNG indir" aria-label="PNG indir" className="h-8 w-8 sm:hidden" onClick={handleDownload} disabled={!projectId || exporting}>
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
         </Button>
-        <Button variant="outline" size="sm" className="hidden h-8 px-3 text-[11px] sm:inline-flex" onClick={handleDownload} disabled={!projectId}>
-          <Download className="mr-1.5 h-3.5 w-3.5" /> PNG indir
+        <Button variant="outline" size="sm" className="hidden h-8 px-3 text-[11px] sm:inline-flex" onClick={handleDownload} disabled={!projectId || exporting}>
+          {exporting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />} {exporting ? 'Hazırlanıyor…' : 'PNG indir'}
         </Button>
-        <Button variant="default" size="icon" title="Önizleme" aria-label="Önizleme" className="h-8 w-8 bg-midnight text-ivory hover:bg-midnight/90 sm:hidden">
+        <Button variant="default" size="icon" title="Önizleme" aria-label="Önizleme" className="h-8 w-8 bg-midnight text-ivory hover:bg-midnight/90 sm:hidden" onClick={handlePreview}>
           <Eye className="h-4 w-4" />
         </Button>
-        <Button variant="default" size="sm" className="hidden h-8 bg-midnight px-3 text-[11px] text-ivory hover:bg-midnight/90 sm:inline-flex">
+        <Button variant="default" size="sm" className="hidden h-8 bg-midnight px-3 text-[11px] text-ivory hover:bg-midnight/90 sm:inline-flex" onClick={handlePreview}>
           <Eye className="mr-1.5 h-3.5 w-3.5" /> Önizleme
         </Button>
         {topbarRight && (
@@ -88,6 +114,19 @@ export function EditorToolbar({ topbarLeft, topbarRight, projectId, stage }: { t
           </>
         )}
       </div>
+
+      <Dialog open={Boolean(previewUrl)} onOpenChange={(open) => { if (!open) setPreviewUrl(null) }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Davetiye önizlemesi</DialogTitle>
+            <DialogDescription>Kaydedilmemiş değişiklikler dahil, tuvalin şu anki hali. Önizleme dışa aktarma hakkı harcamaz.</DialogDescription>
+          </DialogHeader>
+          {previewUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewUrl} alt="Davetiye önizlemesi" className="mx-auto max-h-[70dvh] w-auto max-w-full rounded-lg border border-border object-contain shadow-sm" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

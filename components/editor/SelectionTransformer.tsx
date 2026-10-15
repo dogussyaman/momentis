@@ -3,9 +3,11 @@
 import React, { useEffect, useRef } from 'react'
 import { Transformer } from 'react-konva'
 import { useEditorStore } from '@/store/editor-store'
+import { getTransformableIds } from '@/lib/editor/element-ops'
 
 export function SelectionTransformer() {
   const { selectedIds } = useEditorStore()
+  const elements = useEditorStore((state) => state.design.elements)
   const trRef = useRef<any>(null)
 
   useEffect(() => {
@@ -13,14 +15,15 @@ export function SelectionTransformer() {
       // we need to attach transformer manually
       const stage = trRef.current.getStage()
       if (stage) {
-        const selectedNodes = selectedIds.map((id: string) => stage.findOne(`#${id}`)).filter(Boolean)
+        // Locked elements must not be resizable/rotatable either.
+        const selectedNodes = getTransformableIds(elements, selectedIds).map((id: string) => stage.findOne(`#${id}`)).filter(Boolean)
         trRef.current.nodes(selectedNodes)
         trRef.current.getLayer().batchDraw()
       }
     } else if (trRef.current) {
       trRef.current.nodes([])
     }
-  }, [selectedIds])
+  }, [selectedIds, elements])
 
   return (
     <Transformer

@@ -243,17 +243,21 @@ export function SiteCanvas() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      const target = event.target as HTMLElement | null
+      const isEditableTarget = Boolean(target?.isContentEditable) || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')
+      // While typing, leave Ctrl/Cmd+Z/Y to the browser so text undo works and the site is not rolled back.
+      if (!isEditableTarget && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault()
         event.shiftKey ? useSiteEditorStore.getState().redo() : useSiteEditorStore.getState().undo()
       }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+      if (!isEditableTarget && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
         event.preventDefault()
         useSiteEditorStore.getState().redo()
       }
-      if (event.key === 'Delete' && !target.isContentEditable && !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+      if (event.key === 'Delete' && !isEditableTarget) {
         const state = useSiteEditorStore.getState()
+        const selectedSection = state.site?.sections.find(item => item.id === state.selectedSectionId)
+        if (selectedSection?.locked) return
         if (state.selectedOverlayId && state.selectedSectionId) {
           const section = state.site?.sections.find(item => item.id === state.selectedSectionId)
           if (section && Array.isArray(section.props.overlayElements)) {
