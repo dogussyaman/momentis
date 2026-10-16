@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { temporal } from 'zundo'
 import { removeUnlockedElements } from '@/lib/editor/element-ops'
+import { createEditableInvitationDesign } from '@/lib/editor/create-invitation-design'
 
 export type ElementType = 'text' | 'image' | 'svg' | 'rect' | 'circle' | 'line' | 'group' | 'icon'
 export type EditorTool = 'select' | 'pen' | 'line' | 'rectangle' | 'note' | 'text' | 'table'
@@ -64,45 +65,7 @@ interface EditorState {
   setPalettePreview: (palette: PalettePreview | null) => void
 }
 
-const initialDesign: CanvasDocument = {
-  id: 'new_design',
-  width: 1080,
-  height: 1520, // Wedding Portrait preset
-  background: '#FFFDF8',
-  elements: [
-    {
-      id: 'text_1',
-      type: 'text',
-      x: 190,
-      y: 350,
-      width: 700,
-      height: 100,
-      rotation: 0,
-      text: '{{coupleNames}}',
-      fontFamily: 'Georgia, serif',
-      fontSize: 72,
-      fontWeight: 500,
-      fill: '#1C2430',
-      align: 'center',
-      opacity: 1,
-      visible: true,
-      locked: false,
-    },
-    {
-      id: 'rect_1',
-      type: 'rect',
-      x: 340,
-      y: 500,
-      width: 400,
-      height: 200,
-      rotation: 0,
-      fill: '#C9A96E',
-      opacity: 0.5,
-      visible: true,
-      locked: false,
-    }
-  ]
-}
+const initialDesign: CanvasDocument = createEditableInvitationDesign('Klasik Altın')
 
 export const useEditorStore = create<EditorState>()(
   temporal(
