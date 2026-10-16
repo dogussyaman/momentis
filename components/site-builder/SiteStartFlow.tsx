@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Check, Eye, Layers3, MousePointer2, Palette, PanelsTopLeft, Plus, Sparkles, Type, Crown, Lock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Eye, Layers3, MousePointer2, Palette, PanelsTopLeft, Plus, Search, Sparkles, Type, Crown, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { TEMPLATES, type SiteTemplate } from '@/lib/site-builder/templates'
 import { PremiumUpgradeModal } from '@/components/ui/PremiumUpgradeModal'
 import { cn } from '@/lib/utils'
+import { SITE_TEMPLATE_CATEGORIES, filterSiteTemplates, type SiteTemplateCategory } from '@/lib/site-builder/template-categories'
+import { SiteTemplatePreviewDialog } from './SiteTemplatePreview'
 
 interface SiteStartFlowProps {
   eventTitle: string
@@ -32,6 +34,9 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
   const [templatesLoading, setTemplatesLoading] = useState(true)
   const [templatesError, setTemplatesError] = useState('')
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; templateName: string }>({ open: false, templateName: '' })
+  const [templateQuery, setTemplateQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<SiteTemplateCategory>('Tümü')
+  const [previewTemplate, setPreviewTemplate] = useState<SiteTemplate | null>(null)
 
   const loadTemplates = useCallback(async () => {
     setTemplatesLoading(true)
@@ -52,6 +57,12 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
   }, [])
 
   useEffect(() => { loadTemplates() }, [loadTemplates])
+
+  const visibleTemplates = filterSiteTemplates(
+    TEMPLATES.filter((template) => availableTemplateIds.includes(template.id)),
+    selectedCategory,
+    templateQuery,
+  )
 
   return (
     <div className="min-h-dvh overflow-y-auto bg-[#f7f4ee] px-5 py-8 text-[#172033] sm:px-8 sm:py-12">
@@ -155,6 +166,50 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
               </div>
             )}
 
+            {!templatesLoading && !templatesError && availableTemplateIds.length > 0 && (
+              <section className="mb-6 rounded-2xl border border-[#e8e0d4] bg-white p-4 shadow-[0_10px_28px_-24px_rgba(23,32,51,0.22)]">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9a7a48]">Size uygun stili bulun</p>
+                    <p className="mt-1 text-xs text-[#77746f]">Önce görünümü inceleyin; beğendiğiniz tasarımı sonradan tamamen düzenleyebilirsiniz.</p>
+                  </div>
+                  <div className="relative w-full sm:max-w-xs">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#968c7d]" />
+                    <input
+                      type="search"
+                      value={templateQuery}
+                      onChange={(event) => setTemplateQuery(event.target.value)}
+                      placeholder="Stil veya şablon ara..."
+                      aria-label="Site şablonu ara"
+                      className="h-10 w-full rounded-xl border border-[#e6ded2] bg-[#fbf9f5] pl-9 pr-3 text-xs text-[#172033] outline-none transition focus:border-[#b99a68] focus:ring-2 focus:ring-[#b99a68]/15"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                  {SITE_TEMPLATE_CATEGORIES.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setSelectedCategory(category)}
+                      aria-pressed={selectedCategory === category}
+                      className={cn(
+                        'shrink-0 rounded-full border px-3.5 py-2 text-[10px] font-medium transition',
+                        selectedCategory === category
+                          ? 'border-[#172033] bg-[#172033] text-white shadow-sm'
+                          : 'border-[#e7e0d7] bg-white text-[#67645e] hover:border-[#b99a68] hover:bg-[#fbf8f2]'
+                      )}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center justify-between text-[10px] text-[#8a8277]">
+                  <span>{visibleTemplates.length} şablon</span>
+                  <span>Önizleme gerçek sayfa düzenini gösterir</span>
+                </div>
+              </section>
+            )}
+
             {templatesLoading ? (
               <p role="status" className="rounded-2xl border border-[#e5ded2] bg-white p-6 text-sm text-[#77746f]">Kullanılabilir site şablonları yükleniyor…</p>
             ) : templatesError ? (
@@ -166,7 +221,7 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
               <p className="rounded-2xl border border-[#e5ded2] bg-white p-6 text-sm text-[#77746f]">Şu anda seçilebilir site şablonu bulunmuyor.</p>
             ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATES.filter((template) => availableTemplateIds.includes(template.id)).map((template, index) => {
+              {visibleTemplates.map((template, index) => {
                 const isPremium = templateTiers[template.id] === 'premium'
                 const isLocked = isPremium && !canUsePremiumTemplates
 
@@ -222,31 +277,42 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
                         )}
                       </div>
                       <p className="mt-1 min-h-10 text-xs leading-5 text-[#77746f]">{template.tagline}</p>
-                      <Button
-                        onClick={() => {
-                          if (isLocked) {
-                            setUpgradeModal({ open: true, templateName: template.name })
-                            return
-                          }
-                          onChooseTemplate(template)
-                        }}
-                        className={cn(
-                          'mt-3 h-9 w-full rounded-xl text-xs font-medium transition',
-                          isLocked
-                            ? 'bg-gradient-to-r from-[#172033] to-[#25314a] text-amber-300 hover:text-amber-200 border border-amber-500/30 shadow-sm'
-                            : 'bg-[#172033] text-white hover:bg-[#25314a]'
-                        )}
-                      >
-                        {isLocked ? (
-                          <>
-                            <Crown className="mr-1.5 h-3.5 w-3.5 text-amber-400" /> Premium ile Kilidi Aç
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="mr-2 h-3.5 w-3.5" /> Bu yapıyla editöre geç
-                          </>
-                        )}
-                      </Button>
+                      <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setPreviewTemplate(template)}
+                          className="h-9 rounded-xl border-[#e3d9ca] bg-white px-3 text-[10px] font-medium text-[#172033] hover:bg-[#f8f4ed]"
+                        >
+                          <Eye className="mr-1.5 h-3.5 w-3.5" /> Önizle
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (isLocked) {
+                              setUpgradeModal({ open: true, templateName: template.name })
+                              return
+                            }
+                            onChooseTemplate(template)
+                          }}
+                          className={cn(
+                            'h-9 min-w-0 rounded-xl px-3 text-[10px] font-medium transition sm:text-xs',
+                            isLocked
+                              ? 'border border-amber-500/30 bg-gradient-to-r from-[#172033] to-[#25314a] text-amber-300 shadow-sm hover:text-amber-200'
+                              : 'bg-[#172033] text-white hover:bg-[#25314a]'
+                          )}
+                        >
+                          {isLocked ? (
+                            <>
+                              <Crown className="mr-1.5 h-3.5 w-3.5 shrink-0 text-amber-400" /> Kilidi Aç
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-1.5 h-3.5 w-3.5 shrink-0" /> Seç
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </motion.article>
                 )
@@ -257,6 +323,22 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
         )}
       </div>
 
+      <SiteTemplatePreviewDialog
+        template={previewTemplate}
+        eventData={undefined}
+        open={Boolean(previewTemplate)}
+        onOpenChange={(open) => { if (!open) setPreviewTemplate(null) }}
+        onUseTemplate={(template) => {
+          const isPremium = templateTiers[template.id] === 'premium'
+          if (isPremium && !canUsePremiumTemplates) {
+            setUpgradeModal({ open: true, templateName: template.name })
+            setPreviewTemplate(null)
+            return
+          }
+          setPreviewTemplate(null)
+          onChooseTemplate(template)
+        }}
+      />
       <PremiumUpgradeModal
         open={upgradeModal.open}
         templateName={upgradeModal.templateName}
