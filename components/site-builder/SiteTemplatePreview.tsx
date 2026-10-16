@@ -53,6 +53,66 @@ export function buildSiteTemplatePreview(
   return syncSiteEventData(site, null, data)
 }
 
+export function SiteTemplateThumbnail({
+  template,
+  className = '',
+}: {
+  template: SiteTemplate
+  className?: string
+}) {
+  const heroSection = template.sections.find(([type]) => type === 'hero')
+  const heroProps = heroSection?.[1]?.props || {}
+  const heroStyle = heroSection?.[1]?.style || {}
+  const heroLayout = heroProps.layout || 'center'
+  const heroImage = heroStyle.bgImage || heroProps.sideImage || template.preview
+  const titleFont = heroProps.titleFont === 'script'
+    ? template.theme.scriptFont
+    : heroProps.titleFont === 'body'
+      ? template.theme.bodyFont
+      : template.theme.headingFont
+  const overlay = Math.max(0, Math.min(100, Number(heroStyle.overlayOpacity ?? 35))) / 100
+  const coverStyle = {
+    backgroundImage: 'linear-gradient(rgba(17,24,39,' + overlay + '), rgba(17,24,39,' + overlay + ')), url("' + heroImage + '")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  }
+
+  if (heroLayout === 'split') {
+    return (
+      <div className={'relative grid h-full min-h-[148px] grid-cols-[1.12fr_0.88fr] overflow-hidden ' + className} aria-label={template.name + ' site başlık önizlemesi'}>
+        <div className="flex flex-col items-start justify-center gap-2 p-3 sm:p-4" style={{ backgroundColor: template.theme.backgroundColor, color: template.theme.textColor }}>
+          <span className="text-[6px] font-semibold uppercase tracking-[0.2em] sm:text-[7px]" style={{ color: template.theme.accentColor }}>YOU ARE INVITED</span>
+          <span className="max-w-full break-words text-lg leading-[0.95] sm:text-2xl" style={{ fontFamily: titleFont + ', Georgia, serif' }}>Zeynep <span style={{ color: template.theme.accentColor }}>&</span> Emre</span>
+          <span className="text-[7px] uppercase tracking-[0.12em] opacity-70 sm:text-[8px]">18 TEMMUZ 2027 · BURSA</span>
+          <span className="mt-1 inline-flex items-center rounded-full px-2.5 py-1 text-[6px] font-semibold text-white sm:text-[7px]" style={{ backgroundColor: template.theme.primaryColor }}>DAVETİYEMİZ</span>
+        </div>
+        <div className="relative overflow-hidden" style={{ backgroundImage: 'url("' + heroImage + '")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+          <div className="absolute inset-0" style={{ backgroundColor: template.theme.primaryColor, opacity: 0.08 }} />
+          <div className="absolute inset-2 border sm:inset-3" style={{ borderColor: template.theme.accentColor, opacity: 0.6 }} />
+        </div>
+        <span className="pointer-events-none absolute left-0 top-0 h-1 w-full" style={{ backgroundColor: template.theme.accentColor }} />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={'relative flex h-full min-h-[148px] items-center justify-center overflow-hidden p-4 text-center sm:min-h-[176px] ' + className}
+      style={coverStyle}
+      aria-label={template.name + ' site başlık önizlemesi'}
+    >
+      <div className="pointer-events-none absolute inset-2 sm:inset-3" style={{ border: heroLayout === 'frame' ? '1px solid ' + template.theme.accentColor : '1px solid rgba(255,255,255,0.22)' }} />
+      <div className="relative z-10 flex max-w-full flex-col items-center gap-2 text-white">
+        <span className="text-[6px] font-semibold uppercase tracking-[0.24em] sm:text-[7px]">TOGETHER WITH OUR FAMILIES</span>
+        <span className="max-w-full break-words text-2xl leading-[0.95] sm:text-3xl" style={{ fontFamily: titleFont + ', Georgia, serif' }}>Zeynep <span style={{ color: template.theme.accentColor }}>&</span> Emre</span>
+        <span className="text-[7px] uppercase tracking-[0.18em] sm:text-[8px]">18 TEMMUZ 2027 · BURSA</span>
+        <span className="mt-1 h-px w-10" style={{ backgroundColor: template.theme.accentColor }} />
+        <span className="rounded-full border px-3 py-1 text-[6px] font-medium uppercase tracking-[0.12em] sm:text-[7px]" style={{ borderColor: template.theme.accentColor }}>Katılım bildir</span>
+      </div>
+    </div>
+  )
+}
+
 export function SiteTemplatePreview({
   template,
   eventData,
