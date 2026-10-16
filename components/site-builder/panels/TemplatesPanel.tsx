@@ -13,7 +13,7 @@ import type { SiteTemplate } from '@/lib/site-builder/templates'
 import { Badge } from '@/components/ui/badge'
 import { PremiumUpgradeModal } from '@/components/ui/PremiumUpgradeModal'
 import { SITE_TEMPLATE_CATEGORIES, filterSiteTemplates, type SiteTemplateCategory } from '@/lib/site-builder/template-categories'
-import { SiteTemplatePreview } from '../SiteTemplatePreview'
+import { SiteTemplatePreview, SiteTemplateThumbnail } from '../SiteTemplatePreview'
 
 export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { eventData?: Record<string, any>; canUsePremiumTemplates?: boolean }) {
   const { site, loadTemplate } = useSiteEditorStore()
@@ -123,8 +123,7 @@ export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { 
                   type="button"
                 >
                   <div className="relative h-32 w-full overflow-hidden bg-[#f3efe8]">
-                    <img src={tpl.preview} alt={tpl.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/20 via-transparent to-transparent" />
+                    <SiteTemplateThumbnail template={tpl} className="h-full w-full transition-transform duration-300 group-hover:scale-[1.01]" />
                     {isActive && (
                       <motion.div
                         layout
