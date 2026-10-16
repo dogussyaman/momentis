@@ -13,6 +13,7 @@ import { SiteTemplatePreviewDialog, SiteTemplateThumbnail } from './SiteTemplate
 
 interface SiteStartFlowProps {
   eventTitle: string
+  eventData?: Record<string, any>
   stage: 'intro' | 'templates'
   canUsePremiumTemplates?: boolean
   onBack: () => void
@@ -28,7 +29,7 @@ const editorTools = [
   { icon: Layers3, title: 'Katmanlar', description: 'Bölümlerin sırasını ve görünürlüğünü yönetin.' },
 ]
 
-export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBack, onContinue, onChooseTemplate, onOpenGiftCampaign }: SiteStartFlowProps) {
+export function SiteStartFlow({ eventTitle, eventData, stage, canUsePremiumTemplates, onBack, onContinue, onChooseTemplate, onOpenGiftCampaign }: SiteStartFlowProps) {
   const [templateTiers, setTemplateTiers] = useState<Record<string, string>>({})
   const [availableTemplateIds, setAvailableTemplateIds] = useState<string[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(true)
@@ -324,7 +325,7 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
 
       <SiteTemplatePreviewDialog
         template={previewTemplate}
-        eventData={undefined}
+        eventData={eventData}
         open={Boolean(previewTemplate)}
         onOpenChange={(open) => { if (!open) setPreviewTemplate(null) }}
         onUseTemplate={(template) => {
