@@ -181,9 +181,10 @@ const weddingPhotos = [
 interface LeftSidebarProps {
   onSelectTemplate?: () => void
   onItemSelect?: () => void
+  eventData?: Record<string, any>
 }
 
-export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps = {}) {
+export function LeftSidebar({ onSelectTemplate, onItemSelect, eventData }: LeftSidebarProps = {}) {
   const notifyItemSelect = () => {
     onItemSelect?.()
     onSelectTemplate?.()
@@ -541,7 +542,7 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
       id: currentDesign.id,
       width: currentDesign.width,
       height: currentDesign.height,
-    })
+    }, eventData)
     useEditorStore.setState({ design, selectedIds: [], palettePreview: null })
     notifyItemSelect()
   }
