@@ -21,6 +21,7 @@ import { formatEventDate } from '@/lib/projects'
 import { cn } from '@/lib/utils'
 import { StoryTemplatesModal } from './story-templates-modal'
 import { CARD_LAYOUTS, SABLONLAR, TEMALAR } from '@/lib/davetiye-svg'
+import { createEditableInvitationDesign } from '@/lib/editor/create-invitation-design'
 import { DavetiyeKart } from '@/components/shared/davetiye-kart'
 import { QrCode, Download, Copy } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -172,11 +173,10 @@ export function ProjectEditor() {
         setProject(localProject)
         setForm(pick(localProject))
 
-        if (draft.event_data) {
-          const currentDesign = useEditorStore.getState().design
-          const hydrated = JSON.parse(resolveTokens(JSON.stringify(currentDesign), draft.event_data))
-          setDesign(hydrated)
-        }
+        const invitationTemplate = localProject.card_template || 'Klasik Altın'
+        const initialInvitation = createEditableInvitationDesign(invitationTemplate, undefined, draft.event_data || {})
+        const hydratedInvitation = JSON.parse(resolveTokens(JSON.stringify(initialInvitation), draft.event_data || {}))
+        setDesign(hydratedInvitation)
         useEditorStore.temporal.getState().clear()
       } catch (error) {
         toast.error(error.message || 'Etkinlik taslağı açılamadı.')
@@ -203,10 +203,11 @@ export function ProjectEditor() {
         setForm(pick(d.project))
         if (d.project.canvas_design) {
           setDesign(d.project.canvas_design)
-        } else if (d.project.event_data) {
-          const currentDesign = useEditorStore.getState().design
-          const hydrated = JSON.parse(resolveTokens(JSON.stringify(currentDesign), d.project.event_data))
-          setDesign(hydrated)
+        } else {
+          const invitationTemplate = d.project.card_template || (SABLONLAR[d.project.template_slug] ? d.project.template_slug : 'Klasik Altın')
+          const initialInvitation = createEditableInvitationDesign(invitationTemplate, undefined, d.project.event_data || {})
+          const hydratedInvitation = JSON.parse(resolveTokens(JSON.stringify(initialInvitation), d.project.event_data || {}))
+          setDesign(hydratedInvitation)
         }
         useEditorStore.temporal.getState().clear()
       })
@@ -583,6 +584,7 @@ export function ProjectEditor() {
         <div className="flex-1 w-full relative overflow-hidden bg-ivory">
           <CanvasEditor 
             projectId={project?.id !== 'new' ? project?.id : null}
+            eventData={eventData}
             topbarLeft={
               <div>
                 <Button

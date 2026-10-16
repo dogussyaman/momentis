@@ -181,9 +181,10 @@ const weddingPhotos = [
 interface LeftSidebarProps {
   onSelectTemplate?: () => void
   onItemSelect?: () => void
+  eventData?: Record<string, any>
 }
 
-export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps = {}) {
+export function LeftSidebar({ onSelectTemplate, onItemSelect, eventData }: LeftSidebarProps = {}) {
   const notifyItemSelect = () => {
     onItemSelect?.()
     onSelectTemplate?.()
@@ -541,7 +542,7 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
       id: currentDesign.id,
       width: currentDesign.width,
       height: currentDesign.height,
-    })
+    }, eventData)
     useEditorStore.setState({ design, selectedIds: [], palettePreview: null })
     notifyItemSelect()
   }
@@ -954,6 +955,7 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
                       <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg bg-[#f7f3eb] p-2">
                         <div className="pointer-events-none w-full">
                           <DavetiyeKart
+                            className="h-full w-full"
                             veri={{
                               tema: sablon.tema,
                               kagit: sablon.kagit,

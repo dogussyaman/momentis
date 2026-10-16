@@ -1,7 +1,7 @@
 import type { SiteTheme } from './schema'
 import type { SiteTemplate } from './templates'
 import { btn, SECTION_DEFINITIONS } from './definitions'
-import { STOCK } from './media'
+import { SITE_AUDIO_LIBRARY, STOCK } from './media'
 
 const theme: SiteTheme = {
   primaryColor: '#26352f',
@@ -426,6 +426,7 @@ function createExtraSection(type: string, look: TemplateLook): SiteTemplate['sec
       songTitle: 'Birlikte Güzel',
       artist: 'Zeynep & Emre',
       cover: look.preview,
+      src: SITE_AUDIO_LIBRARY[['noir-gold', 'film-noir', 'art-deco'].includes(look.id) ? 1 : 0]?.src,
       variant: ['noir-gold', 'film-noir', 'art-deco'].includes(look.id) ? 'vinyl' : 'card',
       loop: true,
     }
