@@ -44,7 +44,7 @@ function resolveTemplateCopy(value: string, eventData?: Record<string, any>) {
   const looksLikeVenue = /(tesis|salon|bahçe|bahcesi|saray|otel|mekân|mekan|istanbul|bursa)/i.test(normalized) &&
     !/(davetiyesi|davetlisiniz|davetlisiniz|düğün daveti)/i.test(normalized)
   if (venueName && looksLikeVenue) {
-    return [venueName, venueAddress].filter(Boolean).join('\n')
+    return [venueName, venueAddress, eventData.city].filter(Boolean).join('\n')
   }
 
   return text
