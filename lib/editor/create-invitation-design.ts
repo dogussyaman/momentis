@@ -1,5 +1,6 @@
 import { GRADYANLAR, KAGITLAR, SABLONLAR, SEMBOLLER, TEMALAR } from '@/lib/davetiye-svg'
 import type { CanvasDocument, CanvasElement } from '@/store/editor-store'
+import { getStoredTokenValue } from '@/lib/events/event-tokens'
 
 const PAPER_BACKGROUNDS = ['#fbf4e5', '#ffffff', '#fff0f3', '#f1f5ec', '#151a2a']
 
@@ -16,6 +17,39 @@ function toSymbolDataUrl(svg: string, palette: { p1: string; p2: string }) {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(source)
 }
 
+function resolveTemplateCopy(value: string, eventData?: Record<string, any>) {
+  if (!eventData) return value
+  const text = String(value || '')
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  const coupleNames = getStoredTokenValue('{{coupleNames}}', eventData)
+  const eventDate = getStoredTokenValue('{{eventDate}}', eventData)
+  const eventTime = getStoredTokenValue('{{eventTime}}', eventData)
+  const venueName = getStoredTokenValue('{{venueName}}', eventData)
+  const venueAddress = getStoredTokenValue('{{venueAddress}}', eventData)
+
+  const words = normalized.split(/\s+/).filter(Boolean)
+  const looksLikeNames = normalized.length <= 60 &&
+    words.length <= 6 &&
+    (normalized.includes('&') || /\bve\b/i.test(normalized))
+  if (coupleNames && looksLikeNames) return coupleNames
+
+  const looksLikeDate = /\d{4}/.test(normalized) && /\d/.test(normalized)
+  if (eventDate && looksLikeDate) {
+    const hasTime = /saat|[:]\d{2}|\|\s*\d{1,2}\.\d{2}/i.test(normalized)
+    return hasTime && eventTime
+      ? eventDate.toLocaleUpperCase('tr-TR') + ' · ' + eventTime
+      : eventDate.toLocaleUpperCase('tr-TR')
+  }
+
+  const looksLikeVenue = /(tesis|salon|bahçe|bahcesi|saray|otel|mekân|mekan|istanbul|bursa)/i.test(normalized) &&
+    !/(davetiyesi|davetlisiniz|davetlisiniz|düğün daveti)/i.test(normalized)
+  if (venueName && looksLikeVenue) {
+    return [venueName, venueAddress].filter(Boolean).join('\n')
+  }
+
+  return text
+}
+
 /**
  * Build a real invitation document from a catalog template.
  * Text and ornamental assets are separate canvas elements, so each can be edited.
@@ -23,6 +57,7 @@ function toSymbolDataUrl(svg: string, palette: { p1: string; p2: string }) {
 export function createEditableInvitationDesign(
   templateName = 'Klasik Altın',
   dimensions: DesignDimensions = { id: 'new_design', width: 1080, height: 1520 },
+  eventData?: Record<string, any>,
 ): CanvasDocument {
   const template = SABLONLAR[templateName] || SABLONLAR['Klasik Altın']
   const palette = TEMALAR[template.tema] || TEMALAR[0]
@@ -56,7 +91,7 @@ export function createEditableInvitationDesign(
   const texts: CanvasElement[] = template.metinler.map((item: any, index: number) => ({
     id: 'text_' + slug + '_' + index,
     type: 'text',
-    text: item.t,
+    text: resolveTemplateCopy(item.t, eventData),
     x: item.x * scaleX - item.w / 2,
     y: item.y * scaleY,
     width: item.w,
