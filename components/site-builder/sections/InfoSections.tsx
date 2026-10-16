@@ -7,49 +7,68 @@ import { Reveal, SectionHeading, SectionShell, SbImage, SiteButtons, type Sectio
 
 export function GiftSection({ section, props }: SectionComponentProps) {
   const [copied, setCopied] = useState<string | null>(null)
-  
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(text)
-    setTimeout(() => setCopied(null), 2000)
+  const accounts: any[] = Array.isArray(props.accounts) ? props.accounts : []
+  const legacyAccount = props.bankInfo
+    ? [{ id: 'legacy-account', bank: props.bankInfo.bank || 'Banka', holder: props.bankInfo.name || '', iban: props.bankInfo.iban || '' }]
+    : []
+  const visibleAccounts = accounts.length ? accounts : legacyAccount
+  const message = props.message || ''
+  const canShowGiftContent = Boolean(message || visibleAccounts.length || props.registryUrl)
+
+  const copy = async (value: string) => {
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(value)
+      window.setTimeout(() => setCopied((current) => current === value ? null : current), 1800)
+    } catch {
+      setCopied(null)
+    }
   }
-  
+
   return (
     <SectionShell section={section}>
-      <SectionHeading eyebrow={props.eyebrow} title={props.title} subtitle={props.subtitle} />
-      
-      {props.variant === 'minimal' ? (
-        <Reveal className="max-w-2xl mx-auto flex flex-col gap-6 text-[15px] leading-relaxed sb-muted">
-           <Gift className="w-8 h-8 mx-auto opacity-50 mb-2" />
-           <p className="whitespace-pre-line">{props.message}</p>
-        </Reveal>
-      ) : (
-        <Reveal className="sb-card max-w-xl mx-auto p-8 @2xl:p-12 shadow-xl flex flex-col gap-8">
-          {props.message && <p className="text-[15px] leading-relaxed sb-muted">{props.message}</p>}
-          
-          {props.bankInfo && (
-            <div className="flex flex-col gap-4 text-left bg-black/5 p-6 rounded-lg">
-              <h4 className="font-medium text-foreground">Banka Hesap Bilgileri</h4>
-              <div className="flex flex-col gap-2 font-mono text-sm">
-                <div className="flex justify-between items-center group">
-                  <span className="opacity-80">IBAN:</span>
-                  <div className="flex items-center gap-3">
-                    <span>{props.bankInfo.iban}</span>
-                    <button onClick={() => copy(props.bankInfo.iban)} className="opacity-0 group-hover:opacity-100 transition p-1 hover:bg-black/10 rounded">
-                      {copied === props.bankInfo.iban ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center group">
-                  <span className="opacity-80">Alıcı:</span>
-                  <div className="flex items-center gap-3">
-                    <span>{props.bankInfo.name}</span>
-                    <button onClick={() => copy(props.bankInfo.name)} className="opacity-0 group-hover:opacity-100 transition p-1 hover:bg-black/10 rounded">
-                      {copied === props.bankInfo.name ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
+      <SectionHeading eyebrow={props.eyebrow} title={props.title || 'Birlikte olmanız yeterli'} subtitle={props.subtitle} />
+
+      {canShowGiftContent && (
+        <Reveal className="mx-auto flex max-w-2xl flex-col gap-6 text-left">
+          {message && <p className="text-center text-[15px] leading-relaxed sb-muted">{message}</p>}
+
+          {visibleAccounts.length > 0 && (
+            <div className="sb-card overflow-hidden divide-y divide-current/10">
+              <div className="border-b border-current/10 px-5 py-4">
+                <h3 className="sb-heading text-lg">Hediye ve hesap bilgileri</h3>
+                <p className="mt-1 text-xs sb-muted">Bilgileri kopyalamak için ilgili düğmeyi kullanabilirsiniz.</p>
               </div>
+              {visibleAccounts.map((account, index) => (
+                <div key={account.id || index} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">{account.bank || 'Banka hesabı'}</p>
+                    {account.holder && <p className="mt-0.5 text-xs sb-muted">{account.holder}</p>}
+                    {account.iban && <p className="mt-2 break-all font-mono text-xs tracking-wide">{account.iban}</p>}
+                  </div>
+                  {account.iban && (
+                    <button
+                      type="button"
+                      onClick={() => void copy(account.iban)}
+                      className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-current/15 px-4 text-xs font-medium transition hover:bg-current/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/30"
+                      aria-label={copied === account.iban ? 'IBAN kopyalandı' : 'IBAN kopyala'}
+                    >
+                      {copied === account.iban ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copied === account.iban ? 'Kopyalandı' : 'IBAN’ı kopyala'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {props.registryUrl && (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-current/10 p-5 text-center">
+              <p className="text-sm sb-muted">{props.registryLabel || 'Hediye listemiz'}</p>
+              <a href={props.registryUrl} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center justify-center rounded-full sb-bg-primary px-5 text-xs font-medium text-[var(--sb-on-primary)] transition hover:opacity-90">
+                Hediye listesini görüntüle
+              </a>
             </div>
           )}
         </Reveal>
@@ -99,17 +118,48 @@ export function AccommodationSection({ section, props }: SectionComponentProps) 
 }
 
 export function DresscodeSection({ section, props }: SectionComponentProps) {
+  const rawColors: any[] = Array.isArray(props.colors) ? props.colors : []
+  const colors = rawColors
+    .map((item) => typeof item === 'string' ? { color: item, name: '' } : item)
+    .filter((item) => item && typeof item.color === 'string' && item.color)
+
+  const notes = [
+    props.womenNote ? { label: 'Kadınlar', text: props.womenNote } : null,
+    props.menNote ? { label: 'Erkekler', text: props.menNote } : null,
+    props.avoid ? { label: 'Küçük not', text: props.avoid } : null,
+  ].filter(Boolean) as { label: string; text: string }[]
+
   return (
     <SectionShell section={section}>
       <SectionHeading eyebrow={props.eyebrow} title={props.title} subtitle={props.subtitle} />
-      <Reveal className="max-w-2xl mx-auto flex flex-col gap-10 mt-8">
-        <p className="text-lg @2xl:text-xl sb-muted leading-relaxed">{props.text}</p>
-        {props.colors && props.colors.length > 0 && (
-          <div className="flex flex-col gap-4 items-center">
-            <span className="text-xs uppercase tracking-widest opacity-60">Renk Paleti</span>
-            <div className="flex gap-4">
-              {props.colors.map((c: string, i: number) => (
-                <div key={i} className="w-12 h-12 @2xl:w-16 @2xl:h-16 rounded-full shadow-inner border border-black/10" style={{ backgroundColor: c }} />
+      <Reveal className="mx-auto mt-8 flex max-w-3xl flex-col gap-8">
+        {props.text && <p className="text-lg leading-relaxed sb-muted">{props.text}</p>}
+
+        {notes.length > 0 && (
+          <div className="grid gap-3 text-left sm:grid-cols-2">
+            {notes.map((note) => (
+              <div key={note.label} className="sb-card rounded-2xl border border-current/10 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] sb-accent">{note.label}</p>
+                <p className="mt-2 text-sm leading-relaxed sb-muted">{note.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {colors.length > 0 && (
+          <div className="flex flex-col items-center gap-4">
+            <span className="text-xs font-medium uppercase tracking-[0.18em] opacity-60">Renk paleti</span>
+            <div className="flex flex-wrap justify-center gap-4">
+              {colors.map((color, index) => (
+                <div key={color.id || color.color + '-' + index} className="flex w-20 flex-col items-center gap-2">
+                  <span
+                    className="h-12 w-12 rounded-full border border-black/10 shadow-inner @2xl:h-14 @2xl:w-14"
+                    style={{ backgroundColor: color.color }}
+                    title={color.name || color.color}
+                    aria-label={color.name || color.color}
+                  />
+                  {color.name && <span className="text-center text-[10px] sb-muted">{color.name}</span>}
+                </div>
               ))}
             </div>
           </div>
