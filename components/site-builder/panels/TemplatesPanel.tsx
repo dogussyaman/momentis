@@ -12,11 +12,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import type { SiteTemplate } from '@/lib/site-builder/templates'
 import { Badge } from '@/components/ui/badge'
 import { PremiumUpgradeModal } from '@/components/ui/PremiumUpgradeModal'
+import { SITE_TEMPLATE_CATEGORIES, filterSiteTemplates, type SiteTemplateCategory } from '@/lib/site-builder/template-categories'
+import { SiteTemplatePreview, SiteTemplateThumbnail } from '../SiteTemplatePreview'
 
 export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { eventData?: Record<string, any>; canUsePremiumTemplates?: boolean }) {
   const { site, loadTemplate } = useSiteEditorStore()
   const activeTemplateId = site?.templateId
   const [query, setQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<SiteTemplateCategory>('Tümü')
   const [pendingTemplate, setPendingTemplate] = useState<SiteTemplate | null>(null)
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; templateName: string }>({ open: false, templateName: '' })
   const [templateTiers, setTemplateTiers] = useState<Record<string, string>>({})
@@ -44,9 +47,10 @@ export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { 
       })
     return () => { active = false }
   }, [])
-  const templates = TEMPLATES.filter((template) =>
-    availableTemplateIds.includes(template.id) &&
-    `${template.name} ${template.tagline}`.toLocaleLowerCase('tr').includes(query.trim().toLocaleLowerCase('tr'))
+  const templates = filterSiteTemplates(
+    TEMPLATES.filter((template) => availableTemplateIds.includes(template.id)),
+    selectedCategory,
+    query,
   )
 
   const applyTemplate = (keepContent: boolean) => {
@@ -67,6 +71,25 @@ export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { 
           <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Şablon ara..." aria-label="Şablon ara" className="h-9 rounded-lg border-[#e7e0d7] bg-[#faf7f2] pl-8 text-[11px]" />
         </div>
+        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+          {SITE_TEMPLATE_CATEGORIES.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => setSelectedCategory(category)}
+              aria-pressed={selectedCategory === category}
+              className={cn(
+                'shrink-0 rounded-full border px-2.5 py-1.5 text-[9px] font-medium transition',
+                selectedCategory === category
+                  ? 'border-midnight bg-midnight text-white'
+                  : 'border-[#e7e0d7] bg-white text-midnight/65 hover:border-champagne'
+              )}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[9px] text-muted-foreground">{templates.length} tasarım gösteriliyor</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
@@ -100,8 +123,7 @@ export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { 
                   type="button"
                 >
                   <div className="relative h-32 w-full overflow-hidden bg-[#f3efe8]">
-                    <img src={tpl.preview} alt={tpl.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/20 via-transparent to-transparent" />
+                    <SiteTemplateThumbnail template={tpl} className="h-full w-full transition-transform duration-300 group-hover:scale-[1.01]" />
                     {isActive && (
                       <motion.div
                         layout
@@ -149,14 +171,19 @@ export function TemplatesPanel({ eventData, canUsePremiumTemplates = false }: { 
 
       {tierError && <p className="border-t px-4 py-2 text-[10px] text-destructive" role="alert">{tierError}</p>}
       <Dialog open={!!pendingTemplate} onOpenChange={(open) => !open && setPendingTemplate(null)}>
-        <DialogContent className="w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-ivory max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100%-1rem)] max-w-6xl flex-col gap-3 overflow-hidden rounded-2xl border-0 bg-ivory p-3 sm:p-5">
           <DialogHeader className="pr-6 sm:pr-0">
             <DialogTitle className="font-serif text-xl sm:text-2xl text-midnight break-words">Şablon değişikliğini seçin</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               {pendingTemplate?.name} şablonu için mevcut bölümlerinizi koruyabilir veya yeni şablonun bölüm düzenini uygulayabilirsiniz. Etkinlik bilgileriniz korunur.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-3 flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-end gap-2">
+          {pendingTemplate && (
+            <div className="min-h-0 max-h-[62dvh] flex-1 overflow-y-auto rounded-xl border border-[#e7dfd3] bg-white">
+              <SiteTemplatePreview template={pendingTemplate} eventData={eventData} />
+            </div>
+          )}
+          <DialogFooter className="mt-1 flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setPendingTemplate(null)} className="w-full sm:w-auto rounded-xl text-xs sm:text-sm">Vazgeç</Button>
             <Button type="button" variant="outline" onClick={() => applyTemplate(true)} className="w-full sm:w-auto rounded-xl border-midnight/20 bg-white text-midnight hover:bg-ivory-50 text-xs sm:text-sm">
               Renk ve yazı tipini uygula

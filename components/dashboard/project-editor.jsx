@@ -539,6 +539,7 @@ export function ProjectEditor() {
         <>
           <SiteStartFlow
             eventTitle={form.title || [form.host_a, form.host_b].filter(Boolean).join(' & ')}
+            eventData={eventData}
             stage={siteStartStage}
             canUsePremiumTemplates={canUsePremiumTemplates}
             onBack={() => {

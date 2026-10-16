@@ -1,6 +1,6 @@
 import type { SiteTheme } from './schema'
 import type { SiteTemplate } from './templates'
-import { btn } from './definitions'
+import { btn, SECTION_DEFINITIONS } from './definitions'
 import { STOCK } from './media'
 
 const theme: SiteTheme = {
@@ -354,6 +354,125 @@ const sectionBackgrounds: Record<string, 'backgroundColor' | 'surfaceColor' | 'p
   footer: 'primaryColor',
 }
 
+const EXTRA_SECTIONS_BY_TEMPLATE: Record<string, string[]> = {
+  portfolio: ['faq', 'music'],
+  'noir-gold': ['music', 'faq'],
+  'botanical-romance': ['dresscode', 'faq'],
+  'editorial-ivory': ['gift', 'faq'],
+  'terracotta-sunset': ['music', 'faq'],
+  'ege-esintisi': ['dresscode', 'faq'],
+  'lavanta-ruyasi': ['music', 'dresscode'],
+  'garden-party': ['dresscode', 'faq'],
+  'modern-minimal': ['faq', 'gift'],
+  'film-noir': ['music', 'faq'],
+  'bordo-klasik': ['gift', 'faq'],
+  'akdeniz-zeytin': ['dresscode', 'faq'],
+  'art-deco': ['music', 'faq'],
+  'boho-earth': ['dresscode', 'faq'],
+  'gece-yildizi': ['music', 'faq'],
+  provence: ['dresscode', 'music'],
+  'inci-luks': ['gift', 'faq'],
+  'kir-cicegi': ['dresscode', 'faq'],
+  'sehir-sikligi': ['gift', 'faq'],
+  'sage-atelier': ['dresscode', 'music'],
+  'kiraz-cicegi': ['music', 'faq'],
+}
+
+const GALLERY_CAPTIONS = [
+  'Birlikte biriken anlar',
+  'Küçük bir mutluluk',
+  'Hikâyemizden bir kare',
+  'Unutulmaz bir gün',
+  'En sevdiğimiz anlar',
+  'Yeni başlangıçlar',
+]
+
+function getGalleryImages(look: TemplateLook) {
+  const natureIds = new Set(['botanical-romance', 'ege-esintisi', 'garden-party', 'akdeniz-zeytin', 'boho-earth', 'provence', 'kir-cicegi', 'sage-atelier'])
+  const nightIds = new Set(['noir-gold', 'film-noir', 'gece-yildizi', 'art-deco', 'bordo-klasik'])
+  const candidates = natureIds.has(look.id)
+    ? [look.heroImage, STOCK.flowers, STOCK.bouquet, STOCK.ceremony, STOCK.table, STOCK.couple2, STOCK.rings]
+    : nightIds.has(look.id)
+      ? [look.heroImage, STOCK.couple3, STOCK.rings, STOCK.decor, STOCK.ceremony, STOCK.bride2, STOCK.table]
+      : [look.heroImage, look.preview, STOCK.couple1, STOCK.rings, STOCK.bouquet, STOCK.ceremony, STOCK.couple3, STOCK.flowers]
+  const images = candidates.filter((src, index) => candidates.indexOf(src) === index).slice(0, 6)
+  return images.map((src, index) => ({
+    id: look.id + '-gallery-' + (index + 1),
+    src,
+    caption: GALLERY_CAPTIONS[index],
+  }))
+}
+
+function createExtraSection(type: string, look: TemplateLook): SiteTemplate['sections'][number] {
+  const definition = SECTION_DEFINITIONS.find((item) => item.type === type)
+  if (!definition) throw new Error('Missing section definition for "' + type + '"')
+
+  let props: Record<string, any> = {}
+  if (type === 'faq') {
+    props = {
+      eyebrow: 'Merak Edilenler',
+      title: 'Sıkça Sorulan Sorular',
+      subtitle: 'Gününüzü rahatça planlamanız için birkaç küçük not.',
+      layout: 'accordion',
+      items: [
+        { id: look.id + '-faq-1', q: 'Katılımımı nasıl bildirebilirim?', a: 'Davetiyedeki katılım formunu kullanarak bize dönüş yapabilirsiniz.' },
+        { id: look.id + '-faq-2', q: 'Mekâna nasıl ulaşabilirim?', a: 'Etkinlik bölümündeki harita ve yol tarifi bağlantılarını kullanabilirsiniz.' },
+        { id: look.id + '-faq-3', q: 'Fotoğraflarımızı paylaşabilir miyiz?', a: 'Anı albümü etkinleştirildiğinde QR kodu üzerinden fotoğraflarınızı ekleyebilirsiniz.' },
+      ],
+    }
+  } else if (type === 'music') {
+    props = {
+      title: 'Bizim şarkımız',
+      songTitle: 'Birlikte Güzel',
+      artist: 'Zeynep & Emre',
+      cover: look.preview,
+      variant: ['noir-gold', 'film-noir', 'art-deco'].includes(look.id) ? 'vinyl' : 'card',
+      loop: true,
+    }
+  } else if (type === 'dresscode') {
+    props = {
+      eyebrow: 'Kutlama için küçük bir not',
+      title: 'Birlikte şık, birlikte rahat',
+      subtitle: 'Kendinizi iyi hissedeceğiniz bir seçim yapın; en güzel aksesuarınız mutluluğumuz.',
+      womenNote: 'Kendinizi rahat ve özel hissedeceğiniz bir seçim yapabilirsiniz.',
+      menNote: 'Kutlamanın tarzına uygun, rahat ve zarif bir kombin tercih edebilirsiniz.',
+      avoid: 'Beyaz ve kırık beyaz tonlarını gelin için saklamak isteyebilirsiniz.',
+      colors: [
+        { id: look.id + '-dress-1', color: look.theme.primaryColor, name: 'Ana ton' },
+        { id: look.id + '-dress-2', color: look.theme.accentColor, name: 'Vurgu' },
+        { id: look.id + '-dress-3', color: look.theme.surfaceColor, name: 'Yumuşak ton' },
+      ],
+    }
+  } else if (type === 'gift') {
+    props = {
+      eyebrow: 'En güzel hediye',
+      title: 'Birlikte olmanız yeterli',
+      subtitle: 'Bu özel günde yanımızda olmanız bizim için en büyük mutluluk.',
+      accounts: [],
+      registryLabel: '',
+      registryUrl: '',
+    }
+  }
+
+  const backgroundColor = type === 'music' ? look.theme.surfaceColor : look.theme.backgroundColor
+  const style = {
+    ...definition.defaults.style,
+    bgType: 'color' as const,
+    bgColor: backgroundColor,
+    textColor: look.theme.textColor,
+    paddingY: type === 'faq' ? 64 : 56,
+    width: type === 'faq' ? 'narrow' as const : 'normal' as const,
+  }
+  return [
+    type,
+    {
+      props,
+      style,
+      animation: { type: look.motion, duration: 0.75, stagger: true },
+    },
+  ] as SiteTemplate['sections'][number]
+}
+
 function createTemplate(look: TemplateLook): SiteTemplate {
   const baseSections = new Map(MODERN_TEMPLATES[0].sections.map(([type, overrides]) => [type, overrides]))
   const layoutByType: Record<string, string> = {
@@ -384,6 +503,39 @@ function createTemplate(look: TemplateLook): SiteTemplate {
       ...(type === 'gallery' ? {
         columns: look.gallery === 'grid' || look.gallery === 'cards' ? 4 : 3,
         aspect: look.id === 'ege-esintisi' || look.id === 'kiraz-cicegi' ? 'portrait' : 'square',
+        images: getGalleryImages(look),
+        showCaptions: true,
+        lightbox: true,
+        hoverZoom: true,
+      } : {}),
+      ...(type === 'story' ? {
+        eyebrow: 'Bizim hikâyemiz',
+        title: 'Küçük anlardan büyük bir mutluluğa',
+        subtitle: 'Bizi bugüne taşıyan birkaç anı ve yeni başlangıcımız.',
+        items: [
+          { id: look.id + '-story-1', date: '', title: 'Her şey bir gülümsemeyle başladı', text: 'Sıradan bir gün, birlikte hatırlamaktan hiç vazgeçmediğimiz bir anıya dönüştü.', image: look.preview },
+          { id: look.id + '-story-2', date: '', title: 'Şimdi yeni bir başlangıç', text: 'Hikâyemizin bu yeni bölümünü sevdiklerimizle paylaşmak için sabırsızlanıyoruz.', image: look.heroImage },
+        ],
+        showImages: true,
+      } : {}),
+      ...(type === 'event' ? {
+        eyebrow: 'Birlikte buluşacağımız yer',
+        title: 'Ne zaman, nerede?',
+        subtitle: 'Bu güzel günü birlikte kutlamak için tüm detaylar.',
+        events: [{ id: look.id + '-main-event', name: '{{eventTypeLabel}}', date: '{{eventDate}}', time: '{{eventTime}}', venue: '{{venueName}}', address: '{{venueAddress}}', note: 'Sizi aramızda görmekten mutluluk duyarız.', image: look.heroImage, link: '' }],
+        showMap: true,
+        showDirections: true,
+        showCalendar: true,
+      } : {}),
+      ...(type === 'schedule' ? {
+        eyebrow: 'Günün akışı',
+        title: 'Bu güzel günün programı',
+        subtitle: 'Birlikte geçireceğimiz anlara küçük bir bakış.',
+        items: [
+          { id: look.id + '-schedule-1', time: '18.00', title: 'Karşılama', desc: 'Sevdiklerimizle buluşma.' },
+          { id: look.id + '-schedule-2', time: '18.30', title: 'Nikah Töreni', desc: 'Yeni başlangıcımıza tanıklık edin.' },
+          { id: look.id + '-schedule-3', time: '20.00', title: 'Kokteyl', desc: 'Sohbet, müzik ve kutlama.' },
+        ],
       } : {}),
       ...(type === 'countdown' ? { showSeconds: look.countdown !== 'minimal' } : {}),
     }
@@ -409,6 +561,9 @@ function createTemplate(look: TemplateLook): SiteTemplate {
     }
     return [type, { ...base, props, style, ...(type === 'footer' ? {} : { animation: { type: look.motion, duration: 0.8, stagger: true } }) }] as SiteTemplate['sections'][number]
   })
+  const extraSections = (EXTRA_SECTIONS_BY_TEMPLATE[look.id] || ['faq']).map((type) => createExtraSection(type, look))
+  const footerIndex = sections.findIndex(([type]) => type === 'footer')
+  sections.splice(footerIndex < 0 ? sections.length : footerIndex, 0, ...extraSections)
 
   return {
     id: look.id,

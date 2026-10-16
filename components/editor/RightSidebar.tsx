@@ -3,7 +3,7 @@ import { useEditorStore } from '@/store/editor-store'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { EDITOR_FONTS, fontStack } from '@/lib/editor-fonts'
+import { EDITOR_FONTS, fontStack, type FontCategory } from '@/lib/editor-fonts'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Check, ChevronsUpDown, Type, Image as ImageIcon, Sparkles, Shapes, Move, Maximize2, RotateCw, Palette, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Layers, ArrowUpToLine, ArrowDownToLine, ArrowUp, ArrowDown } from 'lucide-react'
@@ -31,6 +31,7 @@ function DebouncedColorPicker({ value, onChange, className }: { value: string, o
 }
 
 export function RightSidebar() {
+  const [fontCategory, setFontCategory] = React.useState<FontCategory | 'All'>('All')
   const { design, selectedIds, updateElement, arrangeElement } = useEditorStore()
 
   const selectedElement = selectedIds.length === 1
@@ -243,12 +244,30 @@ export function RightSidebar() {
                   <Command className="w-full">
                     <CommandInput placeholder="Ör. 'Kaligrafi' veya 'Montserrat' ara" className="h-10 text-xs" />
 
-                    <div className="flex gap-2 overflow-x-auto px-3 py-2 border-b scrollbar-none no-scrollbar">
-                      <span className="shrink-0 text-[10px] bg-ivory border px-2 py-1 rounded-md text-midnight/70 font-medium">El Yazısı</span>
-                      <span className="shrink-0 text-[10px] bg-ivory border px-2 py-1 rounded-md text-midnight/70 font-bold">Kalın</span>
-                      <span className="shrink-0 text-[10px] bg-ivory border px-2 py-1 rounded-md text-midnight/70 font-serif">Klasik</span>
-                      <span className="shrink-0 text-[10px] bg-ivory border px-2 py-1 rounded-md text-midnight/70 font-sans">Modern</span>
-                      <span className="shrink-0 text-[10px] bg-ivory border px-2 py-1 rounded-md text-midnight/70 font-medium italic">Zarif</span>
+                    <div className="flex gap-1.5 overflow-x-auto border-b px-3 py-2 scrollbar-none no-scrollbar">
+                      {([
+                        { key: 'All', label: 'Tümü' },
+                        { key: 'Script', label: 'El yazısı' },
+                        { key: 'Elegant', label: 'Zarif' },
+                        { key: 'Serif', label: 'Klasik' },
+                        { key: 'Sans', label: 'Modern' },
+                        { key: 'Display', label: 'Dekoratif' },
+                        { key: 'Classic', label: 'Sistem' },
+                      ] as Array<{ key: FontCategory | 'All'; label: string }>).map((category) => (
+                        <button
+                          key={category.key}
+                          type="button"
+                          onClick={() => setFontCategory(category.key)}
+                          aria-pressed={fontCategory === category.key}
+                          className={"shrink-0 rounded-full border px-2.5 py-1.5 text-[9px] font-medium transition " + (
+                            fontCategory === category.key
+                              ? "border-midnight bg-midnight text-white"
+                              : "border-border bg-white text-midnight/65 hover:border-champagne"
+                          )}
+                        >
+                          {category.label}
+                        </button>
+                      ))}
                     </div>
 
                     <CommandList className="max-h-[300px]">
@@ -265,8 +284,8 @@ export function RightSidebar() {
                         </CommandItem>
                       </CommandGroup>
 
-                      <CommandGroup heading="Premium Fontlar" className="text-[10px] uppercase text-muted-foreground font-semibold px-1 mt-2">
-                        {EDITOR_FONTS.map(y => (
+                      <CommandGroup heading={fontCategory === 'All' ? 'Yazı tipi kataloğu' : fontCategory === 'Script' ? 'El yazısı fontları' : fontCategory === 'Elegant' ? 'Zarif fontlar' : fontCategory === 'Serif' ? 'Serif fontları' : fontCategory === 'Sans' ? 'Modern fontlar' : fontCategory === 'Display' ? 'Dekoratif fontlar' : 'Sistem fontları'} className="text-[10px] uppercase text-muted-foreground font-semibold px-1 mt-2">
+                        {EDITOR_FONTS.filter((font) => fontCategory === 'All' || font.category === fontCategory).map(y => (
                           <CommandItem
                             key={y.name}
                             value={y.name}
@@ -279,26 +298,8 @@ export function RightSidebar() {
                         ))}
                       </CommandGroup>
 
-                      <CommandGroup heading="Klasik Fontlar" className="text-[10px] uppercase text-muted-foreground font-semibold px-1 mt-2">
-                        {['Georgia', 'Arial', 'Times New Roman'].map(font => (
-                          <CommandItem
-                            key={font}
-                            value={font}
-                            onSelect={(val) => handleUpdate('fontFamily', val)}
-                            className="flex items-center justify-between px-2 py-2 rounded-lg cursor-pointer aria-selected:bg-ivory"
-                          >
-                            <span className="text-sm text-midnight" style={{ fontFamily: fontStack(font) }}>{font}</span>
-                            {selectedElement.fontFamily === font && <Check className="h-4 w-4" />}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
                     </CommandList>
-                    <div className="p-2 border-t">
-                      <button className="w-full rounded-lg border border-border bg-ivory-50 text-xs font-semibold p-2 flex items-center justify-center gap-2 hover:bg-ivory transition-colors text-midnight">
-                        <span>Yazı tipi yükle</span>
-                        <span className="px-1.5 py-0.5 bg-yellow-200 text-yellow-800 rounded-sm text-[8px] uppercase tracking-widest">Pro</span>
-                      </button>
-                    </div>
+
                   </Command>
                 </PopoverContent>
               </Popover>
