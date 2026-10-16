@@ -9,7 +9,7 @@ import { TEMPLATES, type SiteTemplate } from '@/lib/site-builder/templates'
 import { PremiumUpgradeModal } from '@/components/ui/PremiumUpgradeModal'
 import { cn } from '@/lib/utils'
 import { SITE_TEMPLATE_CATEGORIES, filterSiteTemplates, type SiteTemplateCategory } from '@/lib/site-builder/template-categories'
-import { SiteTemplatePreviewDialog } from './SiteTemplatePreview'
+import { SiteTemplatePreviewDialog, SiteTemplateThumbnail } from './SiteTemplatePreview'
 
 interface SiteStartFlowProps {
   eventTitle: string
@@ -239,8 +239,7 @@ export function SiteStartFlow({ eventTitle, stage, canUsePremiumTemplates, onBac
                     )}
                   >
                     <div className="relative h-44 overflow-hidden bg-[#eee9df]">
-                      <img src={template.preview} alt={`${template.name} davet sitesi şablonu`} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#172033]/40 via-transparent to-transparent" />
+                      <SiteTemplateThumbnail template={template} className="h-full w-full transition-transform duration-300 group-hover:scale-[1.01]" />
                       
                       {/* Tier Badge */}
                       <Badge
