@@ -174,7 +174,7 @@ export function ProjectEditor() {
         setForm(pick(localProject))
 
         const invitationTemplate = localProject.card_template || 'Klasik Altın'
-        const initialInvitation = createEditableInvitationDesign(invitationTemplate)
+        const initialInvitation = createEditableInvitationDesign(invitationTemplate, undefined, draft.event_data || {})
         const hydratedInvitation = JSON.parse(resolveTokens(JSON.stringify(initialInvitation), draft.event_data || {}))
         setDesign(hydratedInvitation)
         useEditorStore.temporal.getState().clear()
@@ -205,7 +205,7 @@ export function ProjectEditor() {
           setDesign(d.project.canvas_design)
         } else {
           const invitationTemplate = d.project.card_template || (SABLONLAR[d.project.template_slug] ? d.project.template_slug : 'Klasik Altın')
-          const initialInvitation = createEditableInvitationDesign(invitationTemplate)
+          const initialInvitation = createEditableInvitationDesign(invitationTemplate, undefined, d.project.event_data || {})
           const hydratedInvitation = JSON.parse(resolveTokens(JSON.stringify(initialInvitation), d.project.event_data || {}))
           setDesign(hydratedInvitation)
         }
@@ -584,6 +584,7 @@ export function ProjectEditor() {
         <div className="flex-1 w-full relative overflow-hidden bg-ivory">
           <CanvasEditor 
             projectId={project?.id !== 'new' ? project?.id : null}
+            eventData={eventData}
             topbarLeft={
               <div>
                 <Button
