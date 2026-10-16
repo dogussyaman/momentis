@@ -955,6 +955,7 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect, eventData }: LeftS
                       <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg bg-[#f7f3eb] p-2">
                         <div className="pointer-events-none w-full">
                           <DavetiyeKart
+                            className="h-full w-full"
                             veri={{
                               tema: sablon.tema,
                               kagit: sablon.kagit,
