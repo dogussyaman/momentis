@@ -221,7 +221,8 @@ export function SiteStartFlow({ eventTitle, eventData, stage, canUsePremiumTempl
             ) : availableTemplateIds.length === 0 ? (
               <p className="rounded-2xl border border-[#e5ded2] bg-white p-6 text-sm text-[#77746f]">Şu anda seçilebilir site şablonu bulunmuyor.</p>
             ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-4">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visibleTemplates.map((template, index) => {
                 const isPremium = templateTiers[template.id] === 'premium'
                 const isLocked = isPremium && !canUsePremiumTemplates
@@ -326,6 +327,7 @@ export function SiteStartFlow({ eventTitle, eventData, stage, canUsePremiumTempl
                 <Button type="button" variant="outline" onClick={() => { setTemplateQuery(''); setSelectedCategory('Tümü') }} className="mt-4 rounded-full border-[#ded4c5] text-xs">Filtreleri temizle</Button>
               </div>
             )}
+              </div>
             )}
           </motion.main>
         )}
