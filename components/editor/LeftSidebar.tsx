@@ -10,6 +10,7 @@ import { EDITOR_ASSETS, EDITOR_ASSET_CATEGORIES, EditorAsset } from '@/lib/edito
 import { ThemePalettePanel } from './ThemePalettePanel'
 import { SITE_SVG_LIBRARY, WEDDING_MEDIA_LIBRARY } from '@/lib/site-builder/media'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const EDITOR_DRAG_EVENT = 'momentis-editor-sidebar-drop'
 
@@ -192,6 +193,8 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
   const [templateSearch, setTemplateSearch] = useState('')
   const [graphicCategory, setGraphicCategory] = useState(SITE_SVG_LIBRARY[0].id)
   const [templateFormat, setTemplateFormat] = useState('all')
+  const [templateSource, setTemplateSource] = useState<'editable' | 'reference'>('editable')
+  const [pendingEditableTemplate, setPendingEditableTemplate] = useState<string | null>(null)
   const [iconCategory, setIconCategory] = useState('Tümü')
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const { design, updateElement, deleteElements } = useEditorStore()
@@ -203,6 +206,9 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
     const matchesFormat = templateFormat === 'all' || asset.src.toLowerCase().endsWith(`.${templateFormat}`)
     return matchesFormat && asset.label.toLocaleLowerCase('tr').includes(templateSearch.trim().toLocaleLowerCase('tr'))
   })
+  const filteredEditableTemplates = Object.entries(SABLONLAR).filter(([name]) =>
+    name.toLocaleLowerCase('tr').includes(templateSearch.trim().toLocaleLowerCase('tr'))
+  )
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -327,60 +333,59 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
     texts: Array<{t: string, s: number, f: string, y: number, w: number, x: number}> = [],
     svgs: Array<{k: string, x: number, y: number, w: number, r?: number}> = []
   ) => {
-    const textElements = texts.map(m => {
-      const textWidth = m.w;
-      return {
-        id: `text_${uuidv4().split('-')[0]}`,
-        type: 'text' as const,
-        text: m.t,
-        x: (m.x * 3) - (textWidth / 2),
-        y: m.y * 3,
-        width: textWidth,
-        fontSize: m.s,
-        fontFamily: m.f,
-        fill: '#3b2f27',
-        align: 'center',
-        rotation: 0,
-        opacity: 1,
-        visible: true,
-        locked: false
-      }
-    })
+    const currentDesign = useEditorStore.getState().design
+    const scaleX = currentDesign.width / 360
+    const scaleY = currentDesign.height / 560
+    const textElements = texts.map(m => ({
+      id: "text_" + uuidv4().split("-")[0],
+      type: "text" as const,
+      text: m.t,
+      x: (m.x * scaleX) - (m.w / 2),
+      y: m.y * scaleY,
+      width: m.w,
+      height: Math.max(m.s * 1.5, 40),
+      fontSize: m.s,
+      fontFamily: m.f,
+      fill: "#3b2f27",
+      align: "center",
+      rotation: 0,
+      opacity: 1,
+      visible: true,
+      locked: false
+    }))
 
     const svgElements = svgs.map(oge => {
       const sembol = SEMBOLLER[oge.k as keyof typeof SEMBOLLER]
       if (!sembol) return null
       const h = (sembol.h / sembol.w) * oge.w
-      
       const processSVG = (svgStr: string) => {
-         const defs = GRADYANLAR
-            .replace(/var\(--p1\)/g, '#d9a441')
-            .replace(/var\(--p2\)/g, '#b8742a')
-            .replace(/var\(--l1\)/g, '#5f9564')
-            .replace(/var\(--l2\)/g, '#3f7a4f');
-         const fullSvg = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${svgStr}</svg>`;
-         return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(fullSvg)))}`;
+        const defs = GRADYANLAR
+          .replace(/var\(--p1\)/g, "#d9a441")
+          .replace(/var\(--p2\)/g, "#b8742a")
+          .replace(/var\(--l1\)/g, "#5f9564")
+          .replace(/var\(--l2\)/g, "#3f7a4f")
+        const fullSvg = '<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>' + defs + "</defs>" + svgStr + "</svg>"
+        return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(fullSvg)))
       }
-
       return {
-         id: `svg_${uuidv4().split('-')[0]}`,
-         type: 'image' as const,
-         src: processSVG(sembol.svg),
-         x: oge.x * 3,
-         y: oge.y * 3,
-         width: oge.w * 3,
-         height: h * 3,
-         rotation: oge.r || 0,
-         opacity: 1,
-         centered: true
+        id: "svg_" + uuidv4().split("-")[0],
+        type: "image" as const,
+        src: processSVG(sembol.svg),
+        x: oge.x * scaleX,
+        y: oge.y * scaleY,
+        width: oge.w * scaleX,
+        height: h * scaleY,
+        rotation: oge.r || 0,
+        opacity: 1,
+        visible: true,
+        locked: false,
+        centered: true
       }
     }).filter(Boolean)
 
     useEditorStore.setState((state) => ({
-      design: {
-        ...state.design,
-        elements: [...state.design.elements, ...textElements, ...svgElements] as any
-      }
+      design: { ...state.design, elements: [...state.design.elements, ...textElements, ...svgElements] as any },
+      selectedIds: []
     }))
     notifyItemSelect()
   }
@@ -534,57 +539,73 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
     if (!sablon) return
     const tema = TEMALAR[sablon.tema] || TEMALAR[0]
     const kagit = KAGITLAR[sablon.kagit || 0] || KAGITLAR[0]
+    const currentDesign = useEditorStore.getState().design
+    const scaleX = currentDesign.width / 360
+    const scaleY = currentDesign.height / 560
+    const paperBackgrounds = ["#f8f0df", "#ffffff", "#f8e4e8", "#e3eadc", "#171b2d"]
 
     const processSVG = (svgStr: string) => {
-       const defs = GRADYANLAR
-          .replace(/var\(--p1\)/g, tema.p1)
-          .replace(/var\(--p2\)/g, tema.p2)
-          .replace(/var\(--l1\)/g, '#5f9564')
-          .replace(/var\(--l2\)/g, '#3f7a4f');
-       const fullSvg = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs>${svgStr}</svg>`;
-       return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(fullSvg)))}`;
+      const defs = GRADYANLAR
+        .replace(/var\(--p1\)/g, tema.p1)
+        .replace(/var\(--p2\)/g, tema.p2)
+        .replace(/var\(--l1\)/g, "#5f9564")
+        .replace(/var\(--l2\)/g, "#3f7a4f")
+      const fullSvg = '<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>' + defs + "</defs>" + svgStr + "</svg>"
+      return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(fullSvg)))
     }
 
-    const scale = 3 // 360x560 to 1080x1680
-
     const newElements = sablon.ogeler.map((oge: any) => {
-       const [key, cx, cy, w, rot] = oge
-       const sembol = SEMBOLLER[key as keyof typeof SEMBOLLER]
-       if (!sembol) return null
-       
-       const h = (sembol.h / sembol.w) * w
-       return {
-         id: `svg_${uuidv4().split('-')[0]}`,
-         type: 'image',
-         src: processSVG(sembol.svg),
-         x: (cx * scale),
-         y: (cy * scale),
-         width: w * scale,
-         height: h * scale,
-         rotation: rot || 0,
-         opacity: 1,
-         centered: true // New flag for CanvasImage
-       }
+      const [key, cx, cy, w, rot] = oge
+      const sembol = SEMBOLLER[key as keyof typeof SEMBOLLER]
+      if (!sembol) return null
+      const h = (sembol.h / sembol.w) * w
+      return {
+        id: "svg_" + uuidv4().split("-")[0],
+        type: "image",
+        src: processSVG(sembol.svg),
+        x: cx * scaleX,
+        y: cy * scaleY,
+        width: w * scaleX,
+        height: h * scaleY,
+        rotation: rot || 0,
+        opacity: 1,
+        visible: true,
+        locked: false,
+        centered: true
+      }
     }).filter(Boolean)
 
-    sablon.metinler.forEach((m: any) => {
-      const textWidth = m.w;
-      newElements.push({
-        id: `text_${uuidv4().split('-')[0]}`, type: 'text',
-        x: (m.x * scale) - (textWidth / 2), y: m.y * scale, width: textWidth, height: m.s * 1.5,
-        text: m.t, fontFamily: m.f, fontSize: m.s, fill: kagit.yazi, align: 'center', centered: false
-      })
-    })
+    const textElements = sablon.metinler.map((m: any) => ({
+      id: "text_" + uuidv4().split("-")[0],
+      type: "text",
+      x: (m.x * scaleX) - (m.w / 2),
+      y: m.y * scaleY,
+      width: m.w,
+      height: Math.max(m.s * 1.5, 40),
+      text: m.t,
+      fontFamily: m.f,
+      fontSize: m.s,
+      fill: kagit.yazi,
+      align: "center",
+      rotation: 0,
+      opacity: 1,
+      visible: true,
+      locked: false
+    }))
 
-    useEditorStore.setState(state => ({
+    useEditorStore.setState((state) => ({
       design: {
         ...state.design,
-        background: kagit.arka.includes('gradient') ? '#FFFFFF' : kagit.arka,
-        elements: newElements
-      }
+        background: paperBackgrounds[sablon.kagit] || "#fffdf8",
+        elements: [...newElements, ...textElements] as any
+      },
+      selectedIds: [],
+      palettePreview: null
     }))
     notifyItemSelect()
   }
+
+
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="flex h-full w-full min-w-0 flex-row bg-white">
@@ -951,60 +972,118 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
         )}
 
         {activeTab === 'templates' && (
-          <div className="space-y-3">
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
-              Davetiye şablonu seçmek mevcut tasarım katmanlarını değiştirir. Tasarımınızın bir kopyasını saklamak için önce çoğaltın.
-            </p>
+          <div className="flex flex-col gap-4">
+            <div className="rounded-xl border border-[#e8dfd1] bg-[#fbf8f2] p-3">
+              <h3 className="text-xs font-semibold text-midnight">Hazır davetiye tasarımları</h3>
+              <p className="mt-1 text-[10px] leading-relaxed text-midnight/65">
+                Düzenlenebilir şablon seçtiğinizde metinler ve süslemeler ayrı katmanlar halinde eklenir. Görsel referanslar ise tek parça görseldir.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-ivory-50 p-1">
+              <button type="button" onClick={() => setTemplateSource('editable')} aria-pressed={templateSource === 'editable'} className={"rounded-lg px-2 py-2 text-[10px] font-semibold transition " + (templateSource === 'editable' ? "bg-midnight text-white shadow-sm" : "text-midnight/65 hover:bg-white")}>
+                Düzenlenebilir
+              </button>
+              <button type="button" onClick={() => setTemplateSource('reference')} aria-pressed={templateSource === 'reference'} className={"rounded-lg px-2 py-2 text-[10px] font-semibold transition " + (templateSource === 'reference' ? "bg-midnight text-white shadow-sm" : "text-midnight/65 hover:bg-white")}>
+                Görsel referanslar
+              </button>
+            </div>
             <input
               type="search"
               value={templateSearch}
               onChange={(event) => setTemplateSearch(event.target.value)}
-              placeholder="Düğün şablonlarında ara..."
-              aria-label="Düğün şablonlarında ara"
+              placeholder={templateSource === 'editable' ? "Düzenlenebilir tasarım ara..." : "Görsel referanslarda ara..."}
+              aria-label="Davetiye şablonlarında ara"
               className="h-9 w-full rounded-xl border border-border bg-white px-3 text-[10px] text-midnight outline-none focus:border-champagne focus:ring-2 focus:ring-champagne/15"
             />
-            <div className="flex gap-1.5">
-              {[
-                { id: 'all', label: 'Tümü' },
-                { id: 'png', label: 'PNG' },
-                { id: 'svg', label: 'SVG' },
-              ].map((format) => (
-                <button
-                  key={format.id}
-                  type="button"
-                  onClick={() => setTemplateFormat(format.id)}
-                  aria-pressed={templateFormat === format.id}
-                  className={`rounded-full px-2.5 py-1 text-[9px] transition ${templateFormat === format.id ? 'bg-midnight text-white' : 'bg-ivory-50 text-midnight/70 hover:bg-ivory'}`}
-                >
-                  {format.label}
-                </button>
-              ))}
-              <span className="ml-auto self-center text-[9px] tabular-nums text-muted-foreground">
-                {filteredTemplates.length} / {WEDDING_MEDIA_LIBRARY.length}
-              </span>
-            </div>
-            {filteredTemplates.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {filteredTemplates.map((asset) => (
-                  <button
-                    key={asset.src}
-                    type="button"
-                    className="group min-w-0 rounded-lg border border-border p-1 text-left transition-all hover:border-midnight/40"
-                    aria-label={`${asset.label} davetiye şablonunu kullan`}
-                    onClick={() => {
-                      addImageToCanvas(asset.src, true)
-                      onSelectTemplate?.()
-                    }}
-                  >
-                    <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded bg-ivory p-1">
-                      <img src={asset.src} alt="" loading="lazy" className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]" />
-                    </div>
-                    <p className="mt-1 truncate text-center font-serif text-[9px] text-midnight" title={asset.label}>{asset.label}</p>
-                  </button>
-                ))}
+
+            {templateSource === 'editable' ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-midnight/55">Hazır kompozisyonlar</span>
+                  <span className="text-[9px] tabular-nums text-muted-foreground">{filteredEditableTemplates.length} tasarım</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {filteredEditableTemplates.map(([name, sablon]) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setPendingEditableTemplate(name)}
+                      className="group min-w-0 overflow-hidden rounded-xl border border-[#e6ded2] bg-white p-2 text-left transition-all hover:-translate-y-0.5 hover:border-champagne hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+                      aria-label={name + " düzenlenebilir davetiye şablonunu seç"}
+                    >
+                      <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg bg-[#f7f3eb] p-2">
+                        <div className="pointer-events-none w-full">
+                          <DavetiyeKart
+                            veri={{
+                              tema: sablon.tema,
+                              kagit: sablon.kagit,
+                              ogeler: sablon.ogeler.map(([k, x, y, w, r]: any) => ({ k, x, y, w, r })),
+                              yazilar: { isim1: "Zeynep", isim2: "Emre", baslik: "DAVETLİSİNİZ", mesaj: "Bu özel günümüzü bizimle kutlayın." }
+                            }}
+                            scale={0.44}
+                          />
+                        </div>
+                        <span className="absolute left-2 top-2 rounded-full border border-white/80 bg-white/90 px-2 py-1 text-[8px] font-semibold text-midnight shadow-sm">
+                          Düzenlenebilir
+                        </span>
+                        <span className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-midnight text-white opacity-0 shadow-sm transition group-hover:opacity-100">
+                          <PlusCircle className="h-3.5 w-3.5" />
+                        </span>
+                      </div>
+                      <p className="mt-2 line-clamp-2 min-h-7 text-[10px] font-semibold leading-4 text-midnight">{name}</p>
+                      <p className="mt-0.5 text-[8px] text-muted-foreground">{KAGITLAR[sablon.kagit || 0]?.ad || "Kâğıt"} · {TEMALAR[sablon.tema]?.ad || "Tema"}</p>
+                    </button>
+                  ))}
+                </div>
+                {filteredEditableTemplates.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-[10px] text-muted-foreground">Bu aramayla eşleşen tasarım bulunamadı.</p>}
               </div>
             ) : (
-              <p className="rounded-lg border border-dashed p-4 text-center text-[10px] text-muted-foreground">Bu aramayla eşleşen şablon yok.</p>
+              <div className="space-y-3">
+                <p className="text-[9px] leading-relaxed text-muted-foreground">
+                  Bu görseller örnek veya arka plan olarak eklenir; üzerlerindeki yazılar ayrı metin katmanları değildir.
+                </p>
+                <div className="flex gap-1.5">
+                  {[
+                    { id: "all", label: "Tümü" },
+                    { id: "png", label: "PNG" },
+                    { id: "svg", label: "SVG" },
+                  ].map((format) => (
+                    <button
+                      key={format.id}
+                      type="button"
+                      onClick={() => setTemplateFormat(format.id)}
+                      aria-pressed={templateFormat === format.id}
+                      className={"rounded-full px-2.5 py-1 text-[9px] transition " + (templateFormat === format.id ? "bg-midnight text-white" : "bg-ivory-50 text-midnight/70 hover:bg-ivory")}
+                    >
+                      {format.label}
+                    </button>
+                  ))}
+                  <span className="ml-auto self-center text-[9px] tabular-nums text-muted-foreground">{filteredTemplates.length} / {WEDDING_MEDIA_LIBRARY.length}</span>
+                </div>
+                {filteredTemplates.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {filteredTemplates.map((asset) => (
+                      <button
+                        key={asset.src}
+                        type="button"
+                        className="group min-w-0 rounded-lg border border-border p-1 text-left transition-all hover:border-midnight/40"
+                        aria-label={asset.label + " görsel referansını tuvale ekle"}
+                        onClick={() => {
+                          addImageToCanvas(asset.src, true)
+                          notifyItemSelect()
+                        }}
+                      >
+                        <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded bg-ivory p-1">
+                          <img src={asset.src} alt="" loading="lazy" className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]" />
+                        </div>
+                        <p className="mt-1 truncate text-center font-serif text-[9px] text-midnight" title={asset.label}>{asset.label}</p>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed p-4 text-center text-[10px] text-muted-foreground">Bu aramayla eşleşen görsel yok.</p>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -1147,6 +1226,20 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
              </div>
            </div>
         )}
+      <Dialog open={Boolean(pendingEditableTemplate)} onOpenChange={(open) => { if (!open) setPendingEditableTemplate(null) }}>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[#e6ded2] bg-white p-5">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl text-midnight">{pendingEditableTemplate} tasarımını uygulayalım mı?</DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
+              Bu işlem mevcut tuvaldeki katmanların yerine seçtiğiniz kompozisyonu koyar. İsimler, tarih, davet metni ve süslemeler ayrı ayrı düzenlenebilir olacak.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-2 flex flex-col-reverse gap-2 sm:flex-row">
+            <button type="button" onClick={() => setPendingEditableTemplate(null)} className="h-9 rounded-lg border border-border px-4 text-xs font-medium text-midnight hover:bg-ivory-50">Vazgeç</button>
+            <button type="button" onClick={() => { if (pendingEditableTemplate) applyTemplate(pendingEditableTemplate); setPendingEditableTemplate(null) }} className="h-9 rounded-lg bg-midnight px-4 text-xs font-semibold text-white hover:bg-midnight/90">Düzenlenebilir tasarımı uygula</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </Tabs>
   )
