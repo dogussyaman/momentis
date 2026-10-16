@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { SABLONLAR, SEMBOLLER, TEMALAR, KAGITLAR, GRADYANLAR, KATEGORILER } from '@/lib/davetiye-svg'
 import { DavetiyeKart } from '@/components/shared/davetiye-kart'
 import { EDITOR_ASSETS, EDITOR_ASSET_CATEGORIES, EditorAsset } from '@/lib/editor-assets'
+import { createEditableInvitationDesign } from '@/lib/editor/create-invitation-design'
 import { ThemePalettePanel } from './ThemePalettePanel'
 import { SITE_SVG_LIBRARY, WEDDING_MEDIA_LIBRARY } from '@/lib/site-builder/media'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -535,76 +536,15 @@ export function LeftSidebar({ onSelectTemplate, onItemSelect }: LeftSidebarProps
   }
 
   const applyTemplate = (sablonKey: string) => {
-    const sablon = SABLONLAR[sablonKey]
-    if (!sablon) return
-    const tema = TEMALAR[sablon.tema] || TEMALAR[0]
-    const kagit = KAGITLAR[sablon.kagit || 0] || KAGITLAR[0]
     const currentDesign = useEditorStore.getState().design
-    const scaleX = currentDesign.width / 360
-    const scaleY = currentDesign.height / 560
-    const paperBackgrounds = ["#f8f0df", "#ffffff", "#f8e4e8", "#e3eadc", "#171b2d"]
-
-    const processSVG = (svgStr: string) => {
-      const defs = GRADYANLAR
-        .replace(/var\(--p1\)/g, tema.p1)
-        .replace(/var\(--p2\)/g, tema.p2)
-        .replace(/var\(--l1\)/g, "#5f9564")
-        .replace(/var\(--l2\)/g, "#3f7a4f")
-      const fullSvg = '<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>' + defs + "</defs>" + svgStr + "</svg>"
-      return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(fullSvg)))
-    }
-
-    const newElements = sablon.ogeler.map((oge: any) => {
-      const [key, cx, cy, w, rot] = oge
-      const sembol = SEMBOLLER[key as keyof typeof SEMBOLLER]
-      if (!sembol) return null
-      const h = (sembol.h / sembol.w) * w
-      return {
-        id: "svg_" + uuidv4().split("-")[0],
-        type: "image",
-        src: processSVG(sembol.svg),
-        x: cx * scaleX,
-        y: cy * scaleY,
-        width: w * scaleX,
-        height: h * scaleY,
-        rotation: rot || 0,
-        opacity: 1,
-        visible: true,
-        locked: false,
-        centered: true
-      }
-    }).filter(Boolean)
-
-    const textElements = sablon.metinler.map((m: any) => ({
-      id: "text_" + uuidv4().split("-")[0],
-      type: "text",
-      x: (m.x * scaleX) - (m.w / 2),
-      y: m.y * scaleY,
-      width: m.w,
-      height: Math.max(m.s * 1.5, 40),
-      text: m.t,
-      fontFamily: m.f,
-      fontSize: m.s,
-      fill: kagit.yazi,
-      align: "center",
-      rotation: 0,
-      opacity: 1,
-      visible: true,
-      locked: false
-    }))
-
-    useEditorStore.setState((state) => ({
-      design: {
-        ...state.design,
-        background: paperBackgrounds[sablon.kagit] || "#fffdf8",
-        elements: [...newElements, ...textElements] as any
-      },
-      selectedIds: [],
-      palettePreview: null
-    }))
+    const design = createEditableInvitationDesign(sablonKey, {
+      id: currentDesign.id,
+      width: currentDesign.width,
+      height: currentDesign.height,
+    })
+    useEditorStore.setState({ design, selectedIds: [], palettePreview: null })
     notifyItemSelect()
   }
-
 
 
   return (
