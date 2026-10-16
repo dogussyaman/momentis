@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 // Stage needs to be CSR only because Konva uses document/window
 const CanvasStage = dynamic(() => import('./CanvasStage'), { ssr: false })
 
-export function CanvasEditor({ topbarLeft, topbarRight, projectId }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null }) {
+export function CanvasEditor({ topbarLeft, topbarRight, projectId, eventData }: { topbarLeft?: React.ReactNode, topbarRight?: React.ReactNode, projectId?: string | null, eventData?: Record<string, any> }) {
   const [stage, setStage] = useState<KonvaStage | null>(null)
   const [mobilePanel, setMobilePanel] = useState<'tools' | 'properties' | null>(null)
   const [drawingOpen, setDrawingOpen] = useState(false)
@@ -37,7 +37,7 @@ export function CanvasEditor({ topbarLeft, topbarRight, projectId }: { topbarLef
       <EditorToolbar topbarLeft={topbarLeft} topbarRight={topbarRight} projectId={projectId} stage={stage} />
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {!compactLayout && <ResizableSidebar id="invitation-left" label="Davetiye araç paneli" side="left" initialWidth={340} minWidth={260} maxWidth={520} className="border-r border-border bg-white shadow-[2px_0_18px_-16px_rgba(16,24,39,0.35)]">
-          <LeftSidebar />
+          <LeftSidebar eventData={eventData} />
         </ResizableSidebar>}
         <div className="relative min-h-0 min-w-0 flex-1 bg-white">
           {compactLayout && (
@@ -122,6 +122,7 @@ export function CanvasEditor({ topbarLeft, topbarRight, projectId }: { topbarLef
           </DrawerHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <LeftSidebar
+              eventData={eventData}
               onSelectTemplate={() => setMobilePanel(null)}
               onItemSelect={() => setMobilePanel(null)}
             />
