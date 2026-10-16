@@ -157,12 +157,12 @@ export function SiteStartFlow({ eventTitle, eventData, stage, canUsePremiumTempl
             {onOpenGiftCampaign && (
               <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#e4d5b8] bg-[#f3eddf] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#967746]">Mock demo</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#967746]">MOMENTIS seçkisi</p>
                   <h2 className="mt-1 font-serif text-lg">Site Alımına Özel Hediyen</h2>
-                  <p className="mt-1 text-xs leading-5 text-[#77746f]">Demo site hakkı oluşturup 5 premium davetiye arasından tek bir ücretsiz seçim yap.</p>
+                  <p className="mt-1 text-xs leading-5 text-[#77746f]">Site tasarımınıza eşlik edecek özel davetiye seçeneklerini de inceleyin.</p>
                 </div>
                 <Button type="button" variant="outline" onClick={onOpenGiftCampaign} className="shrink-0 rounded-xl border-[#caba9d] bg-white">
-                  Ücretsiz davetiyeyi seç <ArrowRight className="ml-2 h-4 w-4" />
+                  Davetiye seçeneklerini incele <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             )}
@@ -318,6 +318,14 @@ export function SiteStartFlow({ eventTitle, eventData, stage, canUsePremiumTempl
                 )
               })}
             </div>
+            {visibleTemplates.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-[#e5ded2] bg-white p-8 text-center">
+                <Search className="mx-auto h-5 w-5 text-[#b0a594]" />
+                <p className="mt-3 text-sm font-medium text-[#172033]">Bu filtrelerle eşleşen şablon bulunamadı.</p>
+                <p className="mt-1 text-xs text-[#77746f]">Farklı bir arama yapın veya başka bir stil seçin.</p>
+                <Button type="button" variant="outline" onClick={() => { setTemplateQuery(''); setSelectedCategory('Tümü') }} className="mt-4 rounded-full border-[#ded4c5] text-xs">Filtreleri temizle</Button>
+              </div>
+            )}
             )}
           </motion.main>
         )}
