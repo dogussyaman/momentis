@@ -6,7 +6,7 @@ import { buildMarketingMetadata } from '@/lib/seo'
 
 export const metadata = buildMarketingMetadata({
   title: 'VIP Kişiye Özel Tasarımlar | MOMENTIS',
-  description: 'Beş VIP site konseptini ve beş ayrı hediye davetiye tasarımını inceleyin.',
+  description: 'On beş hareketli VIP site konseptini ve hediye davetiye tasarımlarını keşfedin.',
   path: '/tasarimlar/vip',
 })
 
@@ -14,7 +14,7 @@ const steps = [
   'VIP site konseptinizi seçin.',
   'Gelin-damat ve etkinlik bilgilerinizi iletin.',
   'Fotoğraflarınızı ve kişisel tasarım tercihlerinizi belirtin.',
-  'Beş hediye davetiye konseptinden birini seçin.',
+  'Hediye davetiye konseptlerinden birini seçin.',
   'Talebinizi gönderin; admin incelemesi sonrası süreç hakkında bilgilendirilin.',
 ]
 
@@ -34,7 +34,7 @@ export default function VipDesignLandingPage() {
           <div className="rounded-[26px] border border-midnight/10 bg-white p-6 shadow-sm">
             <p className="flex items-center gap-2 text-xs font-medium"><Sparkles className="h-4 w-4 text-champagne-dark" /> VIP deneyiminin kapsamı</p>
             <ul className="mt-4 space-y-3 text-xs leading-5 text-muted-foreground">
-              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-champagne-dark" /> Beş farklı özel site konsepti arasından seçim</li>
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-champagne-dark" /> On beş farklı VIP site konsepti arasından seçim</li>
               <li className="flex gap-2"><Images className="mt-0.5 h-4 w-4 shrink-0 text-champagne-dark" /> QR fotoğraf albümü ve misafir fotoğraf paylaşımı talebi</li>
               <li className="flex gap-2"><Heart className="mt-0.5 h-4 w-4 shrink-0 text-champagne-dark" /> Ayrı katalogdan bir hediye davetiye konsepti seçimi</li>
             </ul>
@@ -45,8 +45,8 @@ export default function VipDesignLandingPage() {
 
       <section className="container mt-20" aria-labelledby="vip-sites">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div><p className="text-[10px] uppercase tracking-[0.24em] text-champagne-dark">A · VIP site konseptleri</p><h2 id="vip-sites" className="mt-3 font-serif text-3xl md:text-4xl">Beş ayrı tasarım yönü</h2></div>
-          <p className="max-w-md text-xs leading-5 text-muted-foreground">Her demo farklı düzen ve görsel hiyerarşi kullanır. Örnek isimler ve görseller yalnızca tasarım sunumudur.</p>
+          <div><p className="text-[10px] uppercase tracking-[0.24em] text-champagne-dark">A · VIP site konseptleri</p><h2 id="vip-sites" className="mt-3 font-serif text-3xl md:text-4xl">15 ayrı tasarım yönü</h2></div>
+          <p className="max-w-md text-xs leading-5 text-muted-foreground">Her demo farklı görsel dil, kompozisyon ve hareket yaklaşımı kullanır. Örnek isimler ve görseller yalnızca tasarım sunumudur.</p>
         </div>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {VIP_SITE_TEMPLATES.map((template, index) => (
