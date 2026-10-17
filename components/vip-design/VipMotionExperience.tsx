@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion, type MotionProps } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowDown, ArrowLeft, ArrowRight, CalendarDays, Camera, Heart, MapPin, Music2, Sparkles, Stars } from 'lucide-react'
 
@@ -23,15 +23,15 @@ const photos = [
   'photo-1522673607200-164d1b6ce486',
 ]
 
-function photoUrl(id, width = 1200) {
+function photoUrl(id: string, width = 1200) {
   return 'https://images.unsplash.com/' + id + '?auto=format&fit=crop&w=' + width + '&q=85'
 }
 
-export function VipMotionExperience({ variant }) {
-  const design = designs[variant] || designs[6]
+export function VipMotionExperience({ variant }: { variant: number }) {
+  const design = designs[variant as keyof typeof designs] || designs[6]
   const reduceMotion = useReducedMotion()
   const isDark = variant === 7 || variant === 12
-  const motionProps = reduceMotion ? {} : { initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.18 }, transition: { duration: 0.65, ease: 'easeOut' } }
+  const motionProps: MotionProps = reduceMotion ? {} : { initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.18 }, transition: { duration: 0.65, ease: 'easeOut' } }
   const heroImage = photoUrl(design.image, 2000)
   const titleClass = design.layout === 'cobalt' ? 'font-sans font-black uppercase tracking-[-0.08em]' : 'font-serif font-normal'
   const centerHero = ['garden', 'fineart', 'deco', 'burgundy'].includes(design.layout)
